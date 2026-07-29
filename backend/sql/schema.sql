@@ -1,0 +1,6 @@
+CREATE TABLE users (id UUID PRIMARY KEY, email TEXT UNIQUE NOT NULL, employee_id TEXT UNIQUE NOT NULL, full_name TEXT NOT NULL, role TEXT NOT NULL, password_hash TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE devices (id UUID PRIMARY KEY, user_id UUID REFERENCES users(id), model TEXT NOT NULL, os TEXT NOT NULL, fingerprint TEXT UNIQUE NOT NULL, trusted BOOLEAN DEFAULT false);
+CREATE TABLE qr_codes (id UUID PRIMARY KEY, nonce TEXT UNIQUE NOT NULL, signature TEXT NOT NULL, valid_on DATE NOT NULL, expires_at TIMESTAMPTZ NOT NULL, revoked BOOLEAN DEFAULT false);
+CREATE TABLE attendance (id UUID PRIMARY KEY, user_id UUID REFERENCES users(id), employee_id TEXT NOT NULL, employee_name TEXT NOT NULL, attended_on DATE NOT NULL, attended_at TIMESTAMPTZ NOT NULL, latitude DOUBLE PRECISION NOT NULL, longitude DOUBLE PRECISION NOT NULL, accuracy DOUBLE PRECISION NOT NULL, device_id UUID REFERENCES devices(id), status TEXT NOT NULL, idempotency_key TEXT UNIQUE NOT NULL, UNIQUE(employee_id, attended_on));
+CREATE TABLE logs (id UUID PRIMARY KEY, actor_id UUID, action TEXT NOT NULL, metadata JSONB NOT NULL DEFAULT '{}', created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE settings (key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now());
