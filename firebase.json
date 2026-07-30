@@ -1,0 +1,23 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "pointage-app-cdb02",
+                    "appId": "1:639704911114:android:4ee00172c870c571dafef3",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "pointage-app-cdb02",
+                    "configurations": {
+                        "android": "1:639704911114:android:4ee00172c870c571dafef3",
+                        "ios": "1:639704911114:ios:5edf6ea6630a69e2dafef3",
+                        "web": "1:639704911114:web:f33174e3ee9a1692dafef3"
+                    }
+                }
+            }
+        }
+    }
+}

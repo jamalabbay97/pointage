@@ -1,3 +1,4 @@
+# Existing entries
 .dart_tool/
 build/
 .packages
@@ -6,3 +7,10 @@ build/
 .pub-cache/
 backend/node_modules/
 .env
+
+# Firebase (contain API keys)
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/firebase_app_id_file.json
+firebase-debug.log

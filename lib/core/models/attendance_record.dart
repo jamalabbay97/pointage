@@ -28,19 +28,19 @@ class AttendanceRecord {
   final int batteryLevel;
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'employeeId': employeeId,
-    'employeeName': employeeName,
-    'date': date.toIso8601String().substring(0, 10),
-    'time': time.toIso8601String(),
-    'status': status,
-    'latitude': latitude,
-    'longitude': longitude,
-    'locationAccuracy': locationAccuracy,
-    'deviceModel': deviceModel,
-    'operatingSystem': operatingSystem,
-    'batteryLevel': batteryLevel,
-    'internetStatus': internetStatus,
-    'deviceId': deviceId,
-  };
+        'id': id,
+        'employeeId': employeeId,
+        'employeeName': employeeName,
+        'date': date.toIso8601String().substring(0, 10),
+        'time': time.toIso8601String(),
+        'status': status,
+        'latitude': latitude,
+        'longitude': longitude,
+        'locationAccuracy': locationAccuracy,
+        'deviceModel': deviceModel,
+        'operatingSystem': operatingSystem,
+        'batteryLevel': batteryLevel,
+        'internetStatus': internetStatus,
+        'deviceId': deviceId,
+      };
 }
