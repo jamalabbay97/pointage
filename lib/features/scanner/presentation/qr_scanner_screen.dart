@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -25,7 +26,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     content: Text('Attendance Successfully Registered'),
                   ),
                 );
-                Navigator.pop(context);
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/dashboard');
+                }
               },
             ),
             Center(
