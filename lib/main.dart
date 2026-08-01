@@ -9,6 +9,9 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/history/presentation/history_screen.dart';
 import 'features/scanner/presentation/qr_scanner_screen.dart';
+import 'features/profile/presentation/profile_screen.dart';
+import 'features/settings/presentation/settings_screen.dart';
+import 'features/auth/domain/auth_provider.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -20,14 +23,28 @@ Future<void> main() async {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
+
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/dashboard',
+    redirect: (context, state) {
+      final isAuth = authState.valueOrNull != null;
+      final isLoggingIn = state.matchedLocation == '/login';
+
+      if (authState.isLoading) return null; // wait for initialization
+      
+      if (!isAuth && !isLoggingIn) return '/login';
+      if (isAuth && isLoggingIn) return '/dashboard';
+      return null;
+    },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
       GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
       GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
+      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     ],
   );
 });

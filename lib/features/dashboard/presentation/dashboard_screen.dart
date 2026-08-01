@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -36,7 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Dashboard'),
         actions: [
           IconButton(
-            onPressed: () => context.go('/admin'),
+            onPressed: () => context.push('/admin'),
             icon: const Icon(Icons.admin_panel_settings),
           ),
         ],
@@ -61,7 +62,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     DateFormat.Hms().format(now),
                     style: Theme.of(context).textTheme.displaySmall,
                   ),
-                  const Chip(label: Text('Today: Not checked in')),
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('attendance')
+                        .doc('${user?.uid}-${DateTime.now().toIso8601String().substring(0, 10)}')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      final hasCheckedIn = snapshot.data?.exists ?? false;
+                      return Chip(
+                        label: Text(hasCheckedIn ? 'Today: Checked In' : 'Today: Not checked in'),
+                        backgroundColor: hasCheckedIn ? Colors.green.withValues(alpha: 0.2) : null,
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -80,12 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const _Action(
             title: 'Profile',
             icon: Icons.person,
-            route: '/dashboard',
+            route: '/profile',
           ),
           const _Action(
             title: 'Settings',
             icon: Icons.settings,
-            route: '/dashboard',
+            route: '/settings',
           ),
         ],
       ),
@@ -101,7 +114,7 @@ class _Action extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: FilledButton.tonalIcon(
-          onPressed: () => context.go(route),
+          onPressed: () => context.push(route),
           icon: Icon(icon),
           label: Text(title),
         ),
