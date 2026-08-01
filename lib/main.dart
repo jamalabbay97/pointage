@@ -4,7 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'features/admin/presentation/admin_screen.dart';
+import 'features/admin/presentation/user_management_screen.dart';
+import 'features/admin/presentation/role_management_screen.dart';
+import 'features/admin/presentation/qr_generator_screen.dart';
+import 'features/admin/presentation/system_settings_screen.dart';
+import 'features/admin/presentation/admin_reports_screen.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/history/presentation/history_screen.dart';
@@ -43,6 +49,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
       GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
       GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
+      GoRoute(path: '/admin/users', builder: (_, __) => const UserManagementScreen()),
+      GoRoute(path: '/admin/roles', builder: (_, __) => const RoleManagementScreen()),
+      GoRoute(path: '/admin/qr', builder: (_, __) => const QrGeneratorScreen()),
+      GoRoute(path: '/admin/settings', builder: (_, __) => const SystemSettingsScreen()),
+      GoRoute(path: '/admin/reports', builder: (_, __) => const AdminReportsScreen()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     ],
@@ -54,11 +65,13 @@ class ChezLePointageApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
       title: 'Chez Le Pointage',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: ref.watch(appRouterProvider),
       debugShowCheckedModeBanner: false,
     );

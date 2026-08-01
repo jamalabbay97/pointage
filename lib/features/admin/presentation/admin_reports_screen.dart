@@ -1,39 +1,33 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xl;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+class AdminReportsScreen extends StatefulWidget {
+  const AdminReportsScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<AdminReportsScreen> createState() => _AdminReportsScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _AdminReportsScreenState extends State<AdminReportsScreen> {
   final _db = FirebaseFirestore.instance;
   String _searchQuery = '';
   String _statusFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance History'),
+        title: const Text('Attendance Reports & Analytics'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _db
-            .collection('attendance')
-            .where('employeeId', isEqualTo: user?.uid ?? '')
-            .snapshots(),
+        stream: _db.collection('attendance').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error loading history: ${snapshot.error}'));
+            return Center(child: Text('Error loading reports: ${snapshot.error}'));
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -43,18 +37,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           final docs = snapshot.data?.docs ?? [];
           var records = docs.map((d) => d.data() as Map<String, dynamic>).toList();
 
-          // Sort descending by date/time
-          records.sort((a, b) {
-            final t1 = a['time'] as String? ?? '';
-            final t2 = b['time'] as String? ?? '';
-            return t2.compareTo(t1);
-          });
-
           if (_searchQuery.isNotEmpty) {
             records = records.where((r) {
-              final date = (r['date'] as String? ?? '').toLowerCase();
-              final device = (r['deviceModel'] as String? ?? '').toLowerCase();
-              return date.contains(_searchQuery.toLowerCase()) || device.contains(_searchQuery.toLowerCase());
+              final name = (r['employeeName'] as String? ?? '').toLowerCase();
+              return name.contains(_searchQuery.toLowerCase());
             }).toList();
           }
 
@@ -65,14 +51,65 @@ class _HistoryScreenState extends State<HistoryScreen> {
             }).toList();
           }
 
+          final totalRecords = records.length;
+          final presentCount = records.where((r) => r['status'] == 'present').length;
+
           return Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '$totalRecords',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                  const Text('Total Records', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Card(
+                            color: Colors.green.withValues(alpha: 0.1),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '$presentCount',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                  const Text('Verified Present', style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     SearchBar(
-                      hintText: 'Search by date or device model...',
+                      hintText: 'Filter by employee name...',
                       leading: const Icon(Icons.search),
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
                     ),
@@ -100,12 +137,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.download_rounded),
-                          tooltip: 'Export',
+                          tooltip: 'Export Report',
                           onSelected: (val) {
                             if (val == 'pdf') {
-                              _exportPdf(records, user?.displayName ?? 'Employee');
+                              _exportPdf(records);
                             } else if (val == 'excel') {
-                              _exportExcel(records, user?.displayName ?? 'Employee');
+                              _exportExcel(records);
                             }
                           },
                           itemBuilder: (context) => [
@@ -115,7 +152,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 children: [
                                   Icon(Icons.picture_as_pdf, color: Colors.red),
                                   SizedBox(width: 8),
-                                  Text('Export PDF'),
+                                  Text('Export PDF Report'),
                                 ],
                               ),
                             ),
@@ -125,7 +162,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 children: [
                                   Icon(Icons.table_chart, color: Colors.green),
                                   SizedBox(width: 8),
-                                  Text('Export Excel'),
+                                  Text('Export Excel Sheet'),
                                 ],
                               ),
                             ),
@@ -139,16 +176,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Expanded(
                 child: records.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.history_outlined, size: 64, color: Colors.grey.shade400),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No attendance history records found',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          ],
+                        child: Text(
+                          'No attendance records found',
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
                       )
                     : ListView.builder(
@@ -156,32 +186,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         itemCount: records.length,
                         itemBuilder: (context, index) {
                           final record = records[index];
+                          final name = record['employeeName'] ?? 'Unknown';
                           final date = record['date'] ?? '';
                           final timeStr = record['time'] ?? '';
                           final status = record['status'] ?? 'present';
-                          final device = record['deviceModel'] ?? 'Mobile Device';
+                          final device = record['deviceModel'] ?? 'Device';
                           final battery = record['batteryLevel'] ?? 0;
-                          final lat = record['latitude'] ?? 0.0;
-                          final lng = record['longitude'] ?? 0.0;
 
                           String formattedTime = timeStr;
                           try {
-                            formattedTime = DateFormat('HH:mm:ss').format(DateTime.parse(timeStr));
+                            final dt = DateTime.parse(timeStr);
+                            formattedTime = DateFormat('HH:mm:ss').format(dt);
                           } catch (_) {}
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: const EdgeInsets.only(bottom: 10),
                             child: ListTile(
                               leading: const CircleAvatar(
-                                backgroundColor: Color(0xFFDCFCE7),
-                                child: Icon(Icons.verified, color: Colors.green),
+                                child: Icon(Icons.check_circle_outline, color: Colors.green),
                               ),
-                              title: Text(
-                                'Date: $date at $formattedTime',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                              title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(
-                                'GPS: ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}\nDevice: $device ($battery% battery)',
+                                'Date: $date at $formattedTime\nDevice: $device • Battery: $battery%',
                                 style: const TextStyle(fontSize: 12),
                               ),
                               isThreeLine: true,
@@ -204,7 +230,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Future<void> _exportPdf(List<Map<String, dynamic>> records, String employeeName) async {
+  Future<void> _exportPdf(List<Map<String, dynamic>> records) async {
     try {
       final pdf = pw.Document();
       pdf.addPage(
@@ -216,16 +242,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 pw.Header(
                   level: 0,
                   child: pw.Text(
-                    'Personal Attendance Statement - $employeeName',
+                    'Chez Le Pointage - Official Attendance Report',
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
                   ),
                 ),
                 pw.SizedBox(height: 10),
-                pw.Text('Generated: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}'),
-                pw.Text('Total Verified Days: ${records.length}'),
+                pw.Text('Generated on: ${DateFormat('yyyy-MM-DD HH:mm:ss').format(DateTime.now())}'),
+                pw.Text('Total Logged Records: ${records.length}'),
                 pw.SizedBox(height: 20),
                 pw.TableHelper.fromTextArray(
-                  headers: ['Date', 'Time', 'Status', 'Device Model', 'Battery'],
+                  headers: ['Employee', 'Date', 'Time', 'Status', 'Device'],
                   data: records.map((r) {
                     final timeStr = r['time'] ?? '';
                     String ft = timeStr;
@@ -233,11 +259,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ft = DateFormat('HH:mm:ss').format(DateTime.parse(timeStr));
                     } catch (_) {}
                     return [
+                      r['employeeName'] ?? 'N/A',
                       r['date'] ?? 'N/A',
                       ft,
                       (r['status'] as String? ?? 'present').toUpperCase(),
                       r['deviceModel'] ?? 'N/A',
-                      '${r['batteryLevel'] ?? 0}%',
                     ];
                   }).toList(),
                 ),
@@ -248,7 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
 
       final outputDir = Directory.systemTemp.path;
-      final file = File('$outputDir/My_Attendance_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      final file = File('$outputDir/Attendance_Report_${DateTime.now().millisecondsSinceEpoch}.pdf');
       await file.writeAsBytes(await pdf.save());
 
       if (mounted) {
@@ -268,12 +294,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _exportExcel(List<Map<String, dynamic>> records, String employeeName) async {
+  Future<void> _exportExcel(List<Map<String, dynamic>> records) async {
     try {
       final excel = xl.Excel.createExcel();
-      final sheet = excel['My Attendance'];
+      final sheet = excel['Attendance Report'];
 
       sheet.appendRow([
+        xl.TextCellValue('Employee Name'),
         xl.TextCellValue('Date'),
         xl.TextCellValue('Time'),
         xl.TextCellValue('Status'),
@@ -285,6 +312,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       for (final r in records) {
         sheet.appendRow([
+          xl.TextCellValue(r['employeeName']?.toString() ?? ''),
           xl.TextCellValue(r['date']?.toString() ?? ''),
           xl.TextCellValue(r['time']?.toString() ?? ''),
           xl.TextCellValue(r['status']?.toString() ?? ''),
@@ -296,14 +324,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       final outputDir = Directory.systemTemp.path;
-      final file = File('$outputDir/My_Attendance_${DateTime.now().millisecondsSinceEpoch}.xlsx');
+      final file = File('$outputDir/Attendance_Sheet_${DateTime.now().millisecondsSinceEpoch}.xlsx');
       final bytes = excel.encode();
       if (bytes != null) {
         await file.writeAsBytes(bytes);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Excel sheet saved: ${file.path}'),
+              content: Text('Excel generated successfully: ${file.path}'),
               backgroundColor: Colors.green,
             ),
           );

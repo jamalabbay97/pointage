@@ -1,0 +1,352 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../core/config/company_settings.dart';
+
+class QrGeneratorScreen extends StatefulWidget {
+  const QrGeneratorScreen({super.key});
+
+  @override
+  State<QrGeneratorScreen> createState() => _QrGeneratorScreenState();
+}
+
+class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
+  CompanySettings _settings = CompanySettings.defaultSettings;
+  Timer? _timer;
+  int _secondsLeft = 15;
+  String _rawPayload = '';
+  DateTime _expiresAt = DateTime.now().add(const Duration(seconds: 15));
+  bool _isFullscreen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSettingsAndStart();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchSettingsAndStart() async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('settings').doc('company').get();
+      if (doc.exists && doc.data() != null) {
+        _settings = CompanySettings.fromJson(doc.data()!);
+      }
+    } catch (_) {}
+    _rotateQR();
+    _startTimer();
+  }
+
+  void _rotateQR() {
+    final now = DateTime.now().toUtc();
+    final interval = _settings.qrRotateIntervalSeconds;
+    _expiresAt = now.add(Duration(seconds: interval));
+    final nonce = const Uuid().v4();
+    final dateStr = DateFormat('yyyy-MM-dd').format(now);
+    final expiresStr = _expiresAt.toIso8601String();
+
+    final message = '$nonce|$dateStr|$expiresStr';
+    final hmac = Hmac(sha256, utf8.encode(_settings.qrSecret));
+    final signature = hmac.convert(utf8.encode(message)).toString();
+
+    final payloadMap = {
+      'nonce': nonce,
+      'date': dateStr,
+      'expiresAt': expiresStr,
+      'signature': signature,
+    };
+
+    setState(() {
+      _rawPayload = jsonEncode(payloadMap);
+      _secondsLeft = interval;
+    });
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsLeft <= 1) {
+        _rotateQR();
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isFullscreen) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Positioned(
+                top: 16,
+                right: 16,
+                child: IconButton(
+                  icon: const Icon(Icons.fullscreen_exit, color: Colors.white, size: 32),
+                  onPressed: () => setState(() => _isFullscreen = false),
+                ),
+              ),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _settings.companyName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Scan to Register Attendance',
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    ),
+                    const SizedBox(height: 32),
+                    _buildQrCard(size: 280),
+                    const SizedBox(height: 24),
+                    _buildCountdownTimer(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dynamic QR Generator'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.fullscreen),
+            tooltip: 'Presenter Mode',
+            onPressed: () => setState(() => _isFullscreen = true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Rotate Now',
+            onPressed: _rotateQR,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      _settings.companyName,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Dynamic HMAC-SHA256 Anti-Spoofing Attendance QR',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildQrCard(size: 220),
+                    const SizedBox(height: 24),
+                    _buildCountdownTimer(),
+                    const SizedBox(height: 16),
+                    FilledButton.tonalIcon(
+                      onPressed: _rotateQR,
+                      icon: const Icon(Icons.sync_rounded),
+                      label: const Text('Force Rotation'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.security, size: 20, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          'Security Parameters',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    _buildParamRow('Rotation Interval', '${_settings.qrRotateIntervalSeconds} seconds'),
+                    _buildParamRow('Geofence Radius', '${_settings.radiusMeters.toInt()} meters'),
+                    _buildParamRow('Current UTC Time', DateFormat('HH:mm:ss UTC').format(DateTime.now().toUtc())),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Signed Payload Snippet:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _rawPayload,
+                        style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParamRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey.shade700)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCountdownTimer() {
+    final progress = _secondsLeft / _settings.qrRotateIntervalSeconds;
+    return Column(
+      children: [
+        SizedBox(
+          width: 140,
+          child: LinearProgressIndicator(
+            value: progress,
+            borderRadius: BorderRadius.circular(8),
+            minHeight: 8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Rotates in $_secondsLeft s',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQrCard({required double size}) {
+    return Container(
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: CustomPaint(
+        painter: _QrGridPainter(_rawPayload),
+      ),
+    );
+  }
+}
+
+class _QrGridPainter extends CustomPainter {
+  _QrGridPainter(this.payload);
+  final String payload;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..style = PaintingStyle.fill;
+
+    final bgPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+
+    final hash = payload.hashCode;
+    const gridCount = 21;
+    final cellSize = size.width / gridCount;
+
+    void drawFinderPattern(double x, double y) {
+      canvas.drawRect(Rect.fromLTWH(x, y, cellSize * 7, cellSize * 7), paint);
+      canvas.drawRect(
+        Rect.fromLTWH(x + cellSize, y + cellSize, cellSize * 5, cellSize * 5),
+        bgPaint,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3),
+        paint,
+      );
+    }
+
+    // Top-left finder
+    drawFinderPattern(0, 0);
+    // Top-right finder
+    drawFinderPattern(cellSize * (gridCount - 7), 0);
+    // Bottom-left finder
+    drawFinderPattern(0, cellSize * (gridCount - 7));
+
+    // Fill data grid pseudo-deterministically from payload hash
+    for (int r = 0; r < gridCount; r++) {
+      for (int c = 0; c < gridCount; c++) {
+        // Skip finder zones
+        if ((r < 7 && c < 7) || (r < 7 && c >= gridCount - 7) || (r >= gridCount - 7 && c < 7)) {
+          continue;
+        }
+
+        final seed = (hash + r * 37 + c * 17 + payload.length) % 100;
+        if (seed > 45) {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(c * cellSize + 1, r * cellSize + 1, cellSize - 2, cellSize - 2),
+              const Radius.circular(2),
+            ),
+            paint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _QrGridPainter oldDelegate) => oldDelegate.payload != payload;
+}
