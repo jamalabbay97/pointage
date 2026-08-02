@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location to verify clock-in geofencing.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to location to verify clock-in geofencing.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to camera to scan QR codes for attendance.</string>
 </dict>
 </plist>

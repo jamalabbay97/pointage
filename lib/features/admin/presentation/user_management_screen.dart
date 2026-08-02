@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -31,7 +32,31 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: _isWide
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: _buildBody(),
+              ),
+            )
+          : _buildBody(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showUserDialog(context),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Employee'),
+      ),
+    );
+  }
+
+  static bool get _isWide =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  Widget _buildBody() {
+    return Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -255,13 +280,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showUserDialog(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Employee'),
-      ),
-    );
+      );
   }
 
   Color _getRoleColor(String role) {

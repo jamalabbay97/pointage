@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -62,7 +63,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: WebLayout(
+        child: RefreshIndicator(
         onRefresh: () async {
           setState(() => now = DateTime.now());
         },
@@ -309,6 +311,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
           ],
         ),
+      ),
       ),
     );
   }

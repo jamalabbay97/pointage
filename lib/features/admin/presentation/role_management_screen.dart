@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/web_layout.dart';
+
 class RoleManagementScreen extends StatefulWidget {
   const RoleManagementScreen({super.key});
 
@@ -37,7 +39,8 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
       appBar: AppBar(
         title: const Text('Role & Permission Management'),
       ),
-      body: ListView(
+      body: WebLayout(
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Card(
@@ -101,6 +104,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
             );
           }),
         ],
+        ),
       ),
     );
   }

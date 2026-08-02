@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
+import '../../../core/widgets/web_layout.dart';
 
 class QrGeneratorScreen extends StatefulWidget {
   const QrGeneratorScreen({super.key});
@@ -144,7 +146,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: WebLayout(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
@@ -225,6 +228,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -279,74 +283,14 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           ),
         ],
       ),
-      child: CustomPaint(
-        painter: _QrGridPainter(_rawPayload),
-      ),
+      child: _rawPayload.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : QrImageView(
+              data: _rawPayload,
+              version: QrVersions.auto,
+              size: size,
+              gapless: false,
+            ),
     );
   }
-}
-
-class _QrGridPainter extends CustomPainter {
-  _QrGridPainter(this.payload);
-  final String payload;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF0F172A)
-      ..style = PaintingStyle.fill;
-
-    final bgPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    final hash = payload.hashCode;
-    const gridCount = 21;
-    final cellSize = size.width / gridCount;
-
-    void drawFinderPattern(double x, double y) {
-      canvas.drawRect(Rect.fromLTWH(x, y, cellSize * 7, cellSize * 7), paint);
-      canvas.drawRect(
-        Rect.fromLTWH(x + cellSize, y + cellSize, cellSize * 5, cellSize * 5),
-        bgPaint,
-      );
-      canvas.drawRect(
-        Rect.fromLTWH(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3),
-        paint,
-      );
-    }
-
-    // Top-left finder
-    drawFinderPattern(0, 0);
-    // Top-right finder
-    drawFinderPattern(cellSize * (gridCount - 7), 0);
-    // Bottom-left finder
-    drawFinderPattern(0, cellSize * (gridCount - 7));
-
-    // Fill data grid pseudo-deterministically from payload hash
-    for (int r = 0; r < gridCount; r++) {
-      for (int c = 0; c < gridCount; c++) {
-        // Skip finder zones
-        if ((r < 7 && c < 7) || (r < 7 && c >= gridCount - 7) || (r >= gridCount - 7 && c < 7)) {
-          continue;
-        }
-
-        final seed = (hash + r * 37 + c * 17 + payload.length) % 100;
-        if (seed > 45) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(c * cellSize + 1, r * cellSize + 1, cellSize - 2, cellSize - 2),
-              const Radius.circular(2),
-            ),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _QrGridPainter oldDelegate) => oldDelegate.payload != payload;
 }

@@ -1,10 +1,12 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xl;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:universal_io/io.dart';
+
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -26,7 +28,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: const Text('Attendance History'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: _isWide
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: _buildBody(user),
+              ),
+            )
+          : _buildBody(user),
+    );
+  }
+
+  static bool get _isWide =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  Widget _buildBody(User? user) {
+    return StreamBuilder<QuerySnapshot>(
         stream: _db
             .collection('attendance')
             .where('employeeId', isEqualTo: user?.uid ?? '')
@@ -200,8 +221,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           );
         },
-      ),
-    );
+      );
   }
 
   Future<void> _exportPdf(List<Map<String, dynamic>> records, String employeeName) async {

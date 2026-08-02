@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/web_layout.dart';
+
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
 
@@ -12,7 +14,8 @@ class AdminScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Admin Panel Hub'),
       ),
-      body: SingleChildScrollView(
+      body: WebLayout(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +75,7 @@ class AdminScreen extends StatelessWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              childAspectRatio: 0.9,
               children: [
                 _AdminCard(
                   title: 'User Management',
@@ -113,6 +116,7 @@ class AdminScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

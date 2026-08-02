@@ -1,9 +1,10 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xl;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:universal_io/io.dart';
 
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
@@ -23,7 +24,26 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       appBar: AppBar(
         title: const Text('Attendance Reports & Analytics'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: _isWide
+          ? Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: _buildBody(),
+              ),
+            )
+          : _buildBody(),
+    );
+  }
+
+  static bool get _isWide =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  Widget _buildBody() {
+    return StreamBuilder<QuerySnapshot>(
         stream: _db.collection('attendance').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -226,8 +246,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
             ],
           );
         },
-      ),
-    );
+      );
   }
 
   Future<void> _exportPdf(List<Map<String, dynamic>> records) async {

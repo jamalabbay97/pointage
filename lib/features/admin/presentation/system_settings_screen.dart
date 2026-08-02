@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
+import '../../../core/widgets/web_layout.dart';
 
 class SystemSettingsScreen extends StatefulWidget {
   const SystemSettingsScreen({super.key});
@@ -185,7 +186,8 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: WebLayout(
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Card(
@@ -320,7 +322,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                         tooltip: 'Generate New Key',
                         onPressed: () {
                           setState(() {
-                            _secretController.text = 'sec_${Uuid().v4().replaceAll('-', '')}';
+                            _secretController.text = 'sec_${const Uuid().v4().replaceAll('-', '')}';
                           });
                         },
                       ),
@@ -361,6 +363,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

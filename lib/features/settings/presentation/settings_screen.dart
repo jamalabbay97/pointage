@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/language_provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../auth/domain/auth_provider.dart';
+import '../../../core/widgets/web_layout.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -32,7 +33,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         title: const Text('Settings Center'),
       ),
-      body: ListView(
+      body: WebLayout(
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // User Card Header
@@ -267,6 +269,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 30),
         ],
+        ),
       ),
     );
   }
