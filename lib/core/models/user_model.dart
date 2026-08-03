@@ -21,19 +21,19 @@ class UserModel {
   final DateTime? createdAt;
   final DateTime? lastLogin;
 
-  bool get isAdmin => role.toLowerCase() == 'admin';
-  bool get isManager => role.toLowerCase() == 'manager';
+  bool get isAdmin => role.trim().toLowerCase() == 'admin';
+  bool get isManager => role.trim().toLowerCase() == 'manager';
   bool get isAdminOrManager => isAdmin || isManager;
-  bool get isActive => status.toLowerCase() == 'active';
+  bool get isActive => status.trim().toLowerCase() == 'active';
 
   factory UserModel.fromJson(Map<String, dynamic> json, String id) {
     return UserModel(
       uid: id,
-      email: json['email'] as String? ?? '',
-      displayName: json['displayName'] as String? ?? 'Employee',
-      role: json['role'] as String? ?? 'employee',
-      status: json['status'] as String? ?? 'active',
-      department: json['department'] as String? ?? 'General',
+      email: _stringOrDefault(json['email'], ''),
+      displayName: _stringOrDefault(json['displayName'], 'Employee'),
+      role: _stringOrDefault(json['role'], 'employee').trim().toLowerCase(),
+      status: _stringOrDefault(json['status'], 'active').trim().toLowerCase(),
+      department: _stringOrDefault(json['department'], 'General'),
       photoUrl: json['photoUrl'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String)
@@ -78,5 +78,10 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,
     );
+  }
+
+  static String _stringOrDefault(Object? value, String fallback) {
+    if (value is String && value.trim().isNotEmpty) return value;
+    return fallback;
   }
 }

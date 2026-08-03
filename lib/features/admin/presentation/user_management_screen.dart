@@ -170,6 +170,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
+              final currentUid = FirebaseAuth.instance.currentUser?.uid;
               final docs = snapshot.data?.docs ?? [];
               var users = docs
                   .map(
@@ -239,6 +240,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 itemBuilder: (context, index) {
                   final user = users[index];
                   final isActive = user.isActive;
+                  final isCurrentUser = user.uid == currentUid;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -301,25 +303,44 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           Switch(
                             value: isActive,
                             activeThumbColor: Colors.green,
-                            onChanged: (val) async {
-                              final newStatus = val ? 'active' : 'disabled';
-                              await _db
-                                  .collection('users')
-                                  .doc(user.uid)
-                                  .update({
-                                'status': newStatus,
-                              });
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'User ${user.displayName} is now $newStatus',
-                                    ),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
+                            onChanged: isCurrentUser
+                                ? null
+                                : (val) async {
+                                    final newStatus =
+                                        val ? 'active' : 'disabled';
+                                    try {
+                                      await _db
+                                          .collection('users')
+                                          .doc(user.uid)
+                                          .update({
+                                        'status': newStatus,
+                                      });
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'User ${user.displayName} is now $newStatus',
+                                            ),
+                                            duration:
+                                                const Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              _userFacingErrorMessage(e),
+                                            ),
+                                            backgroundColor: Colors.redAccent,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                           ),
                           PopupMenuButton<String>(
                             onSelected: (val) {
@@ -356,23 +377,24 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                   ],
                                 ),
                               ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete,
-                                      color: Colors.red,
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Delete User',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
+                              if (!isCurrentUser)
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete User',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ],
@@ -427,6 +449,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     );
     final passwordController = TextEditingController();
 
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final isCurrentUser = user?.uid == currentUid;
     String role = user?.role ?? 'employee';
     bool obscurePassword = true;
     bool isSaving = false;
@@ -529,9 +553,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       child: Text('Employee (Standard)'),
                     ),
                   ],
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => role = val);
-                  },
+                  onChanged: isCurrentUser
+                      ? null
+                      : (val) {
+                          if (val != null) setDialogState(() => role = val);
+                        },
                 ),
               ],
             ),
@@ -581,11 +607,17 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         }
 
                         if (isEdit) {
-                          await _db.collection('users').doc(user.uid).update({
+                          final updateData = <String, dynamic>{
                             'displayName': name,
                             'department': dept.isEmpty ? 'General' : dept,
-                            'role': role,
-                          });
+                          };
+                          if (!isCurrentUser) {
+                            updateData['role'] = role;
+                          }
+                          await _db
+                              .collection('users')
+                              .doc(user.uid)
+                              .update(updateData);
                           if (dialogCtx.mounted) {
                             Navigator.pop(dialogCtx);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -714,6 +746,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       return error.message;
     }
 
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'permission-denied':
+          return 'You do not have permission to update this user. Verify your admin role is active in Firestore.';
+        case 'unavailable':
+          return 'Firebase is currently unavailable. Please try again.';
+      }
+    }
+
     return 'Something went wrong. Please try again.';
   }
 
@@ -823,8 +864,34 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await _db.collection('users').doc(user.uid).delete();
-              if (ctx.mounted) Navigator.pop(ctx);
+              if (user.uid == FirebaseAuth.instance.currentUser?.uid) {
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('You cannot delete your own admin account.'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              try {
+                await _db.collection('users').doc(user.uid).delete();
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_userFacingErrorMessage(e)),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Delete'),
           ),

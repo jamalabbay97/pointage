@@ -38,6 +38,39 @@ void main() {
       expect(user.isActive, isFalse);
     });
 
+    test('Normalizes Firestore role and status casing', () {
+      final json = {
+        'email': 'admin@pointage.com',
+        'displayName': 'Admin User',
+        'role': 'Admin',
+        'status': ' Active ',
+        'department': 'Management',
+      };
+
+      final user = UserModel.fromJson(json, 'admin_uid_123');
+
+      expect(user.role, equals('admin'));
+      expect(user.status, equals('active'));
+      expect(user.isAdmin, isTrue);
+      expect(user.isActive, isTrue);
+    });
+
+    test('Falls back when Firestore role and status are invalid', () {
+      final json = {
+        'email': 'admin@pointage.com',
+        'displayName': 'Admin User',
+        'role': null,
+        'status': 42,
+        'department': '',
+      };
+
+      final user = UserModel.fromJson(json, 'admin_uid_123');
+
+      expect(user.role, equals('employee'));
+      expect(user.status, equals('active'));
+      expect(user.department, equals('General'));
+    });
+
     test('Serializes to JSON correctly', () {
       const user = UserModel(
         uid: 'u1',
