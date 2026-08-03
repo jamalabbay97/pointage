@@ -36,6 +36,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       if (user == null) throw StateError('Not authenticated');
 
       final db = FirebaseFirestore.instance;
+      final userDoc = await db.collection('users').doc(user.uid).get();
+      final userRole =
+          (userDoc.data()?['role'] as String? ?? '').trim().toLowerCase();
+      if (userRole == 'admin') {
+        throw StateError(
+          'Administrators cannot check in or check out. Use the admin reports dashboard to manage employee attendance.',
+        );
+      }
 
       // 1. Fetch live CompanySettings from Firestore
       CompanySettings settings = CompanySettings.defaultSettings;
@@ -56,7 +64,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           }
         } catch (e) {
           throw StateError(
-              'QR Verification failed: ${e.toString().replaceAll('StateError: ', '')}',);
+            'QR Verification failed: ${e.toString().replaceAll('StateError: ', '')}',
+          );
         }
       }
 
@@ -93,10 +102,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e
-                .toString()
-                .replaceAll('Exception: ', '')
-                .replaceAll('StateError: ', ''),),
+            content: Text(
+              e
+                  .toString()
+                  .replaceAll('Exception: ', '')
+                  .replaceAll('StateError: ', ''),
+            ),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 4),
           ),
@@ -120,18 +131,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 icon: const Icon(Icons.bug_report),
                 tooltip: 'Simulate QR Scan (Desktop/Web Test)',
                 onPressed: () {
-                  _processQR(jsonEncode({
-                    'nonce': 'sim_nonce_123',
-                    'date': DateTime.now().toIso8601String().substring(0, 10),
-                    'expiresAt': DateTime.now()
-                        .add(const Duration(minutes: 5))
-                        .toIso8601String(),
-                    'signature':
-                        QrVerifier(CompanySettings.defaultSettings.qrSecret)
-                            .hmacSha256(
-                      'sim_nonce_123|${DateTime.now().toIso8601String().substring(0, 10)}|${DateTime.now().add(const Duration(minutes: 5)).toIso8601String()}',
-                    ),
-                  }),);
+                  _processQR(
+                    jsonEncode({
+                      'nonce': 'sim_nonce_123',
+                      'date': DateTime.now().toIso8601String().substring(0, 10),
+                      'expiresAt': DateTime.now()
+                          .add(const Duration(minutes: 5))
+                          .toIso8601String(),
+                      'signature':
+                          QrVerifier(CompanySettings.defaultSettings.qrSecret)
+                              .hmacSha256(
+                        'sim_nonce_123|${DateTime.now().toIso8601String().substring(0, 10)}|${DateTime.now().add(const Duration(minutes: 5)).toIso8601String()}',
+                      ),
+                    }),
+                  );
                 },
               ),
           ],
@@ -203,9 +216,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       Text(
                         'Verifying Geofence & Registering...',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ],
                   ),

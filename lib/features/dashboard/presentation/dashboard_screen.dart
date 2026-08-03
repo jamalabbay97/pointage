@@ -43,6 +43,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = FirebaseAuth.instance.currentUser;
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final isAdminOrManager = ref.watch(isAdminOrManagerProvider);
+    final isAdmin = userModel?.isAdmin ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final todayDocId = '${user?.uid}-${now.toIso8601String().substring(0, 10)}';
@@ -126,13 +127,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               Text(
                                 '${userModel?.department ?? 'General'} • ID: ${user?.uid.substring(0, 8) ?? 'N/A'}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white24,
                             borderRadius: BorderRadius.circular(12),
@@ -159,7 +166,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           children: [
                             Text(
                               DateFormat.yMMMMEEEEd().format(now),
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -173,40 +183,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                           ],
                         ),
-                        StreamBuilder<DocumentSnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('attendance')
-                              .doc(todayDocId)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            final hasCheckedIn = snapshot.data?.exists ?? false;
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: hasCheckedIn ? Colors.green.shade600 : Colors.orange.shade700,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    hasCheckedIn ? Icons.check_circle_rounded : Icons.pending_rounded,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    hasCheckedIn ? ref.tr('checkedInToday') : ref.tr('notCheckedIn'),
-                                    style: const TextStyle(
+                        if (!isAdmin)
+                          StreamBuilder<DocumentSnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('attendance')
+                                .doc(todayDocId)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              final hasCheckedIn =
+                                  snapshot.data?.exists ?? false;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: hasCheckedIn
+                                      ? Colors.green.shade600
+                                      : Colors.orange.shade700,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      hasCheckedIn
+                                          ? Icons.check_circle_rounded
+                                          : Icons.pending_rounded,
                                       color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                      size: 18,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      hasCheckedIn
+                                          ? ref.tr('checkedInToday')
+                                          : ref.tr('notCheckedIn'),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ],
@@ -215,63 +236,76 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 24),
 
               // Main Scan Hero Button
-              InkWell(
-                onTap: () => context.push('/scan'),
-                borderRadius: BorderRadius.circular(24),
-                child: Ink(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+              if (!isAdmin)
+                InkWell(
+                  onTap: () => context.push('/scan'),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Ink(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ref.tr('scanQrCode'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ref.tr('registerGps'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Colors.grey.shade600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ref.tr('scanQrCode'),
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              ref.tr('registerGps'),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                    ],
-                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
+              if (!isAdmin) const SizedBox(height: 24),
 
               Text(
                 ref.tr('quickServices'),
@@ -281,13 +315,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
 
-              _DashboardActionCard(
-                title: ref.tr('attendanceHistory'),
-                subtitle: ref.tr('noHistoryFound'),
-                icon: Icons.history_rounded,
-                color: Colors.purple,
-                route: '/history',
-              ),
+              if (!isAdmin)
+                _DashboardActionCard(
+                  title: ref.tr('attendanceHistory'),
+                  subtitle: ref.tr('noHistoryFound'),
+                  icon: Icons.history_rounded,
+                  color: Colors.purple,
+                  route: '/history',
+                ),
               _DashboardActionCard(
                 title: ref.tr('userProfile'),
                 subtitle: ref.tr('manageProfile'),
