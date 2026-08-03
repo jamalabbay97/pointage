@@ -1,4 +1,7 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,11 +16,18 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
+  final TextEditingController _searchController = TextEditingController();
   String searchQuery = '';
   String selectedRoleFilter = 'All';
   String selectedStatusFilter = 'All';
 
   final _db = FirebaseFirestore.instance;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,230 +67,255 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
   Widget _buildBody() {
     return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                SearchBar(
-                  hintText: 'Search users by name or email...',
-                  leading: const Icon(Icons.search),
-                  onChanged: (val) => setState(() => searchQuery = val.trim().toLowerCase()),
-                ),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      const Text('Role: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...['All', 'Admin', 'Manager', 'Employee'].map(
-                        (role) => Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(role),
-                            selected: selectedRoleFilter == role,
-                            onSelected: (selected) {
-                              if (selected) setState(() => selectedRoleFilter = role);
-                            },
-                          ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              SearchBar(
+                controller: _searchController,
+                hintText: 'Search users by name or email...',
+                leading: const Icon(Icons.search),
+                trailing: _searchController.text.isNotEmpty
+                    ? [
+                        IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => searchQuery = '');
+                          },
+                        ),
+                      ]
+                    : null,
+                onChanged: (val) => setState(() => searchQuery = val.trim().toLowerCase()),
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    const Text('Role: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...['All', 'Admin', 'Manager', 'Employee'].map(
+                      (role) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(role),
+                          selected: selectedRoleFilter == role,
+                          onSelected: (selected) {
+                            if (selected) setState(() => selectedRoleFilter = role);
+                          },
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...['All', 'Active', 'Disabled'].map(
-                        (status) => Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(status),
-                            selected: selectedStatusFilter == status,
-                            onSelected: (selected) {
-                              if (selected) setState(() => selectedStatusFilter = status);
-                            },
-                          ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...['All', 'Active', 'Disabled'].map(
+                      (status) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(status),
+                          selected: selectedStatusFilter == status,
+                          onSelected: (selected) {
+                            if (selected) setState(() => selectedStatusFilter = status);
+                          },
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _db.collection('users').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 12),
+                      Text('Error loading users: ${snapshot.error}'),
+                    ],
+                  ),
+                );
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              var users = docs
+                  .map((d) => UserModel.fromJson(d.data() as Map<String, dynamic>, d.id))
+                  .toList();
+
+              // Apply Filters
+              if (searchQuery.isNotEmpty) {
+                users = users.where((u) {
+                  return u.displayName.toLowerCase().contains(searchQuery) ||
+                      u.email.toLowerCase().contains(searchQuery) ||
+                      u.department.toLowerCase().contains(searchQuery);
+                }).toList();
+              }
+
+              if (selectedRoleFilter != 'All') {
+                users = users
+                    .where((u) => u.role.toLowerCase() == selectedRoleFilter.toLowerCase())
+                    .toList();
+              }
+
+              if (selectedStatusFilter != 'All') {
+                users = users
+                    .where((u) => u.status.toLowerCase() == selectedStatusFilter.toLowerCase())
+                    .toList();
+              }
+
+              if (users.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No users found',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _db.collection('users').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 12),
-                        Text('Error loading users: ${snapshot.error}'),
-                      ],
-                    ),
-                  );
-                }
+                );
+              }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  final isActive = user.isActive;
 
-                final docs = snapshot.data?.docs ?? [];
-                var users = docs
-                    .map((d) => UserModel.fromJson(d.data() as Map<String, dynamic>, d.id))
-                    .toList();
-
-                // Apply Filters
-                if (searchQuery.isNotEmpty) {
-                  users = users.where((u) {
-                    return u.displayName.toLowerCase().contains(searchQuery) ||
-                        u.email.toLowerCase().contains(searchQuery);
-                  }).toList();
-                }
-
-                if (selectedRoleFilter != 'All') {
-                  users = users
-                      .where((u) => u.role.toLowerCase() == selectedRoleFilter.toLowerCase())
-                      .toList();
-                }
-
-                if (selectedStatusFilter != 'All') {
-                  users = users
-                      .where((u) => u.status.toLowerCase() == selectedStatusFilter.toLowerCase())
-                      .toList();
-                }
-
-                if (users.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No users found',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final user = users[index];
-                    final isActive = user.isActive;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.15),
-                          child: Icon(
-                            _getRoleIcon(user.role),
-                            color: _getRoleColor(user.role),
-                          ),
-                        ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                user.displayName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  decoration: isActive ? null : TextDecoration.lineThrough,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _getRoleColor(user.role).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: _getRoleColor(user.role)),
-                              ),
-                              child: Text(
-                                user.role.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getRoleColor(user.role),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        subtitle: Text(
-                          '${user.email}\nDepartment: ${user.department}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                        isThreeLine: true,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Switch(
-                              value: isActive,
-                              activeThumbColor: Colors.green,
-                              onChanged: (val) async {
-                                final newStatus = val ? 'active' : 'disabled';
-                                await _db.collection('users').doc(user.uid).update({
-                                  'status': newStatus,
-                                });
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('User ${user.displayName} is now $newStatus'),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                            PopupMenuButton<String>(
-                              onSelected: (val) {
-                                if (val == 'edit') {
-                                  _showUserDialog(context, user: user);
-                                } else if (val == 'delete') {
-                                  _confirmDeleteUser(context, user);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Edit Details'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, color: Colors.red, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Delete User', style: TextStyle(color: Colors.red)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.15),
+                        child: Icon(
+                          _getRoleIcon(user.role),
+                          color: _getRoleColor(user.role),
                         ),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              user.displayName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                decoration: isActive ? null : TextDecoration.lineThrough,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _getRoleColor(user.role).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _getRoleColor(user.role)),
+                            ),
+                            child: Text(
+                              user.role.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: _getRoleColor(user.role),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        '${user.email}\nDepartment: ${user.department}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      isThreeLine: true,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Switch(
+                            value: isActive,
+                            activeThumbColor: Colors.green,
+                            onChanged: (val) async {
+                              final newStatus = val ? 'active' : 'disabled';
+                              await _db.collection('users').doc(user.uid).update({
+                                'status': newStatus,
+                              });
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('User ${user.displayName} is now $newStatus'),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: (val) {
+                              if (val == 'edit') {
+                                _showUserDialog(context, user: user);
+                              } else if (val == 'reset') {
+                                _sendPasswordResetEmail(context, user);
+                              } else if (val == 'delete') {
+                                _confirmDeleteUser(context, user);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Edit Details'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'reset',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.lock_reset, size: 18, color: Colors.orange),
+                                    SizedBox(width: 8),
+                                    Text('Send Password Reset'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Delete User', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   Color _getRoleColor(String role) {
@@ -305,45 +340,107 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     }
   }
 
+  String _generatePassword() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
+    final rnd = Random.secure();
+    return List.generate(10, (index) => chars[rnd.nextInt(chars.length)]).join();
+  }
+
   void _showUserDialog(BuildContext context, {UserModel? user}) {
     final isEdit = user != null;
     final nameController = TextEditingController(text: user?.displayName ?? '');
     final emailController = TextEditingController(text: user?.email ?? '');
     final deptController = TextEditingController(text: user?.department ?? 'Engineering');
+    final passwordController = TextEditingController();
+    
     String role = user?.role ?? 'employee';
+    bool obscurePassword = true;
+    bool isSaving = false;
+
+    if (!isEdit) {
+      passwordController.text = _generatePassword();
+    }
 
     showDialog(
       context: context,
+      barrierDismissible: !isSaving,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEdit ? 'Edit User' : 'Create New User'),
+          title: Text(isEdit ? 'Edit User Details' : 'Create New User Account'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: emailController,
                   enabled: !isEdit,
-                  decoration: const InputDecoration(labelText: 'Email Address'),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
                 ),
+                if (!isEdit) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Initial Password',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 20),
+                            tooltip: 'Generate New Random Password',
+                            onPressed: () {
+                              setDialogState(() {
+                                passwordController.text = _generatePassword();
+                              });
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setDialogState(() => obscurePassword = !obscurePassword);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextField(
                   controller: deptController,
-                  decoration: const InputDecoration(labelText: 'Department'),
+                  decoration: const InputDecoration(
+                    labelText: 'Department',
+                    prefixIcon: Icon(Icons.business_outlined),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: role,
-                  decoration: const InputDecoration(labelText: 'Role'),
+                  decoration: const InputDecoration(
+                    labelText: 'Assigned Role',
+                    prefixIcon: Icon(Icons.shield_outlined),
+                  ),
                   items: const [
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    DropdownMenuItem(value: 'manager', child: Text('Manager')),
-                    DropdownMenuItem(value: 'employee', child: Text('Employee')),
+                    DropdownMenuItem(value: 'admin', child: Text('Admin (Full Access)')),
+                    DropdownMenuItem(value: 'manager', child: Text('Manager (Dept Access)')),
+                    DropdownMenuItem(value: 'employee', child: Text('Employee (Standard)')),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => role = val);
@@ -354,49 +451,189 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
+              onPressed: isSaving ? null : () => Navigator.pop(dialogCtx),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final emailVal = emailController.text.trim();
-                final dept = deptController.text.trim();
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final name = nameController.text.trim();
+                      final emailVal = emailController.text.trim();
+                      final passwordVal = passwordController.text;
+                      final dept = deptController.text.trim();
 
-                if (name.isEmpty || emailVal.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter name and email')),
-                  );
-                  return;
-                }
+                      if (name.isEmpty || emailVal.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter name and email')),
+                        );
+                        return;
+                      }
 
-                if (isEdit) {
-                  await _db.collection('users').doc(user.uid).update({
-                    'displayName': name,
-                    'department': dept,
-                    'role': role,
-                  });
-                } else {
-                  final docRef = _db.collection('users').doc();
-                  await docRef.set({
-                    'uid': docRef.id,
-                    'email': emailVal,
-                    'displayName': name,
-                    'role': role,
-                    'status': 'active',
-                    'department': dept.isEmpty ? 'General' : dept,
-                    'createdAt': DateTime.now().toIso8601String(),
-                  });
-                }
+                      if (!isEdit && (passwordVal.isEmpty || passwordVal.length < 6)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Password must be at least 6 characters')),
+                        );
+                        return;
+                      }
 
-                if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-              },
-              child: Text(isEdit ? 'Save Changes' : 'Create User'),
+                      setDialogState(() => isSaving = true);
+
+                      try {
+                        if (isEdit) {
+                          await _db.collection('users').doc(user.uid).update({
+                            'displayName': name,
+                            'department': dept.isEmpty ? 'General' : dept,
+                            'role': role,
+                          });
+                          if (dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('User $name updated successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          // Create user in Firebase Auth using secondary FirebaseApp instance
+                          FirebaseApp? secondaryApp;
+                          String newUid = '';
+                          try {
+                            final appName = 'AdminUserCreator_${DateTime.now().millisecondsSinceEpoch}';
+                            secondaryApp = await Firebase.initializeApp(
+                              name: appName,
+                              options: Firebase.app().options,
+                            );
+                            final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+                            final cred = await secondaryAuth.createUserWithEmailAndPassword(
+                              email: emailVal,
+                              password: passwordVal,
+                            );
+                            newUid = cred.user!.uid;
+                            await secondaryAuth.signOut();
+                          } catch (authErr) {
+                            throw Exception('Firebase Auth creation failed: $authErr');
+                          } finally {
+                            await secondaryApp?.delete();
+                          }
+
+                          // Save user document in Firestore using the generated Auth UID
+                          await _db.collection('users').doc(newUid).set({
+                            'uid': newUid,
+                            'email': emailVal,
+                            'displayName': name,
+                            'role': role,
+                            'status': 'active',
+                            'department': dept.isEmpty ? 'General' : dept,
+                            'createdAt': DateTime.now().toIso8601String(),
+                          });
+
+                          if (dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                            _showUserCreatedSuccessDialog(context, name, emailVal, passwordVal, role);
+                          }
+                        }
+                      } catch (e) {
+                        if (dialogCtx.mounted) {
+                          setDialogState(() => isSaving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: ${e.toString()}'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(isEdit ? 'Save Changes' : 'Create Account'),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _showUserCreatedSuccessDialog(
+    BuildContext context,
+    String name,
+    String email,
+    String password,
+    String role,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 10),
+            Text('User Account Created'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Account for $name ($role) has been successfully initialized in Firebase.'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SelectableText('Email: $email', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  SelectableText('Password: $password', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'The user can now log in immediately using these credentials.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _sendPasswordResetEmail(BuildContext context, UserModel user) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password reset email sent to ${user.email}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send reset email: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _confirmDeleteUser(BuildContext context, UserModel user) {

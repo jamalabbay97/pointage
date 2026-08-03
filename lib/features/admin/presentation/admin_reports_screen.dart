@@ -2,27 +2,37 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:excel/excel.dart' as xl;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:universal_io/io.dart';
 
-class AdminReportsScreen extends StatefulWidget {
+import '../../../core/services/app_translations.dart';
+
+class AdminReportsScreen extends ConsumerStatefulWidget {
   const AdminReportsScreen({super.key});
 
   @override
-  State<AdminReportsScreen> createState() => _AdminReportsScreenState();
+  ConsumerState<AdminReportsScreen> createState() => _AdminReportsScreenState();
 }
 
-class _AdminReportsScreenState extends State<AdminReportsScreen> {
+class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   final _db = FirebaseFirestore.instance;
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _statusFilter = 'All';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance Reports & Analytics'),
+        title: Text(ref.tr('reportsAnalytics')),
       ),
       body: _isWide
           ? Align(
@@ -43,44 +53,161 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       defaultTargetPlatform == TargetPlatform.linux;
 
   Widget _buildBody() {
-    return StreamBuilder<QuerySnapshot>(
-        stream: _db.collection('attendance').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error loading reports: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final docs = snapshot.data?.docs ?? [];
-          var records = docs.map((d) => d.data() as Map<String, dynamic>).toList();
-
-          if (_searchQuery.isNotEmpty) {
-            records = records.where((r) {
-              final name = (r['employeeName'] as String? ?? '').toLowerCase();
-              return name.contains(_searchQuery.toLowerCase());
-            }).toList();
-          }
-
-          if (_statusFilter != 'All') {
-            records = records.where((r) {
-              final status = (r['status'] as String? ?? '').toLowerCase();
-              return status == _statusFilter.toLowerCase();
-            }).toList();
-          }
-
-          final totalRecords = records.length;
-          final presentCount = records.where((r) => r['status'] == 'present').length;
-
-          return Column(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
+              SearchBar(
+                controller: _searchController,
+                hintText: ref.tr('searchEmployee'),
+                leading: const Icon(Icons.search),
+                trailing: _searchController.text.isNotEmpty
+                    ? [
+                        IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
+                      ]
+                    : null,
+                onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: ['All', 'Present', 'Late'].map((statusKey) {
+                          final label = statusKey == 'All'
+                              ? ref.tr('all')
+                              : statusKey == 'Present'
+                                  ? ref.tr('present')
+                                  : ref.tr('late');
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(label),
+                              selected: _statusFilter == statusKey,
+                              onSelected: (selected) {
+                                if (selected) setState(() => _statusFilter = statusKey);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _db.collection('attendance').snapshots(),
+                    builder: (context, snapshot) {
+                      final docs = snapshot.data?.docs ?? [];
+                      final records = docs.map((d) => d.data() as Map<String, dynamic>).toList();
+                      return PopupMenuButton<String>(
+                        icon: const Icon(Icons.download_rounded),
+                        tooltip: ref.tr('export'),
+                        onSelected: (val) {
+                          if (val == 'pdf') {
+                            _exportPdf(records);
+                          } else if (val == 'excel') {
+                            _exportExcel(records);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'pdf',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.picture_as_pdf, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text(ref.tr('exportPdf')),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'excel',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.table_chart, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Text(ref.tr('exportExcel')),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _db.collection('attendance').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error loading reports: ${snapshot.error}'));
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final docs = snapshot.data?.docs ?? [];
+              var allRecords = docs.map((d) => d.data() as Map<String, dynamic>).toList();
+
+              // 1. Multi-field Filter by search query
+              if (_searchQuery.isNotEmpty) {
+                allRecords = allRecords.where((r) {
+                  final name = (r['employeeName'] as String? ?? '').toLowerCase();
+                  final empId = (r['employeeId'] as String? ?? '').toLowerCase();
+                  final date = (r['date'] as String? ?? '').toLowerCase();
+                  final device = (r['deviceModel'] as String? ?? '').toLowerCase();
+                  final status = (r['status'] as String? ?? '').toLowerCase();
+                  final q = _searchQuery.toLowerCase();
+                  return name.contains(q) ||
+                      empId.contains(q) ||
+                      date.contains(q) ||
+                      device.contains(q) ||
+                      status.contains(q);
+                }).toList();
+              }
+
+              // 2. Compute Summary Metrics BEFORE status tab filtering
+              final totalRecordsCount = allRecords.length;
+              final presentCount = allRecords.where((r) {
+                final st = (r['status'] as String? ?? '').toLowerCase();
+                return st == 'present';
+              }).length;
+
+              // 3. Filter by Status Chip for list display
+              var displayedRecords = List<Map<String, dynamic>>.from(allRecords);
+              if (_statusFilter != 'All') {
+                displayedRecords = displayedRecords.where((r) {
+                  final status = (r['status'] as String? ?? '').toLowerCase();
+                  return status == _statusFilter.toLowerCase();
+                }).toList();
+              }
+
+              // Sort descending by time
+              displayedRecords.sort((a, b) {
+                final t1 = a['time'] as String? ?? '';
+                final t2 = b['time'] as String? ?? '';
+                return t2.compareTo(t1);
+              });
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
                       children: [
                         Expanded(
                           child: Card(
@@ -90,14 +217,14 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    '$totalRecords',
+                                    '$totalRecordsCount',
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.blue,
                                     ),
                                   ),
-                                  const Text('Total Records', style: TextStyle(fontSize: 12)),
+                                  Text(ref.tr('totalRecords'), style: const TextStyle(fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -119,7 +246,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                                       color: Colors.green,
                                     ),
                                   ),
-                                  const Text('Verified Present', style: TextStyle(fontSize: 12)),
+                                  Text(ref.tr('verifiedPresent'), style: const TextStyle(fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -127,126 +254,76 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SearchBar(
-                      hintText: 'Filter by employee name...',
-                      leading: const Icon(Icons.search),
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: ['All', 'Present', 'Late'].map((status) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: ChoiceChip(
-                                    label: Text(status),
-                                    selected: _statusFilter == status,
-                                    onSelected: (selected) {
-                                      if (selected) setState(() => _statusFilter = status);
-                                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: displayedRecords.isEmpty
+                        ? Center(
+                            child: Text(
+                              ref.tr('noRecordsFound'),
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: displayedRecords.length,
+                            itemBuilder: (context, index) {
+                              final record = displayedRecords[index];
+                              final name = record['employeeName'] ?? 'Unknown';
+                              final date = record['date'] ?? '';
+                              final timeStr = record['time'] ?? '';
+                              final status = (record['status'] as String? ?? 'present').toLowerCase();
+                              final device = record['deviceModel'] ?? 'Device';
+                              final battery = record['batteryLevel'] ?? 0;
+
+                              String formattedTime = timeStr;
+                              try {
+                                final dt = DateTime.parse(timeStr);
+                                formattedTime = DateFormat('HH:mm:ss').format(dt);
+                              } catch (_) {}
+
+                              final isLate = status == 'late';
+                              final statusLabel = isLate ? ref.tr('late') : ref.tr('present');
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: isLate
+                                        ? Colors.orange.withValues(alpha: 0.2)
+                                        : Colors.green.withValues(alpha: 0.2),
+                                    child: Icon(
+                                      isLate ? Icons.access_time_filled : Icons.check_circle_outline,
+                                      color: isLate ? Colors.orange : Colors.green,
+                                    ),
                                   ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.download_rounded),
-                          tooltip: 'Export Report',
-                          onSelected: (val) {
-                            if (val == 'pdf') {
-                              _exportPdf(records);
-                            } else if (val == 'excel') {
-                              _exportExcel(records);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'pdf',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.picture_as_pdf, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Export PDF Report'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'excel',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.table_chart, color: Colors.green),
-                                  SizedBox(width: 8),
-                                  Text('Export Excel Sheet'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: records.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No attendance records found',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: records.length,
-                        itemBuilder: (context, index) {
-                          final record = records[index];
-                          final name = record['employeeName'] ?? 'Unknown';
-                          final date = record['date'] ?? '';
-                          final timeStr = record['time'] ?? '';
-                          final status = record['status'] ?? 'present';
-                          final device = record['deviceModel'] ?? 'Device';
-                          final battery = record['batteryLevel'] ?? 0;
-
-                          String formattedTime = timeStr;
-                          try {
-                            final dt = DateTime.parse(timeStr);
-                            formattedTime = DateFormat('HH:mm:ss').format(dt);
-                          } catch (_) {}
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.check_circle_outline, color: Colors.green),
-                              ),
-                              title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(
-                                'Date: $date at $formattedTime\nDevice: $device • Battery: $battery%',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              isThreeLine: true,
-                              trailing: Chip(
-                                label: Text(
-                                  status.toUpperCase(),
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text(
+                                    '${ref.tr('date')}: $date at $formattedTime\n${ref.tr('device')}: $device • ${ref.tr('battery')}: $battery%',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  isThreeLine: true,
+                                  trailing: Chip(
+                                    label: Text(
+                                      statusLabel.toUpperCase(),
+                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                    backgroundColor: isLate
+                                        ? Colors.orange.withValues(alpha: 0.15)
+                                        : Colors.green.withValues(alpha: 0.15),
+                                  ),
                                 ),
-                                backgroundColor: Colors.green.withValues(alpha: 0.15),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
-      );
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _exportPdf(List<Map<String, dynamic>> records) async {
@@ -266,7 +343,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   ),
                 ),
                 pw.SizedBox(height: 10),
-                pw.Text('Generated on: ${DateFormat('yyyy-MM-DD HH:mm:ss').format(DateTime.now())}'),
+                pw.Text('Generated on: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}'),
                 pw.Text('Total Logged Records: ${records.length}'),
                 pw.SizedBox(height: 20),
                 pw.TableHelper.fromTextArray(
@@ -299,7 +376,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF generated successfully: ${file.path}'),
+            content: Text('${ref.tr('pdfGenerated')}: ${file.path}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -307,7 +384,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${ref.tr('errorGenerating')}: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -350,7 +427,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Excel generated successfully: ${file.path}'),
+              content: Text('${ref.tr('excelGenerated')}: ${file.path}'),
               backgroundColor: Colors.green,
             ),
           );
@@ -359,7 +436,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating Excel: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${ref.tr('errorGenerating')}: $e'), backgroundColor: Colors.red),
         );
       }
     }

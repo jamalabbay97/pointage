@@ -90,6 +90,34 @@ class _LoginScreenState extends State<LoginScreen> {
             'lastLogin': DateTime.now().toIso8601String(),
           });
         } else {
+          final data = doc.data() as Map<String, dynamic>;
+          final status = (data['status'] as String? ?? 'active').toLowerCase();
+          if (status == 'disabled') {
+            await FirebaseAuth.instance.signOut();
+            if (!mounted) return;
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Account Disabled'),
+                  ],
+                ),
+                content: const Text(
+                  'Your user account has been disabled by an administrator. Please contact IT support or your manager to restore access.',
+                ),
+                actions: [
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+            return;
+          }
           await userDocRef.update({
             'lastLogin': DateTime.now().toIso8601String(),
           });
