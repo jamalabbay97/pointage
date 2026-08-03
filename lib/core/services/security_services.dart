@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:universal_io/io.dart';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -16,8 +17,10 @@ class SecureVault {
 
 class BiometricGate {
   final LocalAuthentication _auth = LocalAuthentication();
-  Future<bool> unlock() async =>
-      _auth.authenticate(localizedReason: 'Unlock Chez Le Pointage securely');
+  Future<bool> unlock() async {
+    if (kIsWeb) return false;
+    return _auth.authenticate(localizedReason: 'Unlock Chez Le Pointage securely');
+  }
 }
 
 class DeviceIntegrityService {

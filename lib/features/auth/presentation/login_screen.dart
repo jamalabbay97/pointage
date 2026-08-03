@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -35,8 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkBiometrics() async {
+    // local_auth is not supported on web
+    if (kIsWeb) return;
     try {
-      final canAuthenticate = await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
+      final canAuthenticate =
+          await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
       if (!canAuthenticate) return;
 
       final savedEmail = await _storage.read(key: 'email');
@@ -75,14 +79,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = cred.user;
       if (user != null) {
-        final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDocRef =
+            FirebaseFirestore.instance.collection('users').doc(user.uid);
         final doc = await userDocRef.get();
         if (!doc.exists) {
           final isAdmin = user.email?.toLowerCase().contains('admin') ?? false;
           await userDocRef.set({
             'uid': user.uid,
             'email': user.email ?? '',
-            'displayName': user.displayName ?? (user.email?.split('@').first ?? 'User'),
+            'displayName':
+                user.displayName ?? (user.email?.split('@').first ?? 'User'),
             'role': isAdmin ? 'admin' : 'employee',
             'status': 'active',
             'department': isAdmin ? 'Management' : 'Engineering',
@@ -179,7 +185,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -191,16 +198,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 20),
                         Text(
                           'Chez Le Pointage',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Enterprise Attendance Portal',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                         ),
                         const SizedBox(height: 32),
                         TextField(
@@ -220,10 +233,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
                               onPressed: () {
-                                setState(() => obscurePassword = !obscurePassword);
+                                setState(
+                                  () => obscurePassword = !obscurePassword,
+                                );
                               },
                             ),
                           ),
@@ -233,7 +250,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Checkbox(
                               value: remember,
-                              onChanged: (v) => setState(() => remember = v ?? true),
+                              onChanged: (v) =>
+                                  setState(() => remember = v ?? true),
                             ),
                             const Text('Remember me'),
                             const Spacer(),
@@ -242,18 +260,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                 if (email.text.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Please enter your email address first'),
+                                      content: Text(
+                                        'Please enter your email address first',
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
                                 try {
                                   await FirebaseAuth.instance
-                                      .sendPasswordResetEmail(email: email.text.trim());
+                                      .sendPasswordResetEmail(
+                                    email: email.text.trim(),
+                                  );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Password reset email sent'),
+                                        content:
+                                            Text('Password reset email sent'),
                                         backgroundColor: Colors.green,
                                       ),
                                     );
@@ -288,7 +311,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : const Icon(Icons.login_rounded),
-                            label: Text(loading ? 'Authenticating...' : 'Secure Login'),
+                            label: Text(
+                              loading ? 'Authenticating...' : 'Secure Login',
+                            ),
                           ),
                         ),
                       ],

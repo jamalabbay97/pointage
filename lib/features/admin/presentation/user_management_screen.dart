@@ -8,11 +8,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/user_model.dart';
 
+class _CreateUserException implements Exception {
+  const _CreateUserException(this.message);
+
+  final String message;
+}
+
 class UserManagementScreen extends ConsumerStatefulWidget {
   const UserManagementScreen({super.key});
 
   @override
-  ConsumerState<UserManagementScreen> createState() => _UserManagementScreenState();
+  ConsumerState<UserManagementScreen> createState() =>
+      _UserManagementScreenState();
 }
 
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
@@ -87,14 +94,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         ),
                       ]
                     : null,
-                onChanged: (val) => setState(() => searchQuery = val.trim().toLowerCase()),
+                onChanged: (val) =>
+                    setState(() => searchQuery = val.trim().toLowerCase()),
               ),
               const SizedBox(height: 12),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    const Text('Role: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Role: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     ...['All', 'Admin', 'Manager', 'Employee'].map(
                       (role) => Padding(
                         padding: const EdgeInsets.only(right: 6),
@@ -102,13 +113,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           label: Text(role),
                           selected: selectedRoleFilter == role,
                           onSelected: (selected) {
-                            if (selected) setState(() => selectedRoleFilter = role);
+                            if (selected) {
+                              setState(() => selectedRoleFilter = role);
+                            }
                           },
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Status: ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     ...['All', 'Active', 'Disabled'].map(
                       (status) => Padding(
                         padding: const EdgeInsets.only(right: 6),
@@ -116,7 +132,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           label: Text(status),
                           selected: selectedStatusFilter == status,
                           onSelected: (selected) {
-                            if (selected) setState(() => selectedStatusFilter = status);
+                            if (selected) {
+                              setState(() => selectedStatusFilter = status);
+                            }
                           },
                         ),
                       ),
@@ -136,7 +154,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: Colors.red,
+                      ),
                       const SizedBox(height: 12),
                       Text('Error loading users: ${snapshot.error}'),
                     ],
@@ -150,7 +172,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
               final docs = snapshot.data?.docs ?? [];
               var users = docs
-                  .map((d) => UserModel.fromJson(d.data() as Map<String, dynamic>, d.id))
+                  .map(
+                    (d) => UserModel.fromJson(
+                      d.data() as Map<String, dynamic>,
+                      d.id,
+                    ),
+                  )
                   .toList();
 
               // Apply Filters
@@ -164,13 +191,21 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
               if (selectedRoleFilter != 'All') {
                 users = users
-                    .where((u) => u.role.toLowerCase() == selectedRoleFilter.toLowerCase())
+                    .where(
+                      (u) =>
+                          u.role.toLowerCase() ==
+                          selectedRoleFilter.toLowerCase(),
+                    )
                     .toList();
               }
 
               if (selectedStatusFilter != 'All') {
                 users = users
-                    .where((u) => u.status.toLowerCase() == selectedStatusFilter.toLowerCase())
+                    .where(
+                      (u) =>
+                          u.status.toLowerCase() ==
+                          selectedStatusFilter.toLowerCase(),
+                    )
                     .toList();
               }
 
@@ -179,11 +214,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.people_outline,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'No users found',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey),
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
@@ -191,7 +233,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: users.length,
                 itemBuilder: (context, index) {
                   final user = users[index];
@@ -201,7 +244,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.15),
+                        backgroundColor:
+                            _getRoleColor(user.role).withValues(alpha: 0.15),
                         child: Icon(
                           _getRoleIcon(user.role),
                           color: _getRoleColor(user.role),
@@ -214,16 +258,23 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                               user.displayName,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                decoration: isActive ? null : TextDecoration.lineThrough,
+                                decoration: isActive
+                                    ? null
+                                    : TextDecoration.lineThrough,
                               ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: _getRoleColor(user.role).withValues(alpha: 0.1),
+                              color: _getRoleColor(user.role)
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _getRoleColor(user.role)),
+                              border:
+                                  Border.all(color: _getRoleColor(user.role)),
                             ),
                             child: Text(
                               user.role.toUpperCase(),
@@ -238,7 +289,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       ),
                       subtitle: Text(
                         '${user.email}\nDepartment: ${user.department}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       isThreeLine: true,
                       trailing: Row(
@@ -249,13 +303,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             activeThumbColor: Colors.green,
                             onChanged: (val) async {
                               final newStatus = val ? 'active' : 'disabled';
-                              await _db.collection('users').doc(user.uid).update({
+                              await _db
+                                  .collection('users')
+                                  .doc(user.uid)
+                                  .update({
                                 'status': newStatus,
                               });
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('User ${user.displayName} is now $newStatus'),
+                                    content: Text(
+                                      'User ${user.displayName} is now $newStatus',
+                                    ),
                                     duration: const Duration(seconds: 2),
                                   ),
                                 );
@@ -287,7 +346,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 value: 'reset',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.lock_reset, size: 18, color: Colors.orange),
+                                    Icon(
+                                      Icons.lock_reset,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
                                     SizedBox(width: 8),
                                     Text('Send Password Reset'),
                                   ],
@@ -297,9 +360,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 value: 'delete',
                                 child: Row(
                                   children: [
-                                    Icon(Icons.delete, color: Colors.red, size: 18),
+                                    Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
                                     SizedBox(width: 8),
-                                    Text('Delete User', style: TextStyle(color: Colors.red)),
+                                    Text(
+                                      'Delete User',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -341,18 +411,22 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   String _generatePassword() {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&*';
     final rnd = Random.secure();
-    return List.generate(10, (index) => chars[rnd.nextInt(chars.length)]).join();
+    return List.generate(10, (index) => chars[rnd.nextInt(chars.length)])
+        .join();
   }
 
   void _showUserDialog(BuildContext context, {UserModel? user}) {
     final isEdit = user != null;
     final nameController = TextEditingController(text: user?.displayName ?? '');
     final emailController = TextEditingController(text: user?.email ?? '');
-    final deptController = TextEditingController(text: user?.department ?? 'Engineering');
+    final deptController = TextEditingController(
+      text: user?.department ?? 'Engineering',
+    );
     final passwordController = TextEditingController();
-    
+
     String role = user?.role ?? 'employee';
     bool obscurePassword = true;
     bool isSaving = false;
@@ -410,11 +484,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           ),
                           IconButton(
                             icon: Icon(
-                              obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
                               size: 20,
                             ),
                             onPressed: () {
-                              setDialogState(() => obscurePassword = !obscurePassword);
+                              setDialogState(
+                                () => obscurePassword = !obscurePassword,
+                              );
                             },
                           ),
                         ],
@@ -438,9 +516,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     prefixIcon: Icon(Icons.shield_outlined),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'admin', child: Text('Admin (Full Access)')),
-                    DropdownMenuItem(value: 'manager', child: Text('Manager (Dept Access)')),
-                    DropdownMenuItem(value: 'employee', child: Text('Employee (Standard)')),
+                    DropdownMenuItem(
+                      value: 'admin',
+                      child: Text('Admin (Full Access)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'manager',
+                      child: Text('Manager (Dept Access)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'employee',
+                      child: Text('Employee (Standard)'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => role = val);
@@ -459,20 +546,27 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   ? null
                   : () async {
                       final name = nameController.text.trim();
-                      final emailVal = emailController.text.trim();
+                      final emailVal =
+                          emailController.text.trim().toLowerCase();
                       final passwordVal = passwordController.text;
                       final dept = deptController.text.trim();
 
                       if (name.isEmpty || emailVal.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter name and email')),
+                          const SnackBar(
+                            content: Text('Please enter name and email'),
+                          ),
                         );
                         return;
                       }
 
-                      if (!isEdit && (passwordVal.isEmpty || passwordVal.length < 6)) {
+                      if (!isEdit &&
+                          (passwordVal.isEmpty || passwordVal.length < 6)) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Password must be at least 6 characters')),
+                          const SnackBar(
+                            content:
+                                Text('Password must be at least 6 characters'),
+                          ),
                         );
                         return;
                       }
@@ -480,6 +574,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       setDialogState(() => isSaving = true);
 
                       try {
+                        if (!isEdit && await _userEmailExists(emailVal)) {
+                          throw _CreateUserException(
+                            'A user with $emailVal already exists.',
+                          );
+                        }
+
                         if (isEdit) {
                           await _db.collection('users').doc(user.uid).update({
                             'displayName': name,
@@ -490,7 +590,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             Navigator.pop(dialogCtx);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('User $name updated successfully'),
+                                content:
+                                    Text('User $name updated successfully'),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -500,20 +601,29 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           FirebaseApp? secondaryApp;
                           String newUid = '';
                           try {
-                            final appName = 'AdminUserCreator_${DateTime.now().millisecondsSinceEpoch}';
+                            final appName =
+                                'AdminUserCreator_${DateTime.now().millisecondsSinceEpoch}';
                             secondaryApp = await Firebase.initializeApp(
                               name: appName,
                               options: Firebase.app().options,
                             );
-                            final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
-                            final cred = await secondaryAuth.createUserWithEmailAndPassword(
+                            final secondaryAuth =
+                                FirebaseAuth.instanceFor(app: secondaryApp);
+                            final cred = await secondaryAuth
+                                .createUserWithEmailAndPassword(
                               email: emailVal,
                               password: passwordVal,
                             );
                             newUid = cred.user!.uid;
                             await secondaryAuth.signOut();
+                          } on FirebaseAuthException catch (authErr) {
+                            throw _CreateUserException(
+                              _createUserAuthErrorMessage(authErr, emailVal),
+                            );
                           } catch (authErr) {
-                            throw Exception('Firebase Auth creation failed: $authErr');
+                            throw const _CreateUserException(
+                              'Could not create the Firebase Auth account. Please try again.',
+                            );
                           } finally {
                             await secondaryApp?.delete();
                           }
@@ -531,7 +641,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
                           if (dialogCtx.mounted) {
                             Navigator.pop(dialogCtx);
-                            _showUserCreatedSuccessDialog(context, name, emailVal, passwordVal, role);
+                            _showUserCreatedSuccessDialog(
+                              context,
+                              name,
+                              emailVal,
+                              passwordVal,
+                              role,
+                            );
                           }
                         }
                       } catch (e) {
@@ -539,7 +655,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           setDialogState(() => isSaving = false);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error: ${e.toString()}'),
+                              content: Text(_userFacingErrorMessage(e)),
                               backgroundColor: Colors.redAccent,
                             ),
                           );
@@ -550,7 +666,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : Text(isEdit ? 'Save Changes' : 'Create Account'),
             ),
@@ -558,6 +677,44 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         ),
       ),
     );
+  }
+
+  Future<bool> _userEmailExists(String email) async {
+    final snapshot = await _db
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
+  }
+
+  String _createUserAuthErrorMessage(
+    FirebaseAuthException error,
+    String email,
+  ) {
+    switch (error.code) {
+      case 'email-already-in-use':
+        return 'A Firebase Auth account already exists for $email. '
+            'Use a different email address or edit the existing user.';
+      case 'invalid-email':
+        return 'Enter a valid email address.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Email/password sign-in is not enabled for this Firebase project.';
+      default:
+        return error.message ??
+            'Could not create the Firebase Auth account. Please try again.';
+    }
+  }
+
+  String _userFacingErrorMessage(Object error) {
+    if (error is _CreateUserException) {
+      return error.message;
+    }
+
+    return 'Something went wrong. Please try again.';
   }
 
   void _showUserCreatedSuccessDialog(
@@ -581,7 +738,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Account for $name ($role) has been successfully initialized in Firebase.'),
+            Text(
+              'Account for $name ($role) has been successfully initialized in Firebase.',
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -593,9 +752,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SelectableText('Email: $email', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  SelectableText(
+                    'Email: $email',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
-                  SelectableText('Password: $password', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  SelectableText(
+                    'Password: $password',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepOrange,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -630,7 +798,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send reset email: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to send reset email: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -641,7 +812,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete User'),
-        content: Text('Are you sure you want to delete ${user.displayName}? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete ${user.displayName}? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

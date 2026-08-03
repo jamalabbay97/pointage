@@ -25,24 +25,49 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const ProviderScope(child: ChezLePointageApp()));
+  // Pre-load the saved theme BEFORE runApp so themeModeProvider
+  // starts with its final value and never emits a second state change
+  // (which was causing GoRouter to reset navigation and log out
+  // Admin/Manager users due to a brief auth-loading window).
+  final savedTheme = await loadSavedTheme();
+  runApp(ProviderScope(
+    overrides: [
+      themeModeProvider.overrideWith((ref) => ThemeNotifier(savedTheme)),
+    ],
+    child: const ChezLePointageApp(),
+  ),);
+
 }
 
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    _ref.listen(authStateProvider, (_, __) => notifyListeners());
+  }
+
+  String? redirect(BuildContext context, GoRouterState state) {
+    final authState = _ref.read(authStateProvider);
+    final isAuth = authState.valueOrNull != null;
+    final isLoggingIn = state.matchedLocation == '/login';
+
+    if (authState.isLoading) return null;
+
+    if (!isAuth && !isLoggingIn) return '/login';
+    if (isAuth && isLoggingIn) return '/dashboard';
+    return null;
+  }
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) => RouterNotifier(ref));
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
     initialLocation: '/dashboard',
-    redirect: (context, state) {
-      final isAuth = authState.valueOrNull != null;
-      final isLoggingIn = state.matchedLocation == '/login';
-
-      if (authState.isLoading) return null; // wait for initialization
-      
-      if (!isAuth && !isLoggingIn) return '/login';
-      if (isAuth && isLoggingIn) return '/dashboard';
-      return null;
-    },
+    refreshListenable: notifier,
+    redirect: notifier.redirect,
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
