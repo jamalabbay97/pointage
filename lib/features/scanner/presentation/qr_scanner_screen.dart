@@ -37,8 +37,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
       final db = FirebaseFirestore.instance;
       final userDoc = await db.collection('users').doc(user.uid).get();
+      final userData = userDoc.data();
       final userRole =
-          (userDoc.data()?['role'] as String? ?? '').trim().toLowerCase();
+          (userData?['role'] as String? ?? '').trim().toLowerCase();
+      final accountOwnerName = _accountOwnerName(userData, user);
       if (userRole == 'admin') {
         throw StateError(
           'Administrators cannot check in or check out. Use the admin reports dashboard to manage employee attendance.',
@@ -73,8 +75,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       final service = AttendanceService(db);
       await service.register(
         employeeId: user.uid,
-        employeeName:
-            user.displayName ?? (user.email?.split('@').first ?? 'Employee'),
+        employeeName: accountOwnerName,
         settings: settings,
       );
 
@@ -117,6 +118,19 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     } finally {
       if (mounted) setState(() => processing = false);
     }
+  }
+
+  String _accountOwnerName(Map<String, dynamic>? userData, User user) {
+    final profileName = (userData?['displayName'] as String? ?? '').trim();
+    if (profileName.isNotEmpty) return profileName;
+
+    final authName = user.displayName?.trim() ?? '';
+    if (authName.isNotEmpty) return authName;
+
+    final emailName = user.email?.split('@').first.trim() ?? '';
+    if (emailName.isNotEmpty) return emailName;
+
+    return 'Employee';
   }
 
   @override

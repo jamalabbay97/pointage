@@ -645,7 +645,7 @@ class _HistoryRow {
     }
 
     return _HistoryRow(
-      employeeName: record['employeeName'] as String? ?? user.displayName,
+      employeeName: _displayName(record['employeeName'], user.displayName),
       date: date,
       attendanceTime: time(record['time']),
       checkoutTime: time(record['checkoutTime']),
@@ -653,6 +653,11 @@ class _HistoryRow {
       device: record['deviceModel'] as String? ?? 'Mobile Device',
       battery: record['batteryLevel'] ?? 0,
     );
+  }
+
+  static String _displayName(Object? value, String fallback) {
+    final name = value?.toString().trim() ?? '';
+    return name.isEmpty ? fallback : name;
   }
 
   String get searchText =>
