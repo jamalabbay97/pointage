@@ -9,6 +9,8 @@ class UserModel {
     this.photoUrl,
     this.createdAt,
     this.lastLogin,
+    this.createdBy,
+    this.managerId,
   });
 
   final String uid;
@@ -20,6 +22,8 @@ class UserModel {
   final String? photoUrl;
   final DateTime? createdAt;
   final DateTime? lastLogin;
+  final String? createdBy;
+  final String? managerId;
 
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
@@ -41,6 +45,8 @@ class UserModel {
       lastLogin: json['lastLogin'] != null
           ? DateTime.tryParse(json['lastLogin'] as String)
           : null,
+      createdBy: _nullableString(json['createdBy']),
+      managerId: _nullableString(json['managerId']),
     );
   }
 
@@ -54,6 +60,8 @@ class UserModel {
         if (photoUrl != null) 'photoUrl': photoUrl,
         if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
         if (lastLogin != null) 'lastLogin': lastLogin!.toIso8601String(),
+        if (createdBy != null) 'createdBy': createdBy,
+        if (managerId != null) 'managerId': managerId,
       };
 
   UserModel copyWith({
@@ -66,6 +74,8 @@ class UserModel {
     String? photoUrl,
     DateTime? createdAt,
     DateTime? lastLogin,
+    String? createdBy,
+    String? managerId,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -77,11 +87,18 @@ class UserModel {
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,
+      createdBy: createdBy ?? this.createdBy,
+      managerId: managerId ?? this.managerId,
     );
   }
 
   static String _stringOrDefault(Object? value, String fallback) {
     if (value is String && value.trim().isNotEmpty) return value;
     return fallback;
+  }
+
+  static String? _nullableString(Object? value) {
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    return null;
   }
 }
