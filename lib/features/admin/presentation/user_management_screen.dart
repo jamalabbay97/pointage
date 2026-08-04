@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/models/user_model.dart';
+import '../../../core/services/user_deletion_api.dart';
 import '../../auth/domain/auth_provider.dart';
 
 class _CreateUserException implements Exception {
@@ -28,6 +29,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   String searchQuery = '';
   String selectedRoleFilter = 'All';
   String selectedStatusFilter = 'All';
+
+  static const _adminApiBaseUrl = String.fromEnvironment(
+    'POINTAGE_API_BASE_URL',
+  );
 
   final _db = FirebaseFirestore.instance;
 
@@ -822,6 +827,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       return error.message;
     }
 
+    if (error is UserDeletionApiException) {
+      return error.message;
+    }
+
     if (error is FirebaseException) {
       switch (error.code) {
         case 'permission-denied':
@@ -901,6 +910,27 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     );
   }
 
+  Future<void> _deleteUserCompletely(String uid) async {
+    if (_adminApiBaseUrl.trim().isEmpty) {
+      throw const UserDeletionApiException(
+        'The admin deletion API is not configured. Start the app with --dart-define=POINTAGE_API_BASE_URL=<backend URL>.',
+      );
+    }
+
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) {
+      throw const UserDeletionApiException(
+        'Your admin session expired. Please sign in again and retry.',
+      );
+    }
+
+    await deleteUserThroughAdminApi(
+      baseUrl: _adminApiBaseUrl,
+      uid: uid,
+      idToken: idToken,
+    );
+  }
+
   void _sendPasswordResetEmail(BuildContext context, UserModel user) async {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: user.email);
@@ -930,9 +960,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete User'),
         content: Text(
-          'This removes ${user.displayName} from the app without signing in as '
-          'that user. The Firebase Auth account must be removed by an Admin '
-          'SDK backend or from Firebase Console.',
+          'This permanently removes ${user.displayName} from Firebase '
+          'Authentication and deletes related app records, so the same email '
+          'can be registered again later.',
         ),
         actions: [
           TextButton(
@@ -957,8 +987,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               }
 
               try {
-                await _db.collection('users').doc(user.uid).delete();
+                await _deleteUserCompletely(user.uid);
                 if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${user.displayName} was deleted from Firebase.',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               } catch (e) {
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) {
