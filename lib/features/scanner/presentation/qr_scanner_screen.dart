@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -20,9 +21,100 @@ class QrScannerScreen extends StatefulWidget {
 class _QrScannerScreenState extends State<QrScannerScreen> {
   bool handled = false;
   bool processing = false;
+  bool locationReady = false;
+  bool checkingLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureLocationReady());
+  }
+
+  Future<void> _ensureLocationReady() async {
+    if (!mounted) return;
+    setState(() => checkingLocation = true);
+
+    var serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    var permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    final permissionGranted = permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
+
+    if (!serviceEnabled || !permissionGranted) {
+      if (mounted) {
+        setState(() {
+          locationReady = false;
+          checkingLocation = false;
+        });
+        await _showLocationRequiredDialog(
+          serviceEnabled: serviceEnabled,
+          permissionGranted: permissionGranted,
+        );
+      }
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      permission = await Geolocator.checkPermission();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      locationReady = serviceEnabled &&
+          (permission == LocationPermission.always ||
+              permission == LocationPermission.whileInUse);
+      checkingLocation = false;
+    });
+  }
+
+  Future<void> _showLocationRequiredDialog({
+    required bool serviceEnabled,
+    required bool permissionGranted,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.location_on),
+        title: const Text('Enable GPS to scan'),
+        content: Text(
+          !serviceEnabled
+              ? 'Location Services are turned off. Please enable GPS before scanning your QR code for attendance.'
+              : !permissionGranted
+                  ? 'Location permission is required before scanning your QR code for attendance.'
+                  : 'GPS must be enabled before scanning your QR code for attendance.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              if (this.context.canPop()) {
+                this.context.pop();
+              }
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              if (!serviceEnabled) {
+                await Geolocator.openLocationSettings();
+              } else {
+                await Geolocator.openAppSettings();
+              }
+              if (context.mounted) context.pop();
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('Open settings'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _processQR(String? code) async {
-    if (handled) return;
+    if (handled || !locationReady) return;
     handled = true;
     if (code == null || code.isEmpty) {
       handled = false;
@@ -145,34 +237,53 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 icon: const Icon(Icons.bug_report),
                 tooltip: 'Simulate QR Scan (Desktop/Web Test)',
                 onPressed: () {
-                  _processQR(
-                    jsonEncode({
-                      'nonce': 'sim_nonce_123',
-                      'date': DateTime.now().toIso8601String().substring(0, 10),
-                      'expiresAt': DateTime.now()
-                          .add(const Duration(minutes: 5))
-                          .toIso8601String(),
-                      'signature':
-                          QrVerifier(CompanySettings.defaultSettings.qrSecret)
-                              .hmacSha256(
-                        'sim_nonce_123|${DateTime.now().toIso8601String().substring(0, 10)}|${DateTime.now().add(const Duration(minutes: 5)).toIso8601String()}',
-                      ),
-                    }),
-                  );
+                  if (locationReady) {
+                    _processQR(
+                      jsonEncode({
+                        'nonce': 'sim_nonce_123',
+                        'date':
+                            DateTime.now().toIso8601String().substring(0, 10),
+                        'expiresAt': DateTime.now()
+                            .add(const Duration(minutes: 5))
+                            .toIso8601String(),
+                        'signature':
+                            QrVerifier(CompanySettings.defaultSettings.qrSecret)
+                                .hmacSha256(
+                          'sim_nonce_123|${DateTime.now().toIso8601String().substring(0, 10)}|${DateTime.now().add(const Duration(minutes: 5)).toIso8601String()}',
+                        ),
+                      }),
+                    );
+                  } else {
+                    _ensureLocationReady();
+                  }
                 },
               ),
           ],
         ),
         body: Stack(
           children: [
-            MobileScanner(
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty) {
-                  _processQR(barcodes.first.rawValue);
-                }
-              },
-            ),
+            if (locationReady)
+              MobileScanner(
+                onDetect: (capture) {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  if (barcodes.isNotEmpty) {
+                    _processQR(barcodes.first.rawValue);
+                  }
+                },
+              )
+            else
+              Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'GPS is required before scanning. Enable Location Services to continue.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
             Center(
               child: Container(
                 width: 260,
@@ -218,6 +329,58 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 ),
               ),
             ),
+            if (!locationReady)
+              Container(
+                color: Colors.black.withValues(alpha: 0.78),
+                child: Center(
+                  child: Card(
+                    margin: const EdgeInsets.all(24),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_off,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'GPS Required',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Enable Location Services to unlock QR scanning and record accurate attendance.',
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 18),
+                          FilledButton.icon(
+                            onPressed:
+                                checkingLocation ? null : _ensureLocationReady,
+                            icon: checkingLocation
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.my_location),
+                            label: Text(
+                              checkingLocation ? 'Checking...' : 'Enable GPS',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (processing)
               Container(
                 color: Colors.black.withValues(alpha: 0.7),
