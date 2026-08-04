@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/app_translations.dart';
 import '../../auth/domain/auth_provider.dart';
 
-lass HistoryScreen extends ConsumerStatefulWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
    @override

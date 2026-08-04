@@ -1,10 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
+
+import '../../../core/utils/async_timeout.dart';
+import '../domain/user_sync_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,7 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkBiometrics() async {
-    // local_auth is not supported on web
     if (kIsWeb) return;
     try {
       final canAuthenticate =
@@ -54,11 +58,37 @@ class _LoginScreenState extends State<LoginScreen> {
         if (didAuthenticate) {
           email.text = savedEmail;
           password.text = savedPassword;
-          _login();
+          await _login();
         }
       }
     } on PlatformException catch (e) {
       debugPrint('Biometrics error: $e');
+    }
+  }
+
+  Future<void> _persistCredentials() async {
+    try {
+      if (remember) {
+        await withTimeout(
+          Future.wait([
+            _storage.write(key: 'email', value: email.text.trim()),
+            _storage.write(key: 'password', value: password.text),
+          ]),
+          duration: const Duration(seconds: 5),
+          label: 'Saving credentials timed out',
+        );
+      } else {
+        await withTimeout(
+          Future.wait([
+            _storage.delete(key: 'email'),
+            _storage.delete(key: 'password'),
+          ]),
+          duration: const Duration(seconds: 5),
+          label: 'Clearing credentials timed out',
+        );
+      }
+    } catch (_) {
+      // Non-fatal: login should still succeed without saved credentials.
     }
   }
 
@@ -72,71 +102,67 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => loading = true);
     try {
-      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.text.trim(),
-        password: password.text,
+      final cred = await withTimeout(
+        FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email.text.trim(),
+          password: password.text,
+        ),
+        duration: const Duration(seconds: 30),
+        label: 'Sign-in timed out. Check your network connection.',
       );
 
       final user = cred.user;
       if (user != null) {
-        final userDocRef =
-            FirebaseFirestore.instance.collection('users').doc(user.uid);
-        final doc = await userDocRef.get();
-        if (!doc.exists) {
-          final isAdmin = user.email?.toLowerCase().contains('admin') ?? false;
-          await userDocRef.set({
-            'uid': user.uid,
-            'email': user.email ?? '',
-            'displayName':
-                user.displayName ?? (user.email?.split('@').first ?? 'User'),
-            'role': isAdmin ? 'admin' : 'employee',
-            'status': 'active',
-            'department': isAdmin ? 'Management' : 'Engineering',
-            'createdAt': DateTime.now().toIso8601String(),
-            'lastLogin': DateTime.now().toIso8601String(),
-          });
-        } else {
-          final data = doc.data() as Map<String, dynamic>;
-          final status = (data['status'] as String? ?? 'active').toLowerCase();
-          if (status == 'disabled') {
-            await FirebaseAuth.instance.signOut();
-            if (!mounted) return;
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Row(
-                  children: [
-                    Icon(Icons.block, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Account Disabled'),
-                  ],
-                ),
-                content: const Text(
-                  'Your user account has been disabled by an administrator. Please contact IT support or your manager to restore access.',
-                ),
-                actions: [
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('OK'),
-                  ),
+        final syncResult = await syncUserAfterLogin(user);
+        if (syncResult == UserSyncResult.disabled) {
+          await FirebaseAuth.instance.signOut();
+          if (!mounted) return;
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.block, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Account Disabled'),
                 ],
               ),
-            );
-            return;
-          }
-          await userDocRef.update({
-            'lastLogin': DateTime.now().toIso8601String(),
-          });
+              content: const Text(
+                'Your user account has been disabled by an administrator. Please contact IT support or your manager to restore access.',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
+        if (syncResult == UserSyncResult.failed && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Signed in, but profile sync is delayed. Some data may appear shortly.',
+              ),
+            ),
+          );
         }
       }
 
-      if (remember) {
-        await _storage.write(key: 'email', value: email.text.trim());
-        await _storage.write(key: 'password', value: password.text);
-      } else {
-        await _storage.delete(key: 'email');
-        await _storage.delete(key: 'password');
-      }
+      await _persistCredentials();
+
+      if (mounted) context.go('/dashboard');
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'Connection timed out'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,9 +294,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   return;
                                 }
                                 try {
-                                  await FirebaseAuth.instance
-                                      .sendPasswordResetEmail(
-                                    email: email.text.trim(),
+                                  await withTimeout(
+                                    FirebaseAuth.instance
+                                        .sendPasswordResetEmail(
+                                      email: email.text.trim(),
+                                    ),
+                                    duration: const Duration(seconds: 20),
+                                    label: 'Password reset request timed out',
                                   );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
