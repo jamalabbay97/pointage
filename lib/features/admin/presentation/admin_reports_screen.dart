@@ -23,15 +23,14 @@ class AdminReportsScreen extends ConsumerStatefulWidget {
 
 class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   final _db = FirebaseFirestore.instance;
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final ValueNotifier<String> _searchQueryNotifier = ValueNotifier('');
   String _statusFilter = 'All';
   _PeriodFilter _periodFilter = _PeriodFilter.month;
   DateTime _selectedDate = DateTime.now();
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchQueryNotifier.dispose();
     super.dispose();
   }
 
@@ -125,7 +124,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                     .toList() ??
                 [];
             final rows = _buildRows(visibleUsers, rawRecords, range);
-            final filteredRows = _filterRows(rows);
             final stats = _stats(rows, visibleUsers.length, range);
 
             return Column(
@@ -134,38 +132,43 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      SearchBar(
-                        controller: _searchController,
-                        hintText:
-                            'Search by employee, date, device, or status...',
-                        leading: const Icon(Icons.search),
-                        trailing: _searchController.text.isNotEmpty
-                            ? [
-                                IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                ),
-                              ]
-                            : null,
+                      _PersistentSearchBar(
+                        key: const ValueKey('reports-search'),
                         onChanged: (val) =>
-                            setState(() => _searchQuery = val.trim()),
+                            _searchQueryNotifier.value = val.trim(),
+                        onClear: () => _searchQueryNotifier.value = '',
                       ),
                       const SizedBox(height: 12),
                       _buildPeriodFilters(range),
                       const SizedBox(height: 12),
-                      _buildStatusAndExport(
-                        filteredRows,
-                        'Supervisors',
+                      ValueListenableBuilder<String>(
+                        valueListenable: _searchQueryNotifier,
+                        builder: (context, searchQuery, _) {
+                          final filteredRows =
+                              _filterRows(rows, searchQuery);
+                          return Column(
+                            children: [
+                              _buildStatusAndExport(
+                                filteredRows,
+                                'Supervisors',
+                              ),
+                              const SizedBox(height: 12),
+                              _buildStats(stats),
+                            ],
+                          );
+                        },
                       ),
-                      const SizedBox(height: 12),
-                      _buildStats(stats),
                     ],
                   ),
                 ),
-                Expanded(child: _buildList(filteredRows)),
+                Expanded(
+                  child: ValueListenableBuilder<String>(
+                    valueListenable: _searchQueryNotifier,
+                    builder: (context, searchQuery, _) {
+                      return _buildList(_filterRows(rows, searchQuery));
+                    },
+                  ),
+                ),
               ],
             );
           },
@@ -417,10 +420,10 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     return rows;
   }
 
-  List<_HistoryRow> _filterRows(List<_HistoryRow> rows) {
+  List<_HistoryRow> _filterRows(List<_HistoryRow> rows, String searchQuery) {
     var filtered = rows;
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
+    final q = searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
       filtered = filtered.where((row) => row.searchText.contains(q)).toList();
     }
     if (_statusFilter != 'All') {
@@ -592,6 +595,58 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         );
       }
     }
+  }
+}
+
+class _PersistentSearchBar extends StatefulWidget {
+  const _PersistentSearchBar({
+    super.key,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  State<_PersistentSearchBar> createState() => _PersistentSearchBarState();
+}
+
+class _PersistentSearchBarState extends State<_PersistentSearchBar> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleClear() {
+    _controller.clear();
+    widget.onClear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        return SearchBar(
+          controller: _controller,
+          hintText: 'Search by employee, date, device, or status...',
+          leading: const Icon(Icons.search),
+          trailing: _controller.text.isNotEmpty
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: _handleClear,
+                  ),
+                ]
+              : null,
+          onChanged: widget.onChanged,
+        );
+      },
+    );
   }
 }
 

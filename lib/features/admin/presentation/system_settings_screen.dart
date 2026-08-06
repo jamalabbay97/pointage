@@ -1,19 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/widgets/web_layout.dart';
+import '../../auth/domain/auth_provider.dart';
 
-class SystemSettingsScreen extends StatefulWidget {
+class SystemSettingsScreen extends ConsumerStatefulWidget {
   const SystemSettingsScreen({super.key});
 
   @override
-  State<SystemSettingsScreen> createState() => _SystemSettingsScreenState();
+  ConsumerState<SystemSettingsScreen> createState() => _SystemSettingsScreenState();
 }
 
-class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
+class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
   final _db = FirebaseFirestore.instance;
   bool _loading = true;
   bool _saving = false;
@@ -174,6 +176,9 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
+    final showAdminApiSettings = currentUser?.isAdmin == true;
+
     if (_loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('System Settings')),
@@ -352,43 +357,45 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.api, color: Colors.orange),
-                      SizedBox(width: 10),
-                      Text(
-                        'Admin Backend API',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Required for creating and deleting user accounts. '
-                    'Example: https://your-backend.example.com',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _adminApiController,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      labelText: 'Admin API Base URL',
-                      prefixIcon: Icon(Icons.link),
-                      hintText: 'https://your-backend.example.com',
+          if (showAdminApiSettings) ...[
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.api, color: Colors.orange),
+                        SizedBox(width: 10),
+                        Text(
+                          'Admin Backend API',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Required for creating and deleting user accounts. '
+                      'Example: https://your-backend.example.com',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _adminApiController,
+                      keyboardType: TextInputType.url,
+                      decoration: const InputDecoration(
+                        labelText: 'Admin API Base URL',
+                        prefixIcon: Icon(Icons.link),
+                        hintText: 'https://your-backend.example.com',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

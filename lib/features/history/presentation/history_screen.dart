@@ -17,7 +17,13 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-  String _searchQuery = '';
+  final ValueNotifier<String> _searchQueryNotifier = ValueNotifier('');
+
+  @override
+  void dispose() {
+    _searchQueryNotifier.dispose();
+    super.dispose();
+  }
 
   static bool get _isWide =>
       kIsWeb ||
@@ -52,14 +58,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
     }
 
-    final body = StreamBuilder<QuerySnapshot>(
+    final content = StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('attendance')
           .where('employeeId', isEqualTo: authUser.uid)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-           return Center(child: Text('Error loading history: ${snapshot.error}'));
+          return Center(child: Text('Error loading history: ${snapshot.error}'));
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -76,7 +82,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         });
 
         final monthRecords = records.where(_isInSelectedMonth).toList();
-        final filteredRecords = monthRecords.where(_matchesSearch).toList();
         final summary = _AttendanceSummary.fromRecords(
           selectedMonth: _selectedMonth,
           records: monthRecords,
@@ -84,34 +89,46 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
         return ListView(
           padding: const EdgeInsets.all(16),
-           children: [
+          children: [
             _MonthFilterCard(
+              key: const ValueKey('history-month-filter'),
               selectedMonth: _selectedMonth,
-              searchQuery: _searchQuery,
               onPreviousMonth: () => setState(
                 () => _selectedMonth = DateTime(
                   _selectedMonth.year,
                   _selectedMonth.month - 1,
                 ),
-                ),
+              ),
               onNextMonth: () => setState(
                 () => _selectedMonth = DateTime(
                   _selectedMonth.year,
                   _selectedMonth.month + 1,
                 ),
               ),
-            onSearchChanged: (value) => setState(() => _searchQuery = value),
+              onSearchChanged: (value) => _searchQueryNotifier.value = value,
             ),
             const SizedBox(height: 12),
             _SummaryDashboard(summary: summary),
             const SizedBox(height: 16),
-            if (filteredRecords.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: Text(ref.tr('noHistoryFound'))),
-              )
-            else
-              ...filteredRecords.map((record) => _HistoryCard(record: record)),
+            ValueListenableBuilder<String>(
+              valueListenable: _searchQueryNotifier,
+              builder: (context, searchQuery, _) {
+                final filteredRecords = monthRecords
+                    .where((record) => _matchesSearch(record, searchQuery))
+                    .toList();
+                if (filteredRecords.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(child: Text(ref.tr('noHistoryFound'))),
+                  );
+                }
+                return Column(
+                  children: filteredRecords
+                      .map((record) => _HistoryCard(record: record))
+                      .toList(),
+                );
+              },
+            ),
           ],
         );
       },
@@ -124,10 +141,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 820),
-                child: body,
+                child: content,
               ),
             )
-          : body,
+          : content,
     );
   }
 
@@ -138,8 +155,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         date.month == _selectedMonth.month;
   }
 
-  bool _matchesSearch(Map<String, dynamic> record) {
-    final query = _searchQuery.trim().toLowerCase();
+  bool _matchesSearch(Map<String, dynamic> record, String searchQuery) {
+    final query = searchQuery.trim().toLowerCase();
     if (query.isEmpty) return true;
     final status = (record['status'] ?? '').toString().toLowerCase();
     final date = (record['date'] ?? '').toString().toLowerCase();
@@ -162,20 +179,38 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 }
 
-class _MonthFilterCard extends StatelessWidget {
+class _MonthFilterCard extends StatefulWidget {
   const _MonthFilterCard({
+    super.key,
     required this.selectedMonth,
-    required this.searchQuery,
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onSearchChanged,
   });
 
   final DateTime selectedMonth;
-  final String searchQuery;
   final VoidCallback onPreviousMonth;
   final VoidCallback onNextMonth;
   final ValueChanged<String> onSearchChanged;
+
+  @override
+  State<_MonthFilterCard> createState() => _MonthFilterCardState();
+}
+
+class _MonthFilterCardState extends State<_MonthFilterCard> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => Card(
@@ -187,12 +222,12 @@ class _MonthFilterCard extends StatelessWidget {
                 children: [
                   IconButton(
                     tooltip: 'Previous month',
-                    onPressed: onPreviousMonth,
+                    onPressed: widget.onPreviousMonth,
                     icon: const Icon(Icons.chevron_left),
                   ),
                   Expanded(
                     child: Text(
-                      DateFormat('MMMM yyyy').format(selectedMonth),
+                      DateFormat('MMMM yyyy').format(widget.selectedMonth),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -201,14 +236,15 @@ class _MonthFilterCard extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: 'Next month',
-                    onPressed: onNextMonth,
+                    onPressed: widget.onNextMonth,
                     icon: const Icon(Icons.chevron_right),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               TextField(
-                onChanged: onSearchChanged,
+                controller: _searchController,
+                onChanged: widget.onSearchChanged,
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
                   labelText: 'Search by date, month, or status',
