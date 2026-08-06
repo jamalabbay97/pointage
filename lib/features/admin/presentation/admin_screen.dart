@@ -25,10 +25,11 @@ class AdminScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: isDark
-                      ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                      ? [const Color(0xFF202020), const Color(0xFF181818)]
                       : [const Color(0xFF246BFD), const Color(0xFF1952C7)],
                 ),
                 borderRadius: BorderRadius.circular(24),
+                border: isDark ? Border.all(color: const Color(0xFF313131)) : null,
               ),
               child: const Row(
                 children: [

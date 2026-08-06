@@ -10,6 +10,8 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
+import '../../profile/presentation/profile_screen.dart';
+
 const _storage = FlutterSecureStorage();
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -65,6 +67,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final firebaseUser = FirebaseAuth.instance.currentUser;
 
+    final avatarImage = ProfileScreen.getProfileImageProvider(userModel?.photoUrl ?? firebaseUser?.photoURL);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(ref.tr('settingsCenter')),
@@ -82,16 +86,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      child: Text(
-                        (userModel?.displayName.isNotEmpty == true)
-                            ? userModel!.displayName[0].toUpperCase()
-                            : 'U',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+                      backgroundImage: avatarImage,
+                      child: avatarImage == null
+                          ? Text(
+                              (userModel?.displayName.isNotEmpty == true)
+                                  ? userModel!.displayName[0].toUpperCase()
+                                  : 'U',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(

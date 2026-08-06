@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
+import '../../profile/presentation/profile_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -47,6 +48,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final todayDocId = '${user?.uid}-${now.toIso8601String().substring(0, 10)}';
+    final dashAvatarImage = ProfileScreen.getProfileImageProvider(userModel?.photoUrl ?? user?.photoURL);
 
     return Scaffold(
       appBar: AppBar(
@@ -79,17 +81,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                        ? [const Color(0xFF202020), const Color(0xFF181818)]
                         : [const Color(0xFF246BFD), const Color(0xFF1E5BB8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(28),
+                  border: isDark ? Border.all(color: const Color(0xFF313131)) : null,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.withValues(alpha: 0.15),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
+                      color: isDark
+                          ? const Color.fromRGBO(0, 0, 0, 0.35)
+                          : Colors.blue.withValues(alpha: 0.15),
+                      blurRadius: isDark ? 2 : 16,
+                      offset: isDark ? const Offset(0, 1) : const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -101,16 +106,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         CircleAvatar(
                           radius: 26,
                           backgroundColor: Colors.white24,
-                          child: Text(
-                            (userModel?.displayName.isNotEmpty == true)
-                                ? userModel!.displayName[0].toUpperCase()
-                                : 'E',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                          backgroundImage: dashAvatarImage,
+                          child: dashAvatarImage == null
+                              ? Text(
+                                  (userModel?.displayName.isNotEmpty == true)
+                                      ? userModel!.displayName[0].toUpperCase()
+                                      : 'E',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 14),
                         Expanded(

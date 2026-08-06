@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: Theme.of(context).brightness == Brightness.dark
-                  ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+                  ? [const Color(0xFF181818), const Color(0xFF202020)]
                   : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
             ),
           ),
