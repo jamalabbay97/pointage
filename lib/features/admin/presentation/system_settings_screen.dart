@@ -22,6 +22,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   late TextEditingController _latController;
   late TextEditingController _lngController;
   late TextEditingController _secretController;
+  late TextEditingController _adminApiController;
 
   double _radiusMeters = 500;
   int _rotationInterval = 15;
@@ -34,6 +35,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     _latController = TextEditingController();
     _lngController = TextEditingController();
     _secretController = TextEditingController();
+    _adminApiController = TextEditingController();
     _loadSettings();
   }
 
@@ -43,6 +45,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
     _latController.dispose();
     _lngController.dispose();
     _secretController.dispose();
+    _adminApiController.dispose();
     super.dispose();
   }
 
@@ -59,6 +62,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
       _latController.text = settings.latitude.toString();
       _lngController.text = settings.longitude.toString();
       _secretController.text = settings.qrSecret;
+      _adminApiController.text = settings.adminApiBaseUrl;
       _radiusMeters = settings.radiusMeters;
       _rotationInterval = settings.qrRotateIntervalSeconds;
       _allowRemoteClockIn = settings.allowRemoteClockIn;
@@ -144,6 +148,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
         qrRotateIntervalSeconds: _rotationInterval,
         companyName: companyName,
         allowRemoteClockIn: _allowRemoteClockIn,
+        adminApiBaseUrl: _adminApiController.text.trim(),
       );
 
       await _db.collection('settings').doc('company').set(updated.toJson());
@@ -342,6 +347,43 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                     onChanged: (val) {
                       if (val != null) setState(() => _rotationInterval = val);
                     },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.api, color: Colors.orange),
+                      SizedBox(width: 10),
+                      Text(
+                        'Admin Backend API',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Required for creating and deleting user accounts. '
+                    'Example: https://your-backend.example.com',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _adminApiController,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'Admin API Base URL',
+                      prefixIcon: Icon(Icons.link),
+                      hintText: 'https://your-backend.example.com',
+                    ),
                   ),
                 ],
               ),

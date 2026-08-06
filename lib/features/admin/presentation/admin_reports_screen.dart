@@ -70,9 +70,20 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       defaultTargetPlatform == TargetPlatform.macOS ||
       defaultTargetPlatform == TargetPlatform.linux;
 
+  Stream<QuerySnapshot> _usersStream(UserModel currentUser, String authUid) {
+    if (currentUser.isManager) {
+      return _db
+          .collection('users')
+          .where('createdBy', isEqualTo: authUid)
+          .snapshots();
+    }
+
+    return _db.collection('users').snapshots();
+  }
+
   Widget _buildBody(User authUser, UserModel currentUser) {
     return StreamBuilder<QuerySnapshot>(
-      stream: _db.collection('users').snapshots(),
+      stream: _usersStream(currentUser, authUser.uid),
       builder: (context, usersSnapshot) {
         if (usersSnapshot.hasError) {
           return Center(
@@ -88,6 +99,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                 .where((user) => user.status != 'disabled')
                 .toList() ??
             [];
+        if (currentUser.isManager &&
+            currentUser.status.trim().toLowerCase() != 'disabled' &&
+            !allUsers.any((user) => user.uid == authUser.uid)) {
+          allUsers.insert(0, _HistoryUser.fromUserModel(currentUser));
+        }
         final visibleUsers = _visibleUsers(allUsers, currentUser, authUser);
         final range = _selectedRange();
 
@@ -603,6 +619,18 @@ class _HistoryUser {
       managerId: field('managerId'),
       reportsTo: field('reportsTo'),
       role: field('role'),
+    );
+  }
+
+  factory _HistoryUser.fromUserModel(UserModel user) {
+    return _HistoryUser(
+      uid: user.uid,
+      displayName: user.displayName,
+      status: user.status,
+      createdBy: user.createdBy ?? '',
+      managerId: user.managerId ?? '',
+      reportsTo: '',
+      role: user.role,
     );
   }
 }

@@ -7,6 +7,7 @@ class CompanySettings {
     this.qrRotateIntervalSeconds = 15,
     this.companyName = 'Chez Le Pointage HQ',
     this.allowRemoteClockIn = false,
+    this.adminApiBaseUrl = '',
   });
 
   final double latitude;
@@ -16,6 +17,7 @@ class CompanySettings {
   final int qrRotateIntervalSeconds;
   final String companyName;
   final bool allowRemoteClockIn;
+  final String adminApiBaseUrl;
 
   static const CompanySettings defaultSettings = CompanySettings(
     latitude: 37.4219983,
@@ -37,6 +39,7 @@ class CompanySettings {
             (json['qrRotateIntervalSeconds'] as num? ?? defaultSettings.qrRotateIntervalSeconds).toInt(),
         companyName: json['companyName'] as String? ?? defaultSettings.companyName,
         allowRemoteClockIn: json['allowRemoteClockIn'] as bool? ?? defaultSettings.allowRemoteClockIn,
+        adminApiBaseUrl: json['adminApiBaseUrl'] as String? ?? defaultSettings.adminApiBaseUrl,
       );
 
   Map<String, dynamic> toJson() => {
@@ -47,6 +50,7 @@ class CompanySettings {
         'qrRotateIntervalSeconds': qrRotateIntervalSeconds,
         'companyName': companyName,
         'allowRemoteClockIn': allowRemoteClockIn,
+        if (adminApiBaseUrl.trim().isNotEmpty) 'adminApiBaseUrl': adminApiBaseUrl.trim(),
       };
 
   CompanySettings copyWith({
@@ -57,6 +61,7 @@ class CompanySettings {
     int? qrRotateIntervalSeconds,
     String? companyName,
     bool? allowRemoteClockIn,
+    String? adminApiBaseUrl,
   }) {
     return CompanySettings(
       latitude: latitude ?? this.latitude,
@@ -66,6 +71,7 @@ class CompanySettings {
       qrRotateIntervalSeconds: qrRotateIntervalSeconds ?? this.qrRotateIntervalSeconds,
       companyName: companyName ?? this.companyName,
       allowRemoteClockIn: allowRemoteClockIn ?? this.allowRemoteClockIn,
+      adminApiBaseUrl: adminApiBaseUrl ?? this.adminApiBaseUrl,
     );
   }
 }

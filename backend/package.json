@@ -3,7 +3,8 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "dev": "tsx src/server.ts",
+        "dev": "tsx src/server.ts", 
+        "start": "tsx src/server.ts", 
         "test": "node --test"
     },
     "dependencies": {

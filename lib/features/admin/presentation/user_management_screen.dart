@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/user_deletion_api.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -29,10 +30,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   String searchQuery = '';
   String selectedRoleFilter = 'All';
   String selectedStatusFilter = 'All';
-
-  static const _adminApiBaseUrl = String.fromEnvironment(
-    'POINTAGE_API_BASE_URL',
-  );
 
   final _db = FirebaseFirestore.instance;
 
@@ -664,6 +661,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           );
                         }
 
+                        if (!isEdit) {
+                          await _reconcileOrphanedAuthAccount(emailVal);
+                        }
+
                         if (isEdit) {
                           final updateData = <String, dynamic>{
                             'displayName': name,
@@ -809,7 +810,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     switch (error.code) {
       case 'email-already-in-use':
         return 'A Firebase Auth account already exists for $email. '
-            'Use a different email address or edit the existing user.';
+            'If this user was partially created before, configure the Admin API '
+            'in System Settings and try again, or use a different email address.';
       case 'invalid-email':
         return 'Enter a valid email address.';
       case 'weak-password':
@@ -910,22 +912,57 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     );
   }
 
-  Future<void> _deleteUserCompletely(String uid) async {
-    if (_adminApiBaseUrl.trim().isEmpty) {
+  Future<String> _requireAdminApiBaseUrl() async {
+    final baseUrl = await AppConfig.resolveAdminApiBaseUrl(_db);
+    if (baseUrl.isEmpty) {
       throw const UserDeletionApiException(
-        'The admin deletion API is not configured. Start the app with --dart-define=POINTAGE_API_BASE_URL=<backend URL>.',
+        'The admin API is not configured. Set the Admin API Base URL in '
+        'System Settings, or start the app with '
+        '--dart-define=POINTAGE_API_BASE_URL=<backend URL>.',
       );
     }
+    return baseUrl;
+  }
 
+  Future<String> _requireIdToken() async {
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       throw const UserDeletionApiException(
         'Your admin session expired. Please sign in again and retry.',
       );
     }
+    return idToken;
+  }
+
+  Future<void> _reconcileOrphanedAuthAccount(String email) async {
+    final baseUrl = await AppConfig.resolveAdminApiBaseUrl(_db);
+    if (baseUrl.isEmpty) return;
+
+    final idToken = await _requireIdToken();
+    final lookup = await lookupUserByEmailThroughAdminApi(
+      baseUrl: baseUrl,
+      email: email,
+      idToken: idToken,
+    );
+
+    if (lookup.uid == null) return;
+    if (lookup.hasFirestoreProfile) {
+      throw _CreateUserException('A user with $email already exists.');
+    }
 
     await deleteUserThroughAdminApi(
-      baseUrl: _adminApiBaseUrl,
+      baseUrl: baseUrl,
+      uid: lookup.uid!,
+      idToken: idToken,
+    );
+  }
+
+  Future<void> _deleteUserCompletely(String uid) async {
+    final baseUrl = await _requireAdminApiBaseUrl();
+    final idToken = await _requireIdToken();
+
+    await deleteUserThroughAdminApi(
+      baseUrl: baseUrl,
       uid: uid,
       idToken: idToken,
     );
