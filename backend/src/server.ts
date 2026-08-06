@@ -11,6 +11,7 @@ await app.register(cors, { origin: true });
 const secret = process.env.JWT_SECRET ?? 'change-me';
 const attendanceSchema = z.object({ employeeId: z.string(), qrPayload: z.string(), latitude: z.number(), longitude: z.number(), deviceId: z.string(), idempotencyKey: z.string() });
 const deleteUserParamsSchema = z.object({ id: z.string().min(1) });
+const lookupUserByEmailParamsSchema = z.object({ email: z.string().email() });
 
 if (getApps().length === 0) {
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -64,6 +65,28 @@ app.post('/logout', async (_, reply) => reply.code(204).send());
 app.post('/attendance', async (request, reply) => reply.code(201).send({ id: crypto.randomUUID(), ...attendanceSchema.parse(request.body), status: 'present' }));
 app.get('/history/:employeeId', async () => ({ records: [] }));
 app.get('/reports', async () => ({ totalPresent: 0, late: 0, absent: 0 }));
+app.get('/users/lookup-by-email/:email', async (request, reply) => {
+    const authHeader = request.headers.authorization ?? '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice('Bearer '.length) : undefined;
+    await requireAdminOrManager(token);
+    const { email } = lookupUserByEmailParamsSchema.parse({
+        email: decodeURIComponent((request.params as { email: string }).email),
+    });
+
+    try {
+        const authUser = await adminAuth.getUserByEmail(email);
+        const firestoreDoc = await adminDb.collection('users').doc(authUser.uid).get();
+        return reply.send({
+            uid: authUser.uid,
+            hasFirestoreProfile: firestoreDoc.exists,
+        });
+    } catch (error) {
+        if ((error as { code?: string }).code === 'auth/user-not-found') {
+            return reply.send({ uid: null, hasFirestoreProfile: false });
+        }
+        throw error;
+    }
+});
 app.get('/users/:id', async (request) => ({ id: (request.params as { id: string }).id }));
 app.patch('/users/:id', async (request) => ({ id: (request.params as { id: string }).id, ...request.body as object }));
 app.delete('/users/:id', async (request, reply) => {
