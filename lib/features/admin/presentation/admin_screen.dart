@@ -1,123 +1,137 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/web_layout.dart';
+import '../../auth/domain/auth_provider.dart';
 
-class AdminScreen extends StatelessWidget {
+class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
+    final isAdmin = currentUser?.isAdmin ?? false;
+
+    final appBarTitle = isAdmin ? 'Admin Panel Hub' : 'Manager Panel Hub';
+    final portalTitle = isAdmin ? 'Administrator Portal' : 'Manager Portal';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Panel Hub'),
+        title: Text(appBarTitle),
       ),
       body: WebLayout(
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF202020), const Color(0xFF181818)]
-                      : [const Color(0xFF246BFD), const Color(0xFF1952C7)],
-                ),
-                borderRadius: BorderRadius.circular(24),
-                border: isDark ? Border.all(color: const Color(0xFF313131)) : null,
-              ),
-              child: const Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF202020), const Color(0xFF181818)]
+                        : [const Color(0xFF246BFD), const Color(0xFF1952C7)],
                   ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Administrator Portal',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Manage users, security parameters, dynamic QR codes, and enterprise analytics.',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
+                  borderRadius: BorderRadius.circular(24),
+                  border: isDark
+                      ? Border.all(color: const Color(0xFF313131))
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.white24,
+                      child: Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            portalTitle,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Manage users, security parameters, dynamic QR codes, and enterprise analytics.',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Management Tools',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.9,
+                children: [
+                  _AdminCard(
+                    title: 'User Management',
+                    subtitle: 'Create, edit, enable & disable accounts',
+                    icon: Icons.people_alt_outlined,
+                    color: Colors.blue,
+                    onTap: () => context.push('/admin/users'),
+                  ),
+                  _AdminCard(
+                    title: 'Role & Permissions',
+                    subtitle: 'Access control matrices & role rules',
+                    icon: Icons.shield_outlined,
+                    color: Colors.purple,
+                    onTap: () => context.push('/admin/roles'),
+                  ),
+                  _AdminCard(
+                    title: 'Dynamic QR Rotator',
+                    subtitle: 'HMAC-signed anti-spoofing presenter',
+                    icon: Icons.qr_code_2_rounded,
+                    color: Colors.orange,
+                    onTap: () => context.push('/admin/qr'),
+                  ),
+                  _AdminCard(
+                    title: 'Reports & Analytics',
+                    subtitle: 'Real-time logs, PDF & Excel export',
+                    icon: Icons.bar_chart_rounded,
+                    color: Colors.green,
+                    onTap: () => context.push('/admin/reports'),
+                  ),
+                  _AdminCard(
+                    title: 'System & Geofence',
+                    subtitle: 'Office GPS, radius, HMAC key config',
+                    icon: Icons.settings_applications_rounded,
+                    color: Colors.teal,
+                    onTap: () => context.push('/admin/settings'),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Management Tools',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.9,
-              children: [
-                _AdminCard(
-                  title: 'User Management',
-                  subtitle: 'Create, edit, enable & disable accounts',
-                  icon: Icons.people_alt_outlined,
-                  color: Colors.blue,
-                  onTap: () => context.push('/admin/users'),
-                ),
-                _AdminCard(
-                  title: 'Role & Permissions',
-                  subtitle: 'Access control matrices & role rules',
-                  icon: Icons.shield_outlined,
-                  color: Colors.purple,
-                  onTap: () => context.push('/admin/roles'),
-                ),
-                _AdminCard(
-                  title: 'Dynamic QR Rotator',
-                  subtitle: 'HMAC-signed anti-spoofing presenter',
-                  icon: Icons.qr_code_2_rounded,
-                  color: Colors.orange,
-                  onTap: () => context.push('/admin/qr'),
-                ),
-                _AdminCard(
-                  title: 'Reports & Analytics',
-                  subtitle: 'Real-time logs, PDF & Excel export',
-                  icon: Icons.bar_chart_rounded,
-                  color: Colors.green,
-                  onTap: () => context.push('/admin/reports'),
-                ),
-                _AdminCard(
-                  title: 'System & Geofence',
-                  subtitle: 'Office GPS, radius, HMAC key config',
-                  icon: Icons.settings_applications_rounded,
-                  color: Colors.teal,
-                  onTap: () => context.push('/admin/settings'),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -162,7 +176,8 @@ class _AdminCard extends StatelessWidget {
               const Spacer(),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 4),
               Text(

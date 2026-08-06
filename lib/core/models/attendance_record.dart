@@ -5,6 +5,7 @@ class AttendanceRecord {
     required this.employeeName,
     required this.date,
     required this.time,
+    this.checkoutTime,
     required this.status,
     required this.latitude,
     required this.longitude,
@@ -24,6 +25,7 @@ class AttendanceRecord {
       internetStatus,
       deviceId;
   final DateTime date, time;
+  final DateTime? checkoutTime;
   final double latitude, longitude, locationAccuracy;
   final int batteryLevel;
 
@@ -33,6 +35,7 @@ class AttendanceRecord {
         'employeeName': employeeName,
         'date': date.toIso8601String().substring(0, 10),
         'time': time.toIso8601String(),
+        'checkoutTime': checkoutTime?.toIso8601String(),
         'status': status,
         'latitude': latitude,
         'longitude': longitude,

@@ -114,7 +114,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       'Role: ',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    ...['All', 'Admin', 'Manager', 'Employee'].map(
+                    ...[
+                      'All',
+                      if (currentUser?.isAdmin == true) 'Admin',
+                      'Manager',
+                      'Employee',
+                    ].map(
                       (role) => Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
@@ -198,6 +203,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       users = users
                           .where((u) => u.createdBy == currentUid)
                           .toList();
+                    }
+
+                    // Hide Admin accounts for non-admin accounts
+                    if (currentUser?.isAdmin != true) {
+                      users = users.where((u) => !u.isAdmin).toList();
                     }
 
                     // Apply Filters

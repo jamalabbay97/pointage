@@ -133,9 +133,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       final userRole =
           (userData?['role'] as String? ?? '').trim().toLowerCase();
       final accountOwnerName = _accountOwnerName(userData, user);
-      if (userRole == 'admin') {
+      if (userRole == 'admin' || userRole == 'manager') {
         throw StateError(
-          'Administrators cannot check in or check out. Use the admin reports dashboard to manage employee attendance.',
+          userRole == 'admin'
+              ? 'Administrators cannot check in or check out. Use the admin reports dashboard to manage employee attendance.'
+              : 'Managers are supervisors and cannot check in or check out.',
         );
       }
 
@@ -165,7 +167,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
       // 3. Register Attendance
       final service = AttendanceService(db);
-      await service.register(
+      final result = await service.register(
         employeeId: user.uid,
         employeeName: accountOwnerName,
         settings: settings,
@@ -173,16 +175,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 10),
-                Expanded(child: Text('Attendance Successfully Registered!')),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(child: Text(result.message)),
               ],
             ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
           ),
         );
         if (context.canPop()) {

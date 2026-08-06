@@ -11,7 +11,7 @@ import '../../auth/domain/auth_provider.dart';
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
-   @override
+  @override
   ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
@@ -36,14 +36,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final authUser = FirebaseAuth.instance.currentUser;
     final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
 
-    if (currentUser?.isAdmin == true) {
+    if (currentUser?.isAdmin == true || currentUser?.isManager == true) {
       return Scaffold(
         appBar: AppBar(title: Text(ref.tr('attendanceHistory'))),
-        body: const Center(
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Text(
-              'Administrators do not record personal attendance. Use Attendance Reports & Analytics to verify employee records.',
+              currentUser?.isAdmin == true
+                  ? 'Administrators do not record personal attendance. Use Attendance Reports & Analytics to verify employee records.'
+                  : 'Managers are supervisors and do not have personal attendance records.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -65,7 +67,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading history: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading history: ${snapshot.error}'),
+          );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -425,8 +429,11 @@ class _AttendanceSummary {
     final workingDays = _countWeekdays(selectedMonth);
     final checkIns = records.length;
     final lateArrivals = records
-        .where((record) =>
-            (record['status'] as String? ?? '').trim().toLowerCase() == 'late',)
+        .where(
+          (record) =>
+              (record['status'] as String? ?? '').trim().toLowerCase() ==
+              'late',
+        )
         .length;
 
     return _AttendanceSummary(

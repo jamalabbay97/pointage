@@ -27,6 +27,7 @@ class UserModel {
 
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
+  bool get isEmployee => role.trim().toLowerCase() == 'employee';
   bool get isAdminOrManager => isAdmin || isManager;
   bool get isActive => status.trim().toLowerCase() == 'active';
 

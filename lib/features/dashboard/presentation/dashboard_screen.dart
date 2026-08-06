@@ -44,11 +44,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = FirebaseAuth.instance.currentUser;
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final isAdminOrManager = ref.watch(isAdminOrManagerProvider);
-    final isAdmin = userModel?.isAdmin ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final todayDocId = '${user?.uid}-${now.toIso8601String().substring(0, 10)}';
-    final dashAvatarImage = ProfileScreen.getProfileImageProvider(userModel?.photoUrl ?? user?.photoURL);
+    final dashAvatarImage = ProfileScreen.getProfileImageProvider(
+      userModel?.photoUrl ?? user?.photoURL,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -87,7 +88,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(28),
-                  border: isDark ? Border.all(color: const Color(0xFF313131)) : null,
+                  border: isDark
+                      ? Border.all(color: const Color(0xFF313131))
+                      : null,
                   boxShadow: [
                     BoxShadow(
                       color: isDark
@@ -191,40 +194,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                           ],
                         ),
-                        if (!isAdmin)
+                        if (userModel?.isEmployee == true)
                           StreamBuilder<DocumentSnapshot>(
                             stream: FirebaseFirestore.instance
                                 .collection('attendance')
                                 .doc(todayDocId)
                                 .snapshots(),
                             builder: (context, snapshot) {
+                              final data = snapshot.data?.data()
+                                  as Map<String, dynamic>?;
                               final hasCheckedIn =
                                   snapshot.data?.exists ?? false;
+                              final hasCheckedOut = data != null &&
+                                  data.containsKey('checkoutTime') &&
+                                  data['checkoutTime'] != null;
+
+                              String statusText;
+                              Color statusColor;
+                              IconData statusIcon;
+
+                              if (hasCheckedOut) {
+                                statusText = ref.tr('checkedOutToday');
+                                statusColor = Colors.blue.shade600;
+                                statusIcon = Icons.done_all_rounded;
+                              } else if (hasCheckedIn) {
+                                statusText = ref.tr('checkedInToday');
+                                statusColor = Colors.green.shade600;
+                                statusIcon = Icons.check_circle_rounded;
+                              } else {
+                                statusText = ref.tr('notCheckedIn');
+                                statusColor = Colors.orange.shade700;
+                                statusIcon = Icons.pending_rounded;
+                              }
+
                               return Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: hasCheckedIn
-                                      ? Colors.green.shade600
-                                      : Colors.orange.shade700,
+                                  color: statusColor,
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
-                                      hasCheckedIn
-                                          ? Icons.check_circle_rounded
-                                          : Icons.pending_rounded,
+                                      statusIcon,
                                       color: Colors.white,
                                       size: 18,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      hasCheckedIn
-                                          ? ref.tr('checkedInToday')
-                                          : ref.tr('notCheckedIn'),
+                                      statusText,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -244,7 +265,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 24),
 
               // Main Scan Hero Button
-              if (!isAdmin)
+              if (userModel?.isEmployee == true)
                 InkWell(
                   onTap: () => context.push('/scan'),
                   borderRadius: BorderRadius.circular(24),
@@ -313,7 +334,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                 ),
-              if (!isAdmin) const SizedBox(height: 24),
+              if (userModel?.isEmployee == true) const SizedBox(height: 24),
 
               Text(
                 ref.tr('quickServices'),
@@ -323,7 +344,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
 
-              if (!isAdmin)
+              if (userModel?.isEmployee == true)
                 _DashboardActionCard(
                   title: ref.tr('attendanceHistory'),
                   subtitle: ref.tr('noHistoryFound'),

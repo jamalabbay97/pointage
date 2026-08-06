@@ -79,7 +79,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        home: const SplashScreen(message: 'Starting application...'),
+        initialRoute: '/',
+        onGenerateRoute: (_) => MaterialPageRoute(
+          builder: (_) =>
+              const SplashScreen(message: 'Starting application...'),
+        ),
       );
     }
 
@@ -127,7 +131,11 @@ class _StartupErrorScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off_rounded, size: 56, color: Colors.redAccent),
+              const Icon(
+                Icons.cloud_off_rounded,
+                size: 56,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Unable to start',
@@ -200,7 +208,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Colors.redAccent,
+              ),
               const SizedBox(height: 16),
               Text(
                 state.error?.toString() ?? 'Unknown routing error',
