@@ -5,8 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:universal_io/io.dart';
 
 import '../../../../core/models/user_model.dart';
@@ -52,6 +55,9 @@ class _ExportAttendanceDialogState
   ExportFormat _format = ExportFormat.pdf;
 
   String? _customSavePath;
+
+  bool get _usesNativeMobileSaveDialog =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
   bool _isGenerating = false;
 
   @override
@@ -74,6 +80,10 @@ class _ExportAttendanceDialogState
   }
 
   Future<void> _pickDestinationPath() async {
+    if (_usesNativeMobileSaveDialog) {
+      return;
+    }
+
     try {
       final ext = _format == ExportFormat.pdf ? 'pdf' : 'xlsx';
       final defaultName =
@@ -126,15 +136,45 @@ class _ExportAttendanceDialogState
       String savedLocationDesc = fileName;
 
       if (kIsWeb) {
-        // Web direct browser download
-        await FilePicker.platform.saveFile(
-          dialogTitle: 'Download Attendance Report',
+        final savedPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Attendance Report As',
           fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: [fileExtension],
           bytes: fileBytes,
         );
-        savedLocationDesc = 'Downloads Folder';
+        if (savedPath == null) {
+          setState(() => _isGenerating = false);
+          return;
+        }
+        savedLocationDesc = savedPath;
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        Directory? outputDir;
+        if (Platform.isAndroid) {
+          try {
+            outputDir = await getDownloadsDirectory();
+          } catch (_) {}
+          try {
+            outputDir ??= await getExternalStorageDirectory();
+          } catch (_) {}
+        }
+        outputDir ??= await getApplicationDocumentsDirectory();
+
+        final filePath = '${outputDir.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(fileBytes);
+        savedLocationDesc = file.path;
+
+        try {
+          // ignore: deprecated_member_use
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            text: 'Attendance Report: $fileName',
+          );
+        } catch (e) {
+          debugPrint('Share error: $e');
+        }
       } else {
-        // Desktop / Mobile
         String targetPath = _customSavePath ?? '';
         if (targetPath.isEmpty) {
           final chosenPath = await FilePicker.platform.saveFile(
@@ -144,7 +184,6 @@ class _ExportAttendanceDialogState
             allowedExtensions: [fileExtension],
           );
           if (chosenPath == null) {
-            // User cancelled save dialog
             setState(() => _isGenerating = false);
             return;
           }
@@ -269,6 +308,14 @@ class _ExportAttendanceDialogState
   }
 
   Future<Uint8List> _buildPdfBytes(List<Map<String, dynamic>> records) async {
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+
+    final theme = pw.ThemeData.withFont(
+      base: fontRegular,
+      bold: fontBold,
+    );
+
     final pdf = pw.Document();
 
     String targetDesc = ref.tr('allEmployees');
@@ -287,6 +334,7 @@ class _ExportAttendanceDialogState
 
     pdf.addPage(
       pw.MultiPage(
+        theme: theme,
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         header: (pw.Context context) => pw.Column(
@@ -471,352 +519,402 @@ class _ExportAttendanceDialogState
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        width: 560,
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) => ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: constraints.maxWidth < 560 ? constraints.maxWidth : 560,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.file_download_rounded,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 28,
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.file_download_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ref.tr('exportAttendanceData'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Configure export options and select destination',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 1. Export Target Section
+                  Text(
+                    ref.tr('exportTarget'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ref.tr('exportAttendanceData'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TargetTile(
+                          label: ref.tr('allEmployees'),
+                          isSelected: _target == ExportTarget.all,
+                          onTap: () =>
+                              setState(() => _target = ExportTarget.all),
                         ),
-                        Text(
-                          'Configure export options and select destination',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _TargetTile(
+                          label: ref.tr('singleEmployee'),
+                          isSelected: _target == ExportTarget.single,
+                          onTap: () =>
+                              setState(() => _target = ExportTarget.single),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_target == ExportTarget.single) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedEmployeeId,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('selectEmployee'),
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: widget.availableEmployees
+                          .map(
+                            (emp) => DropdownMenuItem(
+                              value: emp.uid,
+                              child: Text('${emp.displayName} (${emp.email})'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _selectedEmployeeId = val);
+                        }
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+
+                  // 2. Date Range Section
+                  Text(
+                    ref.tr('dateRange'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(child: Text(ref.tr('oneDay'))),
+                          selected: _dateRange == ExportDateRange.day,
+                          onSelected: (sel) {
+                            if (sel) {
+                              setState(() => _dateRange = ExportDateRange.day);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(child: Text(ref.tr('oneMonth'))),
+                          selected: _dateRange == ExportDateRange.month,
+                          onSelected: (sel) {
+                            if (sel) {
+                              setState(
+                                () => _dateRange = ExportDateRange.month,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Center(child: Text(ref.tr('oneYear'))),
+                          selected: _dateRange == ExportDateRange.year,
+                          onSelected: (sel) {
+                            if (sel) {
+                              setState(() => _dateRange = ExportDateRange.year);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Icon(Icons.calendar_month_outlined, size: 20),
+                      Text(
+                        'Selected Period: $_rangeLabel',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setState(() => _selectedDate = picked);
+                          }
+                        },
+                        icon: const Icon(Icons.edit_calendar, size: 18),
+                        label: const Text('Change Date'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 3. Export Format Section
+                  Text(
+                    ref.tr('exportFormat'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _format = ExportFormat.pdf),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _format == ExportFormat.pdf
+                                  ? Colors.red.withValues(alpha: 0.1)
+                                  : (isDark
+                                      ? const Color(0xFF262626)
+                                      : Colors.grey.shade100),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _format == ExportFormat.pdf
+                                    ? Colors.red
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.picture_as_pdf, color: Colors.red),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'PDF Document',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _format = ExportFormat.excel),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _format == ExportFormat.excel
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : (isDark
+                                      ? const Color(0xFF262626)
+                                      : Colors.grey.shade100),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _format == ExportFormat.excel
+                                    ? Colors.green
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.table_chart_rounded,
+                                    color: Colors.green,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Excel (.xlsx)',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 4. Save Destination Selection
+                  if (!kIsWeb && !_usesNativeMobileSaveDialog) ...[
+                    Text(
+                      ref.tr('destinationPath'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade400),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _customSavePath ?? 'Default file save location',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: _customSavePath == null
+                                    ? Colors.grey
+                                    : null,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _pickDestinationPath,
+                          icon: const Icon(Icons.folder_open),
+                          label: Text(ref.tr('chooseLocation')),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // 1. Export Target Section
-              Text(
-                ref.tr('exportTarget'),
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TargetTile(
-                      label: ref.tr('allEmployees'),
-                      isSelected: _target == ExportTarget.all,
-                      onTap: () => setState(() => _target = ExportTarget.all),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _TargetTile(
-                      label: ref.tr('singleEmployee'),
-                      isSelected: _target == ExportTarget.single,
-                      onTap: () =>
-                          setState(() => _target = ExportTarget.single),
-                    ),
-                  ),
-                ],
-              ),
-              if (_target == ExportTarget.single) ...[
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedEmployeeId,
-                  decoration: InputDecoration(
-                    labelText: ref.tr('selectEmployee'),
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: const OutlineInputBorder(),
-                  ),
-                  items: widget.availableEmployees
-                      .map(
-                        (emp) => DropdownMenuItem(
-                          value: emp.uid,
-                          child: Text('${emp.displayName} (${emp.email})'),
+                    const SizedBox(height: 24),
+                  ] else if (_usesNativeMobileSaveDialog) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.folder_open,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedEmployeeId = val);
-                  },
-                ),
-              ],
-              const SizedBox(height: 16),
-
-              // 2. Date Range Section
-              Text(
-                ref.tr('dateRange'),
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: Center(child: Text(ref.tr('oneDay'))),
-                      selected: _dateRange == ExportDateRange.day,
-                      onSelected: (sel) {
-                        if (sel) {
-                          setState(() => _dateRange = ExportDateRange.day);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: Center(child: Text(ref.tr('oneMonth'))),
-                      selected: _dateRange == ExportDateRange.month,
-                      onSelected: (sel) {
-                        if (sel) {
-                          setState(() => _dateRange = ExportDateRange.month);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: Center(child: Text(ref.tr('oneYear'))),
-                      selected: _dateRange == ExportDateRange.year,
-                      onSelected: (sel) {
-                        if (sel) {
-                          setState(() => _dateRange = ExportDateRange.year);
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_month_outlined, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Selected Period: $_rangeLabel',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) {
-                        setState(() => _selectedDate = picked);
-                      }
-                    },
-                    icon: const Icon(Icons.edit_calendar, size: 18),
-                    label: const Text('Change Date'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 3. Export Format Section
-              Text(
-                ref.tr('exportFormat'),
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _format = ExportFormat.pdf),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _format == ExportFormat.pdf
-                              ? Colors.red.withValues(alpha: 0.1)
-                              : (isDark
-                                  ? const Color(0xFF262626)
-                                  : Colors.grey.shade100),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _format == ExportFormat.pdf
-                                ? Colors.red
-                                : Colors.transparent,
-                            width: 2,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Choose the save location when you download the report.',
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.picture_as_pdf, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text(
-                              'PDF Document',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _format = ExportFormat.excel),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _format == ExportFormat.excel
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : (isDark
-                                  ? const Color(0xFF262626)
-                                  : Colors.grey.shade100),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _format == ExportFormat.excel
-                                ? Colors.green
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.table_chart_rounded,
-                              color: Colors.green,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Excel (.xlsx)',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 4. Save Destination Selection
-              if (!kIsWeb) ...[
-                Text(
-                  ref.tr('destinationPath'),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _customSavePath ?? 'Default file save location',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: _customSavePath == null ? Colors.grey : null,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: _pickDestinationPath,
-                      icon: const Icon(Icons.folder_open),
-                      label: Text(ref.tr('chooseLocation')),
-                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    const SizedBox(height: 12),
                   ],
-                ),
-                const SizedBox(height: 24),
-              ] else ...[
-                const SizedBox(height: 12),
-              ],
 
-              // Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed:
-                        _isGenerating ? null : () => Navigator.pop(context),
-                    child: Text(ref.tr('cancel')),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _isGenerating ? null : _handleDownload,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+                  // Action Buttons
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed:
+                            _isGenerating ? null : () => Navigator.pop(context),
+                        child: Text(ref.tr('cancel')),
                       ),
-                    ),
-                    icon: _isGenerating
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.download_rounded),
-                    label: Text(
-                      _isGenerating
-                          ? ref.tr('generatingReport')
-                          : ref.tr('downloadReport'),
-                    ),
+                      FilledButton.icon(
+                        onPressed: _isGenerating ? null : _handleDownload,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        icon: _isGenerating
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.download_rounded),
+                        label: Text(
+                          _isGenerating
+                              ? ref.tr('generatingReport')
+                              : ref.tr('downloadReport'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

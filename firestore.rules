@@ -24,6 +24,14 @@ service cloud.firestore {
     function isAdminOrManager() {
       return isAdmin() || isManager();
     }
+
+    function attendanceUserId(data) {
+      return data.employeeId != null ? data.employeeId : data.userId;
+    }
+
+    function isAttendanceOwner(data) {
+      return isSignedIn() && attendanceUserId(data) == request.auth.uid;
+    }
     
     // =============================
     // Users
@@ -46,9 +54,11 @@ service cloud.firestore {
     // Attendance
     // =============================
     match /attendance/{attendanceId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn();
-      allow update: if isSignedIn();
+      allow create: if isSignedIn() &&
+        (isAdminOrManager() || isAttendanceOwner(request.resource.data));
+      allow read: if isAdminOrManager() || isAttendanceOwner(resource.data);
+      allow update: if isAdminOrManager() ||
+        (isAttendanceOwner(resource.data) && isAttendanceOwner(request.resource.data));
       allow delete: if isAdmin();
     }
     
