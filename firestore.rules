@@ -30,17 +30,16 @@ service cloud.firestore {
     // =============================
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid);
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid));
       allow create: if isOwner(userId) ||
         (isAdmin() && request.resource.data.createdBy == request.auth.uid) ||
         (isManager() && request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.role in ["employee", "Employee", "EMPLOYEE"]);
       allow update: if isOwner(userId) || isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid &&
-          request.resource.data.createdBy == resource.data.createdBy &&
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid) &&
           request.resource.data.role == resource.data.role);
       allow delete: if isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid);
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid));
     }
     
     // =============================
@@ -49,7 +48,7 @@ service cloud.firestore {
     match /attendance/{attendanceId} {
       allow create: if isSignedIn();
       allow read: if isSignedIn();
-      allow update: if isAdmin();
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
     

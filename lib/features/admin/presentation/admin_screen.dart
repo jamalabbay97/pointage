@@ -33,7 +33,10 @@ class AdminScreen extends ConsumerWidget {
                   gradient: LinearGradient(
                     colors: isDark
                         ? [const Color(0xFF202020), const Color(0xFF181818)]
-                        : [const Color(0xFF246BFD), const Color(0xFF1952C7)],
+                        : [
+                            const Color.fromARGB(255, 79, 155, 131),
+                            const Color.fromARGB(255, 79, 155, 131),
+                          ],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   border: isDark

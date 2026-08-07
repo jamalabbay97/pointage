@@ -704,6 +704,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             password: passwordVal,
                           );
 
+                          final isNewManager = role == 'manager';
+                          final managerSchedule = currentUser?.scheduleType ?? 'standard';
+
                           // Save user document in Firestore using the generated Auth UID
                           await _db.collection('users').doc(newUid).set({
                             'uid': newUid,
@@ -716,6 +719,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             'createdBy': currentUid,
                             if (currentUid != null && role == 'employee')
                               'managerId': currentUid,
+                            'scheduleType': isNewManager ? 'standard' : managerSchedule,
+                            'isFirstLogin': isNewManager,
                           });
 
                           if (dialogCtx.mounted) {

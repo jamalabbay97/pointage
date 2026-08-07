@@ -11,6 +11,8 @@ class UserModel {
     this.lastLogin,
     this.createdBy,
     this.managerId,
+    this.scheduleType = 'standard',
+    this.isFirstLogin = false,
   });
 
   final String uid;
@@ -24,6 +26,8 @@ class UserModel {
   final DateTime? lastLogin;
   final String? createdBy;
   final String? managerId;
+  final String scheduleType; // 'days_20_10', 'standard'
+  final bool isFirstLogin;
 
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
@@ -48,6 +52,8 @@ class UserModel {
           : null,
       createdBy: _nullableString(json['createdBy']),
       managerId: _nullableString(json['managerId']),
+      scheduleType: _stringOrDefault(json['scheduleType'], 'standard'),
+      isFirstLogin: json['isFirstLogin'] as bool? ?? false,
     );
   }
 
@@ -63,6 +69,8 @@ class UserModel {
         if (lastLogin != null) 'lastLogin': lastLogin!.toIso8601String(),
         if (createdBy != null) 'createdBy': createdBy,
         if (managerId != null) 'managerId': managerId,
+        'scheduleType': scheduleType,
+        'isFirstLogin': isFirstLogin,
       };
 
   UserModel copyWith({
@@ -77,6 +85,8 @@ class UserModel {
     DateTime? lastLogin,
     String? createdBy,
     String? managerId,
+    String? scheduleType,
+    bool? isFirstLogin,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -90,6 +100,8 @@ class UserModel {
       lastLogin: lastLogin ?? this.lastLogin,
       createdBy: createdBy ?? this.createdBy,
       managerId: managerId ?? this.managerId,
+      scheduleType: scheduleType ?? this.scheduleType,
+      isFirstLogin: isFirstLogin ?? this.isFirstLogin,
     );
   }
 

@@ -1,16 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:excel/excel.dart' as xl;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:universal_io/io.dart';
 
 import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
 import '../../auth/domain/auth_provider.dart';
+import 'widgets/export_attendance_dialog.dart';
 
 enum _PeriodFilter { day, week, month, year }
 
@@ -106,6 +104,20 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         final visibleUsers = _visibleUsers(allUsers, currentUser, authUser);
         final range = _selectedRange();
 
+        // Build a UserModel list for the export dialog
+        final exportableUsers = usersSnapshot.data?.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return UserModel.fromJson(data, doc.id);
+        }).where((u) {
+          if (currentUser.isAdmin) return !u.isAdmin;
+          if (currentUser.isManager) {
+            return u.uid == authUser.uid ||
+                u.createdBy == authUser.uid ||
+                u.managerId == authUser.uid;
+          }
+          return u.uid == authUser.uid;
+        }).toList() ?? [];
+
         return StreamBuilder<QuerySnapshot>(
           stream: _db.collection('attendance').snapshots(),
           builder: (context, attendanceSnapshot) {
@@ -150,7 +162,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                             children: [
                               _buildStatusAndExport(
                                 filteredRows,
-                                'Supervisors',
+                                exportableUsers,
                               ),
                               const SizedBox(height: 12),
                               _buildStats(stats),
@@ -211,7 +223,10 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     );
   }
 
-  Widget _buildStatusAndExport(List<_HistoryRow> rows, String employeeName) {
+  Widget _buildStatusAndExport(
+    List<_HistoryRow> rows,
+    List<UserModel> exportableUsers,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -234,18 +249,12 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
             ),
           ),
         ),
-        PopupMenuButton<String>(
+        IconButton(
           icon: const Icon(Icons.download_rounded),
-          tooltip: ref.tr('export'),
-          onSelected: (val) {
-            final records = rows.map((row) => row.toExportMap()).toList();
-            if (val == 'pdf') _exportPdf(records, employeeName);
-            if (val == 'excel') _exportExcel(records, employeeName);
+          tooltip: ref.tr('exportAttendanceData'),
+          onPressed: () {
+            ExportAttendanceDialog.show(context, exportableUsers);
           },
-          itemBuilder: (context) => [
-            PopupMenuItem(value: 'pdf', child: Text(ref.tr('exportPdf'))),
-            PopupMenuItem(value: 'excel', child: Text(ref.tr('exportExcel'))),
-          ],
         ),
       ],
     );
@@ -467,135 +476,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   bool _inRange(DateTime day, _DateRange range) =>
       !day.isBefore(range.start) && !day.isAfter(range.end);
 
-  Future<void> _exportPdf(
-    List<Map<String, dynamic>> records,
-    String employeeName,
-  ) async {
-    try {
-      final pdf = pw.Document();
-      pdf.addPage(
-        pw.Page(
-          build: (_) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Header(
-                level: 0,
-                child: pw.Text(
-                  'Attendance Reports & Analytics - $employeeName',
-                  style: pw.TextStyle(
-                    fontSize: 18,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-              pw.Text(
-                'Generated: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}',
-              ),
-              pw.Text('Total Rows: ${records.length}'),
-              pw.SizedBox(height: 20),
-              pw.TableHelper.fromTextArray(
-                headers: [
-                  'Employee',
-                  'Date',
-                  'Attendance',
-                  'Check-out',
-                  'Status',
-                ],
-                data: records
-                    .map(
-                      (r) => [
-                        r['employeeName'] ?? 'N/A',
-                        r['date'] ?? 'N/A',
-                        r['time'] ?? 'N/A',
-                        r['checkoutTime'] ?? 'N/A',
-                        r['status'] ?? 'N/A',
-                      ],
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
-      );
-      final file = File(
-        '${Directory.systemTemp.path}/Attendance_${DateTime.now().millisecondsSinceEpoch}.pdf',
-      );
-      await file.writeAsBytes(await pdf.save());
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ref.tr('pdfGenerated')}: ${file.path}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ref.tr('errorGenerating')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _exportExcel(
-    List<Map<String, dynamic>> records,
-    String employeeName,
-  ) async {
-    try {
-      final excel = xl.Excel.createExcel();
-      final sheet = excel['Attendance'];
-      sheet.appendRow(
-        [
-          'Employee Name',
-          'Date',
-          'Attendance Time',
-          'Check-out Time',
-          'Status',
-          'Device Model',
-        ].map(xl.TextCellValue.new).toList(),
-      );
-      for (final r in records) {
-        sheet.appendRow(
-          [
-            'employeeName',
-            'date',
-            'time',
-            'checkoutTime',
-            'status',
-            'deviceModel',
-          ].map((key) => xl.TextCellValue(r[key]?.toString() ?? '')).toList(),
-        );
-      }
-      final bytes = excel.encode();
-      if (bytes != null) {
-        final file = File(
-          '${Directory.systemTemp.path}/Attendance_${DateTime.now().millisecondsSinceEpoch}.xlsx',
-        );
-        await file.writeAsBytes(bytes);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${ref.tr('excelGenerated')}: ${file.path}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ref.tr('errorGenerating')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 }
 
 class _PersistentSearchBar extends StatefulWidget {
@@ -712,18 +592,18 @@ class _HistoryRow {
       return _HistoryRow(
         employeeName: user.displayName,
         date: date,
-        attendanceTime: '—',
-        checkoutTime: '—',
+        attendanceTime: '-',
+        checkoutTime: '-',
         status: 'absent',
-        device: '—',
-        battery: '—',
+        device: '-',
+        battery: '-',
       );
     }
     String time(Object? value) {
       final raw = value?.toString() ?? '';
       final parsed = DateTime.tryParse(raw);
       return parsed == null
-          ? (raw.isEmpty ? '—' : raw)
+          ? (raw.isEmpty ? '-' : raw)
           : DateFormat('HH:mm:ss').format(parsed);
     }
 

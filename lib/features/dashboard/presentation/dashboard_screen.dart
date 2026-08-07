@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
+import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../profile/presentation/profile_screen.dart';
 
@@ -21,6 +22,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DateTime now = DateTime.now();
   Timer? timer;
+  bool _wizardShown = false;
 
   @override
   void initState() {
@@ -33,6 +35,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _checkFirstLoginWizard(userModel) {
+    if (!_wizardShown &&
+        userModel != null &&
+        userModel.isManager &&
+        userModel.isFirstLogin) {
+      _wizardShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          WorkScheduleWizardDialog.show(context, userModel);
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     timer?.cancel();
@@ -43,6 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
+    _checkFirstLoginWizard(userModel);
     final isAdminOrManager = ref.watch(isAdminOrManagerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

@@ -115,14 +115,15 @@ class AttendanceService {
         );
       }
 
-      // Check-out rule 1: Before 11:00 AM, scan is not allowed
-      if (now.hour < 11) {
+      // Check-out rule 1: Before 10:30 AM, scan is not allowed
+      final isBefore1030 = now.hour < 10 || (now.hour == 10 && now.minute < 30);
+      if (isBefore1030) {
         throw StateError(
-          'Check-out is not allowed before 11:00 AM. Employees must work at least half a day before checking out.',
+          'Check-out is not allowed before 10:30 AM. Employees must work at least half a day before checking out.',
         );
       }
 
-      // Check-out rule 2: At or after 11:00 AM, record actual scan time
+      // Check-out rule 2: At or after 10:30 AM, record actual scan time
       await doc.update({
         'checkoutTime': now.toIso8601String(),
         'checkoutLatitude': position.latitude,

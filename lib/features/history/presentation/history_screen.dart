@@ -177,7 +177,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   static String formatTime(Object? value) {
     final raw = value?.toString() ?? '';
-    if (raw.isEmpty) return '—';
+    if (raw.isEmpty) return '-';
     final parsed = DateTime.tryParse(raw);
     return parsed == null ? raw : DateFormat('HH:mm:ss').format(parsed);
   }
