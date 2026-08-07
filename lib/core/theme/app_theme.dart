@@ -4,65 +4,249 @@ class AppTheme {
   static const Color primarySeed = Color(0xFF246BFD);
   static const Color secondarySeed = Color(0xFF00C9A7);
 
+  // Light Theme Color System Tokens
+  static const Color lightMainBackground = Color(0xFFFFFFFF);
+  static const Color lightSecondaryBackground = Color(0xFFF8FAFC);
+  static const Color lightSidebar = Color(0xFFF4F5F7); // Slightly gray sidebar like in image
+  static const Color lightCard = Color(0xFFFFFFFF);
+  static const Color lightHoverSurface = Color(0xFFF1F5F9);
+  static const Color lightSelectedSurface = Color(0xFFE2E8F0);
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightDivider = Color(0xFFF1F5F9);
+  static const Color lightPrimaryText = Color(0xFF0F172A);
+  static const Color lightSecondaryText = Color(0xFF64748B);
+  static const Color lightDisabledText = Color(0xFF94A3B8);
+  static const Color lightIcon = Color(0xFF64748B);
+
+  static const Color lightAccent = Color(0xFF74A99A); // Same green as dark mode
+  static const Color lightAccentHover = Color(0xFF80B3A5);
+  static const Color lightAccentPressed = Color(0xFF679989);
+
+  static const Color lightSwitchOnBg = Color(0xFF74A99A);
+  static const Color lightSwitchThumb = Color(0xFFFFFFFF);
+
+  static const Color lightActiveSidebarIcon = Color(0xFF74A99A);
+  static const Color lightActiveSidebarBg = Color(0xFFFFFFFF);
+
+  static const Color lightSegmentBg = Color(0xFFF1F5F9);
+  static const Color lightSegmentSelected = Color(0xFFFFFFFF);
+  static const Color lightSegmentSelectedBorder = Color(0xFFE2E8F0);
+  static const Color lightSegmentSelectedText = Color(0xFF0F172A);
+  static const Color lightSegmentUnselectedText = Color(0xFF64748B);
+
+  static const Color lightSubtleShadow = Color.fromRGBO(0, 0, 0, 0.05);
+
   static ThemeData get light => ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primarySeed,
-          secondary: secondarySeed,
-          brightness: Brightness.light,
-          surfaceTint: Colors.white,
+        scaffoldBackgroundColor: lightMainBackground,
+        colorScheme: const ColorScheme.light(
+          primary: lightAccent,
+          onPrimary: lightMainBackground,
+          primaryContainer: lightActiveSidebarBg,
+          onPrimaryContainer: lightAccent,
+          secondary: lightAccent,
+          onSecondary: lightMainBackground,
+          surface: lightMainBackground,
+          onSurface: lightPrimaryText,
+          onSurfaceVariant: lightSecondaryText,
+          surfaceContainer: lightMainBackground,
+          surfaceContainerLow: lightSecondaryBackground,
+          surfaceContainerHigh: lightHoverSurface,
+          surfaceContainerHighest: lightSelectedSurface,
+          outline: lightBorder,
+          outlineVariant: lightDivider,
+          shadow: lightSubtleShadow,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         appBarTheme: const AppBarTheme(
           centerTitle: false,
           elevation: 0,
           scrolledUnderElevation: 0,
-          backgroundColor: Colors.transparent,
+          backgroundColor: lightMainBackground,
           surfaceTintColor: Colors.transparent,
+          iconTheme: IconThemeData(color: lightIcon),
+          actionsIconTheme: IconThemeData(color: lightIcon),
           titleTextStyle: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
+            color: lightPrimaryText,
           ),
         ),
         cardTheme: CardThemeData(
           elevation: 0,
-          color: Colors.white,
+          color: lightCard,
+          shadowColor: lightSubtleShadow,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+            side: const BorderSide(color: lightBorder, width: 1),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(
+          color: lightDivider,
+          thickness: 1,
+          space: 1,
+        ),
+        iconTheme: const IconThemeData(
+          color: lightIcon,
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return lightSwitchThumb;
+            }
+            return lightIcon;
+          }),
+          trackColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return lightSwitchOnBg;
+            }
+            return lightSegmentBg;
+          }),
+          trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return Colors.transparent;
+            }
+            return lightBorder;
+          }),
+        ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return lightSegmentSelected;
+              }
+              return lightSegmentBg;
+            }),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return lightSegmentSelectedText;
+              }
+              return lightSegmentUnselectedText;
+            }),
+            side: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return const BorderSide(color: lightSegmentSelectedBorder);
+              }
+              return const BorderSide(color: Colors.transparent);
+            }),
+            iconColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return lightSegmentSelectedText;
+              }
+              return lightSegmentUnselectedText;
+            }),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: lightSecondaryBackground,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          hintStyle: const TextStyle(color: lightDisabledText),
+          labelStyle: const TextStyle(color: lightSecondaryText),
+          prefixIconColor: lightIcon,
+          suffixIconColor: lightIcon,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+            borderSide: const BorderSide(color: lightBorder),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            borderSide: const BorderSide(color: lightBorder),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: primarySeed, width: 2),
+            borderSide: const BorderSide(color: lightAccent, width: 2),
           ),
         ),
         filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return lightSegmentBg;
+              }
+              if (states.contains(WidgetState.pressed)) {
+                return lightAccentPressed;
+              }
+              if (states.contains(WidgetState.hovered)) {
+                return lightAccentHover;
+              }
+              return lightAccent;
+            }),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return lightDisabledText;
+              }
+              return lightMainBackground;
+            }),
+            padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            ),
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            textStyle: WidgetStateProperty.all(
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: lightCard,
+            foregroundColor: lightPrimaryText,
+            shadowColor: lightSubtleShadow,
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: lightBorder),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: lightPrimaryText,
+            side: const BorderSide(color: lightBorder),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
+        ),
+        navigationRailTheme: const NavigationRailThemeData(
+          backgroundColor: lightSidebar,
+          selectedIconTheme: IconThemeData(color: lightActiveSidebarIcon),
+          unselectedIconTheme: IconThemeData(color: lightIcon),
+          indicatorColor: lightActiveSidebarBg,
+        ),
+        drawerTheme: const DrawerThemeData(
+          backgroundColor: lightSidebar,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: lightMainBackground,
+          selectedItemColor: lightActiveSidebarIcon,
+          unselectedItemColor: lightIcon,
         ),
         dialogTheme: DialogThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: lightMainBackground,
+          surfaceTintColor: Colors.transparent,
+          shadowColor: lightSubtleShadow,
+          elevation: 2,
         ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: lightMainBackground,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+        ),
+        listTileTheme: const ListTileThemeData(
+          iconColor: lightIcon,
+          textColor: lightPrimaryText,
+        ),
+        hoverColor: lightHoverSurface,
+        highlightColor: lightSelectedSurface,
       );
 
   // Dark Theme Color System Tokens
