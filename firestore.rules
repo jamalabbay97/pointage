@@ -113,6 +113,13 @@ service cloud.firestore {
     }
     
     // =============================
+    // User Settings
+    // =============================
+    match /user_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // =============================
     // Settings
     // =============================
     match /settings/{settingId} {

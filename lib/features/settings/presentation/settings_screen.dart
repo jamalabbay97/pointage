@@ -1,8 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
@@ -11,8 +9,7 @@ import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
 import '../../profile/presentation/profile_screen.dart';
-
-const _storage = FlutterSecureStorage();
+import '../data/settings_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -22,43 +19,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _biometricEnabled = true;
-  bool _pushNotifications = true;
-  bool _dailyReminders = true;
-  bool _autoSyncOffline = true;
-  String _autoLockTimeout = '5 minutes';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    try {
-      final bio = await _storage.read(key: 'pref_biometric');
-      final push = await _storage.read(key: 'pref_push');
-      final daily = await _storage.read(key: 'pref_daily');
-      final sync = await _storage.read(key: 'pref_sync');
-      final lock = await _storage.read(key: 'pref_lock');
-
-      if (mounted) {
-        setState(() {
-          if (bio != null) _biometricEnabled = bio == 'true';
-          if (push != null) _pushNotifications = push == 'true';
-          if (daily != null) _dailyReminders = daily == 'true';
-          if (sync != null) _autoSyncOffline = sync == 'true';
-          if (lock != null) _autoLockTimeout = lock;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _savePref(String key, String value) async {
-    try {
-      await _storage.write(key: key, value: value);
-    } catch (_) {}
-  }
+  // Empty state, all logic moved to Riverpod
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +27,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final currentLang = ref.watch(languageProvider);
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final firebaseUser = FirebaseAuth.instance.currentUser;
+    final userSettings = ref.watch(userSettingsProvider).valueOrNull;
 
-    final avatarImage = ProfileScreen.getProfileImageProvider(userModel?.photoUrl ?? firebaseUser?.photoURL);
+    final avatarImage = ProfileScreen.getProfileImageProvider(
+      userModel?.photoUrl ?? firebaseUser?.photoURL,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -85,7 +49,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primaryContainer,
                       backgroundImage: avatarImage,
                       child: avatarImage == null
                           ? Text(
@@ -106,28 +71,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            userModel?.displayName ?? firebaseUser?.displayName ?? ref.tr('employee'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            userModel?.displayName ??
+                                firebaseUser?.displayName ??
+                                ref.tr('employee'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
                             firebaseUser?.email ?? 'N/A',
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Chip(
                             visualDensity: VisualDensity.compact,
                             label: Text(
                               (userModel?.role ?? 'employee').toUpperCase(),
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
                           ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onPressed: () => context.push('/profile'),
                     ),
                   ],
                 ),
@@ -136,14 +111,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // Theme & Appearance
-            _buildSectionHeader(context, ref.tr('appearanceTheme'), Icons.palette_outlined),
+            _buildSectionHeader(
+              context,
+              ref.tr('appearanceTheme'),
+              Icons.palette_outlined,
+            ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(ref.tr('themeMode'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      ref.tr('themeMode'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 12),
                     SegmentedButton<ThemeMode>(
                       segments: [
@@ -165,7 +147,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ],
                       selected: {currentThemeMode},
                       onSelectionChanged: (Set<ThemeMode> newSelection) {
-                        ref.read(themeModeProvider.notifier).setThemeMode(newSelection.first);
+                        ref
+                            .read(themeModeProvider.notifier)
+                            .setThemeMode(newSelection.first);
                       },
                     ),
                   ],
@@ -175,10 +159,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // Language & Localization
-            _buildSectionHeader(context, ref.tr('langRegion'), Icons.language_outlined),
+            _buildSectionHeader(
+              context,
+              ref.tr('langRegion'),
+              Icons.language_outlined,
+            ),
             Card(
               child: ListTile(
-                leading: Text(currentLang.flag, style: const TextStyle(fontSize: 24)),
+                leading: Text(
+                  currentLang.flag,
+                  style: const TextStyle(fontSize: 24),
+                ),
                 title: Text(ref.tr('appLang')),
                 subtitle: Text(currentLang.name),
                 trailing: const Icon(Icons.arrow_drop_down),
@@ -188,7 +179,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // Account & Security Settings
-            _buildSectionHeader(context, ref.tr('accountSecurity'), Icons.lock_outline),
+            _buildSectionHeader(
+              context,
+              ref.tr('accountSecurity'),
+              Icons.lock_outline,
+            ),
             Card(
               child: Column(
                 children: [
@@ -196,27 +191,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     secondary: const Icon(Icons.fingerprint),
                     title: Text(ref.tr('biometricAuth')),
                     subtitle: Text(ref.tr('biometricSub')),
-                    value: _biometricEnabled,
+                    value: userSettings?.biometricEnabled ?? true,
                     onChanged: (val) {
-                      setState(() => _biometricEnabled = val);
-                      _savePref('pref_biometric', val.toString());
+                      ref
+                          .read(userSettingsProvider.notifier)
+                          .updateBiometric(val);
                     },
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.timer_outlined),
                     title: Text(ref.tr('autoLock')),
-                    subtitle: Text(_autoLockTimeout),
+                    subtitle:
+                        Text(userSettings?.autoLockTimeout ?? '5 minutes'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showAutoLockPicker(context),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.password_outlined),
-                    title: Text(ref.tr('changePassword')),
-                    subtitle: Text(ref.tr('changePasswordSub')),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _sendPasswordReset(context, firebaseUser?.email),
                   ),
                 ],
               ),
@@ -224,7 +213,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // Notification Settings
-            _buildSectionHeader(context, ref.tr('notificationsAlerts'), Icons.notifications_none_outlined),
+            _buildSectionHeader(
+              context,
+              ref.tr('notificationsAlerts'),
+              Icons.notifications_none_outlined,
+            ),
             Card(
               child: Column(
                 children: [
@@ -232,10 +225,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     secondary: const Icon(Icons.notifications_active_outlined),
                     title: Text(ref.tr('pushNotifications')),
                     subtitle: Text(ref.tr('pushNotifSub')),
-                    value: _pushNotifications,
+                    value: userSettings?.pushNotifications ?? true,
                     onChanged: (val) {
-                      setState(() => _pushNotifications = val);
-                      _savePref('pref_push', val.toString());
+                      ref.read(userSettingsProvider.notifier).updatePush(val);
                     },
                   ),
                   const Divider(height: 1),
@@ -243,10 +235,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     secondary: const Icon(Icons.alarm),
                     title: Text(ref.tr('dailyReminder')),
                     subtitle: Text(ref.tr('dailyReminderSub')),
-                    value: _dailyReminders,
+                    value: userSettings?.dailyReminders ?? true,
                     onChanged: (val) {
-                      setState(() => _dailyReminders = val);
-                      _savePref('pref_daily', val.toString());
+                      ref.read(userSettingsProvider.notifier).updateDaily(val);
                     },
                   ),
                 ],
@@ -255,7 +246,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // Application Preferences
-            _buildSectionHeader(context, ref.tr('appPrefsSync'), Icons.tune_outlined),
+            _buildSectionHeader(
+              context,
+              ref.tr('appPrefsSync'),
+              Icons.tune_outlined,
+            ),
             Card(
               child: Column(
                 children: [
@@ -263,17 +258,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     secondary: const Icon(Icons.cloud_sync_outlined),
                     title: Text(ref.tr('autoSync')),
                     subtitle: Text(ref.tr('autoSyncSub')),
-                    value: _autoSyncOffline,
+                    value: userSettings?.autoSyncOffline ?? true,
                     onChanged: (val) {
-                      setState(() => _autoSyncOffline = val);
-                      _savePref('pref_sync', val.toString());
+                      ref.read(userSettingsProvider.notifier).updateSync(val);
                     },
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.gps_fixed),
                     title: Text(ref.tr('geofenceTol')),
-                    subtitle: Text(ref.tr('geofenceTolSub')),
+                    subtitle: Text(
+                      '${userModel?.assignedLocationRadius?.toInt() ?? 500} meters from registered headquarters',
+                    ),
                   ),
                 ],
               ),
@@ -281,7 +277,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
 
             // About & Version Info
-            _buildSectionHeader(context, ref.tr('aboutInfo'), Icons.info_outline),
+            _buildSectionHeader(
+              context,
+              ref.tr('aboutInfo'),
+              Icons.info_outline,
+            ),
             Card(
               child: Column(
                 children: [
@@ -329,7 +329,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Row(
@@ -359,7 +363,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             Text(
               ref.tr('selectLang'),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ...supportedLanguages.map((lang) {
@@ -383,11 +390,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(ref.tr('autoLock')),
-        children: ['1 minute', '5 minutes', '15 minutes', 'Never'].map((option) {
+        children:
+            ['1 minute', '5 minutes', '15 minutes', 'Never'].map((option) {
           return SimpleDialogOption(
             onPressed: () {
-              setState(() => _autoLockTimeout = option);
-              _savePref('pref_lock', option);
+              ref.read(userSettingsProvider.notifier).updateLock(option);
               Navigator.pop(ctx);
             },
             child: Padding(
@@ -398,26 +405,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }).toList(),
       ),
     );
-  }
-
-  void _sendPasswordReset(BuildContext context, String? email) async {
-    if (email == null || email.isEmpty) return;
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset link sent to your email'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (err) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err.toString()), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   void _showTermsModal(BuildContext context) {
@@ -431,7 +418,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.tr('close'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ref.tr('close')),
+          ),
         ],
       ),
     );
@@ -448,7 +438,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.tr('close'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ref.tr('close')),
+          ),
         ],
       ),
     );
@@ -461,7 +454,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(ref.tr('signOut')),
         content: Text(ref.tr('signOutConfirm')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ref.tr('cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ref.tr('cancel')),
+          ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {

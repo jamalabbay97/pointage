@@ -48,12 +48,13 @@ class AttendanceService {
     double effectiveRadius = settings.radiusMeters;
 
     try {
-      final userDoc =
-          await _db.collection('users').doc(employeeId).get();
+      final userDoc = await _db.collection('users').doc(employeeId).get();
       if (userDoc.exists && userDoc.data() != null) {
         final userData = userDoc.data()!;
-        final assignedLat = (userData['assignedLocationLat'] as num?)?.toDouble();
-        final assignedLng = (userData['assignedLocationLng'] as num?)?.toDouble();
+        final assignedLat =
+            (userData['assignedLocationLat'] as num?)?.toDouble();
+        final assignedLng =
+            (userData['assignedLocationLng'] as num?)?.toDouble();
         final assignedRadius =
             (userData['assignedLocationRadius'] as num?)?.toDouble();
         // Only use the override when both lat and lng are present

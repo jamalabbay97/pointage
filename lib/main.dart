@@ -22,6 +22,7 @@ import 'features/scanner/presentation/qr_scanner_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/auth/domain/auth_provider.dart';
+import 'features/auth/presentation/app_lock_wrapper.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -108,7 +109,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
       overrides: [
         themeModeProvider.overrideWith((ref) => ThemeNotifier(_savedTheme)),
       ],
-      child: const ChezLePointageApp(),
+      child: const AppLockWrapper(
+        child: ChezLePointageApp(),
+      ),
     );
   }
 }
