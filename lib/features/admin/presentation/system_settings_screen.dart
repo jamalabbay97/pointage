@@ -60,12 +60,21 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         settings = CompanySettings.fromJson(doc.data()!);
       }
 
+      final currentUser = ref.read(currentUserModelProvider).valueOrNull;
+
       _companyController.text = settings.companyName;
-      _latController.text = settings.latitude.toString();
-      _lngController.text = settings.longitude.toString();
+      if (currentUser != null && currentUser.isManager && currentUser.assignedLocationLat != null && currentUser.assignedLocationLng != null) {
+        _latController.text = currentUser.assignedLocationLat.toString();
+        _lngController.text = currentUser.assignedLocationLng.toString();
+        _radiusMeters = currentUser.assignedLocationRadius ?? settings.radiusMeters;
+      } else {
+        _latController.text = settings.latitude.toString();
+        _lngController.text = settings.longitude.toString();
+        _radiusMeters = settings.radiusMeters;
+      }
+      
       _secretController.text = settings.qrSecret;
       _adminApiController.text = settings.adminApiBaseUrl;
-      _radiusMeters = settings.radiusMeters;
       _rotationInterval = settings.qrRotateIntervalSeconds;
       _allowRemoteClockIn = settings.allowRemoteClockIn;
     } catch (e) {
@@ -105,7 +114,9 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
       if (mounted) {
         setState(() {
           _latController.text = pos.latitude.toString();
@@ -128,6 +139,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
   }
 
   Future<void> _saveSettings() async {
+    final currentUser = ref.read(currentUserModelProvider).valueOrNull;
     final lat = double.tryParse(_latController.text.trim());
     final lng = double.tryParse(_lngController.text.trim());
     final companyName = _companyController.text.trim();
@@ -140,7 +152,126 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       return;
     }
 
-    setState(() => _saving = true);
+    if (currentUser != null && currentUser.isManager) {
+      setState(() => _saving = true);
+      try {
+        final batch = _db.batch();
+        final managerRef = _db.collection('users').doc(currentUser.uid);
+        batch.update(managerRef, {
+          'assignedLocationLat': lat,
+          'assignedLocationLng': lng,
+          'assignedLocationRadius': _radiusMeters,
+          'locationAssignedBy': currentUser.uid,
+        });
+
+        final usersSnap = await _db.collection('users').where('managerId', isEqualTo: currentUser.uid).get();
+        for (final doc in usersSnap.docs) {
+          batch.update(doc.reference, {
+            'assignedLocationLat': lat,
+            'assignedLocationLng': lng,
+            'assignedLocationRadius': _radiusMeters,
+            'locationAssignedBy': currentUser.uid,
+          });
+        }
+        await batch.commit();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location assigned to your users successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save settings: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
+      return;
+    }
+
+    // Determine if the location coordinates have changed by comparing
+    // with the current saved values.
+    bool locationChanged = false;
+    try {
+      final existing = await _db.collection('settings').doc('company').get();
+      if (existing.exists && existing.data() != null) {
+        final data = existing.data()!;
+        final savedLat = (data['latitude'] as num?)?.toDouble();
+        final savedLng = (data['longitude'] as num?)?.toDouble();
+        locationChanged =
+            savedLat == null || savedLng == null || savedLat != lat || savedLng != lng;
+      } else {
+        locationChanged = true;
+      }
+    } catch (_) {
+      locationChanged = false;
+    }
+
+    // If location has changed, ask Admin how to apply it.
+    if (locationChanged && mounted) {
+      final choice = await _showLocationApplyDialog();
+      // null means the user dismissed the dialog — abort save.
+      if (choice == null) return;
+      setState(() => _saving = true);
+      await _persistSettings(lat, lng, companyName, secret);
+      await _applyAdminLocationToUsers(lat, lng, _radiusMeters, scope: choice);
+    } else {
+      setState(() => _saving = true);
+      await _persistSettings(lat, lng, companyName, secret);
+    }
+  }
+
+  /// Shows the dialog and returns 'all' or 'without_manager'.
+  /// Returns null if the user dismissed the dialog.
+  Future<String?> _showLocationApplyDialog() async {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.location_on, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Expanded(child: Text('Apply New Location')),
+          ],
+        ),
+        content: const Text(
+          'The geofence location has changed. How would you like to apply it to users?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, 'without_manager'),
+            child: const Text('Only users without a Manager location'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, 'all'),
+            child: const Text('Apply to all users'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Persists the company settings document.
+  Future<void> _persistSettings(
+    double lat,
+    double lng,
+    String companyName,
+    String secret,
+  ) async {
     try {
       final updated = CompanySettings(
         latitude: lat,
@@ -152,9 +283,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         allowRemoteClockIn: _allowRemoteClockIn,
         adminApiBaseUrl: _adminApiController.text.trim(),
       );
-
       await _db.collection('settings').doc('company').set(updated.toJson());
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -166,11 +295,56 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save settings: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to save settings: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Clears user-level location overrides based on [scope]:
+  ///  - 'all'            : clear every user's assigned location.
+  ///  - 'without_manager': clear only users whose location was NOT set by a manager.
+  Future<void> _applyAdminLocationToUsers(
+    double lat,
+    double lng,
+    double radius, {
+    required String scope,
+  }) async {
+    try {
+      final usersSnap = await _db.collection('users').get();
+      final batch = _db.batch();
+      for (final doc in usersSnap.docs) {
+        final data = doc.data();
+        final assignedBy = data['locationAssignedBy'] as String?;
+        final hasManagerLocation = assignedBy != null &&
+            assignedBy.isNotEmpty &&
+            assignedBy != 'admin';
+
+        if (scope == 'all' || !hasManagerLocation) {
+          // Remove user-level override so they fall back to admin settings.
+          batch.update(doc.reference, {
+            'assignedLocationLat': FieldValue.delete(),
+            'assignedLocationLng': FieldValue.delete(),
+            'assignedLocationRadius': FieldValue.delete(),
+            'locationAssignedBy': FieldValue.delete(),
+          });
+        }
+      }
+      await batch.commit();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Settings saved, but could not update user locations: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 

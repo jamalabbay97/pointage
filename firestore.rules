@@ -32,6 +32,23 @@ service cloud.firestore {
     function isAttendanceOwner(data) {
       return isSignedIn() && attendanceUserId(data) == request.auth.uid;
     }
+
+    // Returns true when a Manager update only touches the allowed location fields.
+    // Managers must not change role, status, email, or any other sensitive field.
+    function isManagerLocationOnlyUpdate() {
+      let allowed = [
+        'assignedLocationLat',
+        'assignedLocationLng',
+        'assignedLocationRadius',
+        'locationAssignedBy'
+      ];
+      // All keys being written must be in the allowed set, AND
+      // the role / status / email fields must remain untouched.
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.email == resource.data.email;
+    }
     
     // =============================
     // Users
@@ -43,9 +60,14 @@ service cloud.firestore {
         (isAdmin() && request.resource.data.createdBy == request.auth.uid) ||
         (isManager() && request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.role in ["employee", "Employee", "EMPLOYEE"]);
-      allow update: if isOwner(userId) || isAdmin() ||
+      allow update: if isAdmin() ||
+        isOwner(userId) ||
         (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid) &&
-          request.resource.data.role == resource.data.role);
+          (
+            request.resource.data.role == resource.data.role ||
+            isManagerLocationOnlyUpdate()
+          )
+        );
       allow delete: if isAdmin() ||
         (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid));
     }
@@ -67,7 +89,7 @@ service cloud.firestore {
     // =============================
     match /qr_codes/{qrId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdminOrManager();
     }
     
     // =============================

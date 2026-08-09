@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/models/user_model.dart';
@@ -41,10 +42,20 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
+    final isManager = currentUser?.isManager == true;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Management'),
         actions: [
+          if (isManager)
+            IconButton(
+              icon: const Icon(Icons.location_on_outlined),
+              tooltip: 'Set Location for All My Users',
+              onPressed: () =>
+                  _showManagerBulkLocationDialog(context, currentUser!),
+            ),
           IconButton(
             icon: const Icon(Icons.person_add_alt_1),
             tooltip: 'Add User',
@@ -509,6 +520,17 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     );
     final passwordController = TextEditingController();
 
+    // Location controllers (manager override)
+    final locationLatController = TextEditingController(
+      text: user?.assignedLocationLat?.toString() ?? '',
+    );
+    final locationLngController = TextEditingController(
+      text: user?.assignedLocationLng?.toString() ?? '',
+    );
+    final locationRadiusController = TextEditingController(
+      text: user?.assignedLocationRadius?.toString() ?? '500',
+    );
+
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isCurrentUser = user?.uid == currentUid;
     final currentUser = ref.read(currentUserModelProvider).valueOrNull;
@@ -624,6 +646,17 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           if (val != null) setDialogState(() => role = val);
                         },
                 ),
+                // ── Manager Location Override Section ──────────────────────
+                if (isEdit && currentUser?.isManager == true)
+                  ..._buildLocationOverrideFields(
+                    user: user,
+                    currentUser: currentUser!,
+                    locationLatController: locationLatController,
+                    locationLngController: locationLngController,
+                    locationRadiusController: locationRadiusController,
+                    setDialogState: setDialogState,
+                  ),
+                // ──────────────────────────────────────────────────────────
               ],
             ),
           ),
@@ -683,6 +716,47 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           if (!isCurrentUser) {
                             updateData['role'] = role;
                           }
+
+                          // ── Save manager location override ──────────────
+                          if (currentUser?.isManager == true) {
+                            final managerUid =
+                                FirebaseAuth.instance.currentUser?.uid;
+                            // Security: Only allow editing users belonging to
+                            // this manager.
+                            final belongsToManager =
+                                user.managerId == managerUid ||
+                                    user.createdBy == managerUid;
+                            if (belongsToManager && managerUid != null) {
+                              final latVal = double.tryParse(
+                                locationLatController.text.trim(),
+                              );
+                              final lngVal = double.tryParse(
+                                locationLngController.text.trim(),
+                              );
+                              final radiusVal = double.tryParse(
+                                locationRadiusController.text.trim(),
+                              );
+                              if (latVal != null && lngVal != null) {
+                                updateData['assignedLocationLat'] = latVal;
+                                updateData['assignedLocationLng'] = lngVal;
+                                updateData['assignedLocationRadius'] =
+                                    radiusVal ?? 500.0;
+                                updateData['locationAssignedBy'] = managerUid;
+                              } else {
+                                // Empty fields = remove the override
+                                updateData['assignedLocationLat'] =
+                                    FieldValue.delete();
+                                updateData['assignedLocationLng'] =
+                                    FieldValue.delete();
+                                updateData['assignedLocationRadius'] =
+                                    FieldValue.delete();
+                                updateData['locationAssignedBy'] =
+                                    FieldValue.delete();
+                              }
+                            }
+                          }
+                          // ───────────────────────────────────────────────
+
                           await _db
                               .collection('users')
                               .doc(user.uid)
@@ -705,7 +779,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           );
 
                           final isNewManager = role == 'manager';
-                          final managerSchedule = currentUser?.scheduleType ?? 'standard';
+                          final managerSchedule =
+                              currentUser?.scheduleType ?? 'standard';
 
                           // Save user document in Firestore using the generated Auth UID
                           await _db.collection('users').doc(newUid).set({
@@ -719,7 +794,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             'createdBy': currentUid,
                             if (currentUid != null && role == 'employee')
                               'managerId': currentUid,
-                            'scheduleType': isNewManager ? 'standard' : managerSchedule,
+                            'scheduleType':
+                                isNewManager ? 'standard' : managerSchedule,
                             'isFirstLogin': isNewManager,
                           });
 
@@ -1069,4 +1145,336 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       ),
     );
   }
+
+  // ── Manager Location Override UI ─────────────────────────────────────────────
+
+  /// Builds the Location Override section shown inside the user edit dialog
+  /// when the current user is a manager editing one of their own employees.
+  List<Widget> _buildLocationOverrideFields({
+    required UserModel user,
+    required UserModel currentUser,
+    required TextEditingController locationLatController,
+    required TextEditingController locationLngController,
+    required TextEditingController locationRadiusController,
+    required StateSetter setDialogState,
+  }) {
+    final managerUid = FirebaseAuth.instance.currentUser?.uid;
+    // Only show if this user belongs to this manager
+    final belongsToManager =
+        user.managerId == managerUid || user.createdBy == managerUid;
+    if (!belongsToManager) return [];
+
+    final hasLocation =
+        user.assignedLocationLat != null && user.assignedLocationLng != null;
+
+    return [
+      const SizedBox(height: 20),
+      const Divider(),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          const Icon(
+            Icons.location_on_outlined,
+            size: 18,
+            color: Colors.teal,
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Location Override',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+          ),
+          if (hasLocation)
+            TextButton.icon(
+              icon: const Icon(Icons.clear, size: 16),
+              label: const Text('Clear'),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () {
+                setDialogState(() {
+                  locationLatController.clear();
+                  locationLngController.clear();
+                });
+              },
+            ),
+        ],
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Overrides the global Admin location for this employee. '
+        'Leave blank to use the Admin default.',
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: locationLatController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Latitude',
+                prefixIcon: Icon(Icons.explore_outlined, size: 18),
+                isDense: true,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: locationLngController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Longitude',
+                prefixIcon: Icon(Icons.explore_outlined, size: 18),
+                isDense: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: locationRadiusController,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(
+          labelText: 'Radius (meters)',
+          prefixIcon: Icon(Icons.radar_outlined, size: 18),
+          isDense: true,
+        ),
+      ),
+      const SizedBox(height: 10),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: const Icon(Icons.my_location, size: 16),
+          label: const Text('Use Current GPS Position'),
+          onPressed: () async {
+            try {
+              final pos = await Geolocator.getCurrentPosition(
+                desiredAccuracy: LocationAccuracy.high,
+              );
+              setDialogState(() {
+                locationLatController.text = pos.latitude.toString();
+                locationLngController.text = pos.longitude.toString();
+              });
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not get GPS: $e')),
+                );
+              }
+            }
+          },
+        ),
+      ),
+    ];
+  }
+
+  /// Shows the bulk location assignment dialog for a Manager, allowing them to
+  /// apply a single location to ALL users they manage.
+  void _showManagerBulkLocationDialog(
+    BuildContext context,
+    UserModel currentUser,
+  ) {
+    final latController = TextEditingController();
+    final lngController = TextEditingController();
+    final radiusController = TextEditingController(text: '500');
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.location_on, color: Colors.teal),
+              SizedBox(width: 10),
+              Expanded(child: Text('Set Location for All My Users')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This will assign the specified location to all employees '
+                  'under your management. It will override the Admin global '
+                  'location for your team.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: latController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Latitude',
+                          prefixIcon: Icon(Icons.explore_outlined, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: lngController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                          signed: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Longitude',
+                          prefixIcon: Icon(Icons.explore_outlined, size: 18),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: radiusController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Radius (meters)',
+                    prefixIcon: Icon(Icons.radar_outlined, size: 18),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.my_location, size: 16),
+                    label: const Text('Use Current GPS Position'),
+                    onPressed: () async {
+                      try {
+                        final pos = await Geolocator.getCurrentPosition(
+                          desiredAccuracy: LocationAccuracy.high,
+                        );
+                        setDialogState(() {
+                          latController.text = pos.latitude.toString();
+                          lngController.text = pos.longitude.toString();
+                        });
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Could not get GPS: $e'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSaving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      final lat = double.tryParse(latController.text.trim());
+                      final lng = double.tryParse(lngController.text.trim());
+                      final radius =
+                          double.tryParse(radiusController.text.trim()) ??
+                              500.0;
+                      if (lat == null || lng == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please enter valid latitude and longitude',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      setDialogState(() => isSaving = true);
+                      try {
+                        final managerUid =
+                            FirebaseAuth.instance.currentUser?.uid;
+                        if (managerUid == null) return;
+
+                        // Fetch all users belonging to this manager
+                        final usersSnap = await _db
+                            .collection('users')
+                            .where('createdBy', isEqualTo: managerUid)
+                            .get();
+
+                        final batch = _db.batch();
+                        for (final doc in usersSnap.docs) {
+                          batch.update(doc.reference, {
+                            'assignedLocationLat': lat,
+                            'assignedLocationLng': lng,
+                            'assignedLocationRadius': radius,
+                            'locationAssignedBy': managerUid,
+                          });
+                        }
+                        await batch.commit();
+
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Location applied to ${usersSnap.docs.length} user(s)',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSaving = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to apply location: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Apply to All My Users'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
 }

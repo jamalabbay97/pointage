@@ -40,6 +40,34 @@ class AttendanceService {
     final doc = _db.collection('attendance').doc(docId);
     final docSnap = await doc.get();
 
+    // ── Location Priority Resolution ─────────────────────────────────────────
+    // Fetch the employee's Firestore profile to check for a manager-assigned
+    // location override. Priority: manager location → admin (company) location.
+    double effectiveLat = settings.latitude;
+    double effectiveLng = settings.longitude;
+    double effectiveRadius = settings.radiusMeters;
+
+    try {
+      final userDoc =
+          await _db.collection('users').doc(employeeId).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        final userData = userDoc.data()!;
+        final assignedLat = (userData['assignedLocationLat'] as num?)?.toDouble();
+        final assignedLng = (userData['assignedLocationLng'] as num?)?.toDouble();
+        final assignedRadius =
+            (userData['assignedLocationRadius'] as num?)?.toDouble();
+        // Only use the override when both lat and lng are present
+        if (assignedLat != null && assignedLng != null) {
+          effectiveLat = assignedLat;
+          effectiveLng = assignedLng;
+          if (assignedRadius != null) effectiveRadius = assignedRadius;
+        }
+      }
+    } catch (_) {
+      // If we cannot read the override, fall back to global settings silently.
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
       throw StateError(
@@ -69,14 +97,14 @@ class AttendanceService {
     final distance = Geolocator.distanceBetween(
       position.latitude,
       position.longitude,
-      settings.latitude,
-      settings.longitude,
+      effectiveLat,
+      effectiveLng,
     );
 
     // Honor allowRemoteClockIn setting from admin system settings
-    if (!settings.allowRemoteClockIn && distance > settings.radiusMeters) {
+    if (!settings.allowRemoteClockIn && distance > effectiveRadius) {
       throw StateError(
-        'You are outside the allowed office attendance perimeter (${distance.toInt()}m from HQ, allowed limit is ${settings.radiusMeters.toInt()}m).',
+        'You are outside the allowed office attendance perimeter (${distance.toInt()}m from HQ, allowed limit is ${effectiveRadius.toInt()}m).',
       );
     }
 

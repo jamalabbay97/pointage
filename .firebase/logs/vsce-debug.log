@@ -4229,3 +4229,67 @@ E0806 14:18:36.536828    9504 watch.go:40] Failed to load config from "d:\\App P
  {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0806 14:18:56.536815    9504 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
 [info] [Firebase Plugin] Stopping SQL Connect toolkit
 [warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 
+[debug] [2026-08-08T10:20:47.709Z] [Firebase Plugin] Activating Firebase extension.
+[debug] [2026-08-08T10:22:02.438Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2026-08-08T10:22:02.489Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-08-08T10:22:02.499Z] > authorizing via signed-in user (domlana009@gmail.com)
+[debug] [2026-08-08T10:22:02.520Z] Checked if tokens are valid: false, expires at: 1786024355450
+[debug] [2026-08-08T10:22:02.522Z] Checked if tokens are valid: false, expires at: 1786024355450
+[debug] [2026-08-08T10:22:02.539Z] > refreshing access token with scopes: []
+[debug] [2026-08-08T10:22:02.620Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-08-08T10:22:02.622Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-08T10:22:02.801Z] [Firebase Plugin] VSCode notification server listening on port 40001
+[debug] [2026-08-08T10:22:05.782Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[info] [Firebase Plugin] Starting SQL Connect toolkit (version 3.4.16) on port 50001
+[debug] [2026-08-08T10:22:06.941Z] 'fdc build' failed with error: Unable to build your SQL Connect schema and connectors (exit code 1): E0808 11:22:06.890667   16732 cmd.go:43] Error loading data connect config: could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"'fdc build' failed with error: Unable to build your SQL Connect schema and connectors (exit code 1): E0808 11:22:06.890667   16732 cmd.go:43] Error loading data connect config: could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:22:06.944Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2026-08-08T10:22:06.946Z] Ignoring unsupported arg: port {"metadata":{"emulator":{"name":"dataconnect"},"message":"Ignoring unsupported arg: port"}}
+[debug] [2026-08-08T10:22:06.947Z] Starting SQL Connect Emulator with command {"binary":"C:\\Users\\ZhuanZ2\\.cache\\firebase\\emulators\\dataconnect-emulator-3.4.16.exe","args":["--logtostderr","-v=2","dev","--listen=localhost:50001","--config_dir=d:\\App Pointage\\dataconnect","--enable_output_schema_extensions=true","--enable_output_generated_sdk=true"],"optionalArgs":["listen","config_dir","enable_output_schema_extensions","enable_output_generated_sdk"],"joinArgs":true,"shell":false,"port":9399} {"metadata":{"emulator":{"name":"dataconnect"},"message":"Starting SQL Connect Emulator with command {\"binary\":\"C:\\\\Users\\\\ZhuanZ2\\\\.cache\\\\firebase\\\\emulators\\\\dataconnect-emulator-3.4.16.exe\",\"args\":[\"--logtostderr\",\"-v=2\",\"dev\",\"--listen=localhost:50001\",\"--config_dir=d:\\\\App Pointage\\\\dataconnect\",\"--enable_output_schema_extensions=true\",\"--enable_output_generated_sdk=true\"],\"optionalArgs\":[\"listen\",\"config_dir\",\"enable_output_schema_extensions\",\"enable_output_generated_sdk\"],\"joinArgs\":true,\"shell\":false,\"port\":9399}"}}
+[info] i  dataconnect: SQL Connect Emulator logging to dataconnect-debug.log {"metadata":{"emulator":{"name":"dataconnect"},"message":"SQL Connect Emulator logging to \u001b[1mdataconnect-debug.log\u001b[22m"}}
+[debug] [2026-08-08T10:22:10.131Z] E0808 11:22:07.367574   11916 dev.go:80] Failed to load initial config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+E0808 11:22:07.373495   11916 watch.go:116] watchAllDir unable to walk dir `d:\App Pointage\dataconnect`: GetFileAttributesEx d:\App Pointage\dataconnect: The system cannot find the file specified.
+I0808 11:22:07.572126   11916 dev.go:101] Listening on address (HTTP + gRPC): 127.0.0.1:50001
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:07.367574   11916 dev.go:80] Failed to load initial config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\nE0808 11:22:07.373495   11916 watch.go:116] watchAllDir unable to walk dir `d:\\App Pointage\\dataconnect`: GetFileAttributesEx d:\\App Pointage\\dataconnect: The system cannot find the file specified.\nI0808 11:22:07.572126   11916 dev.go:101] Listening on address (HTTP + gRPC): 127.0.0.1:50001\n"}}
+[debug] [2026-08-08T10:22:10.817Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-08-08T10:22:10.818Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-08-08T10:22:10.923Z] [Firebase Plugin] User found:  domlana009@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2026-08-08T10:22:10.933Z] Checked if tokens are valid: true, expires at: 1786188129819
+[debug] [2026-08-08T10:22:10.938Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-08-08T10:22:11.839Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-08-08T10:22:11.840Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2026-08-08T10:22:17.935Z] E0808 11:22:17.386321   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:17.386321   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:22:27.375Z] E0808 11:22:27.374835   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:27.374835   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:22:37.376Z] E0808 11:22:37.375221   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:37.375221   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:22:47.376Z] E0808 11:22:47.375177   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:47.375177   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:22:57.376Z] E0808 11:22:57.375153   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:22:57.375153   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:07.375Z] E0808 11:23:07.375415   11916 watch.go:116] watchAllDir unable to walk dir `d:\App Pointage\dataconnect`: GetFileAttributesEx d:\App Pointage\dataconnect: The system cannot find the file specified.
+E0808 11:23:07.375415   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:07.375415   11916 watch.go:116] watchAllDir unable to walk dir `d:\\App Pointage\\dataconnect`: GetFileAttributesEx d:\\App Pointage\\dataconnect: The system cannot find the file specified.\nE0808 11:23:07.375415   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:17.394Z] E0808 11:23:17.391298   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:17.391298   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:27.379Z] E0808 11:23:27.378497   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:27.378497   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:37.380Z] E0808 11:23:37.375129   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:37.375129   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:47.376Z] E0808 11:23:47.375777   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:47.375777   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:23:57.377Z] E0808 11:23:57.376005   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:23:57.376005   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:24:07.378Z] E0808 11:24:07.376576   11916 watch.go:116] watchAllDir unable to walk dir `d:\App Pointage\dataconnect`: GetFileAttributesEx d:\App Pointage\dataconnect: The system cannot find the file specified.
+E0808 11:24:07.376576   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:24:07.376576   11916 watch.go:116] watchAllDir unable to walk dir `d:\\App Pointage\\dataconnect`: GetFileAttributesEx d:\\App Pointage\\dataconnect: The system cannot find the file specified.\nE0808 11:24:07.376576   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:24:17.405Z] E0808 11:24:17.382748   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:24:17.382748   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:24:27.375Z] E0808 11:24:27.374920   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:24:27.374920   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[debug] [2026-08-08T10:24:37.379Z] E0808 11:24:37.375193   11916 watch.go:40] Failed to load config from "d:\\App Pointage\\dataconnect": could not find dataconnect.yaml in `d:\App Pointage\dataconnect`
+ {"metadata":{"emulator":{"name":"dataconnect"},"message":"E0808 11:24:37.375193   11916 watch.go:40] Failed to load config from \"d:\\\\App Pointage\\\\dataconnect\": could not find dataconnect.yaml in `d:\\App Pointage\\dataconnect`\n"}}
+[info] [Firebase Plugin] Stopping SQL Connect toolkit
+[warn] !  SQL Connect Emulator has exited upon receiving signal: SIGINT 

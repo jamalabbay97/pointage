@@ -13,6 +13,10 @@ class UserModel {
     this.managerId,
     this.scheduleType = 'standard',
     this.isFirstLogin = false,
+    this.assignedLocationLat,
+    this.assignedLocationLng,
+    this.assignedLocationRadius,
+    this.locationAssignedBy,
   });
 
   final String uid;
@@ -28,6 +32,21 @@ class UserModel {
   final String? managerId;
   final String scheduleType; // 'days_20_10', 'standard'
   final bool isFirstLogin;
+
+  // Location override: set by a Manager (or Admin) to override the global geofence.
+  // Priority: manager-specific > manager-default > admin global.
+  final double? assignedLocationLat;
+  final double? assignedLocationLng;
+  final double? assignedLocationRadius;
+  /// UID of the manager who assigned this location, or 'admin' if set by admin.
+  final String? locationAssignedBy;
+
+  /// Returns true if this user has a custom location that was assigned by a manager.
+  bool get hasManagerLocation =>
+      locationAssignedBy != null &&
+      locationAssignedBy != 'admin' &&
+      assignedLocationLat != null &&
+      assignedLocationLng != null;
 
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
@@ -54,6 +73,11 @@ class UserModel {
       managerId: _nullableString(json['managerId']),
       scheduleType: _stringOrDefault(json['scheduleType'], 'standard'),
       isFirstLogin: json['isFirstLogin'] as bool? ?? false,
+      assignedLocationLat: (json['assignedLocationLat'] as num?)?.toDouble(),
+      assignedLocationLng: (json['assignedLocationLng'] as num?)?.toDouble(),
+      assignedLocationRadius:
+          (json['assignedLocationRadius'] as num?)?.toDouble(),
+      locationAssignedBy: _nullableString(json['locationAssignedBy']),
     );
   }
 
@@ -71,6 +95,14 @@ class UserModel {
         if (managerId != null) 'managerId': managerId,
         'scheduleType': scheduleType,
         'isFirstLogin': isFirstLogin,
+        if (assignedLocationLat != null)
+          'assignedLocationLat': assignedLocationLat,
+        if (assignedLocationLng != null)
+          'assignedLocationLng': assignedLocationLng,
+        if (assignedLocationRadius != null)
+          'assignedLocationRadius': assignedLocationRadius,
+        if (locationAssignedBy != null)
+          'locationAssignedBy': locationAssignedBy,
       };
 
   UserModel copyWith({
@@ -87,6 +119,10 @@ class UserModel {
     String? managerId,
     String? scheduleType,
     bool? isFirstLogin,
+    Object? assignedLocationLat = _sentinel,
+    Object? assignedLocationLng = _sentinel,
+    Object? assignedLocationRadius = _sentinel,
+    Object? locationAssignedBy = _sentinel,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -102,8 +138,22 @@ class UserModel {
       managerId: managerId ?? this.managerId,
       scheduleType: scheduleType ?? this.scheduleType,
       isFirstLogin: isFirstLogin ?? this.isFirstLogin,
+      assignedLocationLat: assignedLocationLat == _sentinel
+          ? this.assignedLocationLat
+          : assignedLocationLat as double?,
+      assignedLocationLng: assignedLocationLng == _sentinel
+          ? this.assignedLocationLng
+          : assignedLocationLng as double?,
+      assignedLocationRadius: assignedLocationRadius == _sentinel
+          ? this.assignedLocationRadius
+          : assignedLocationRadius as double?,
+      locationAssignedBy: locationAssignedBy == _sentinel
+          ? this.locationAssignedBy
+          : locationAssignedBy as String?,
     );
   }
+
+  static const Object _sentinel = Object();
 
   static String _stringOrDefault(Object? value, String fallback) {
     if (value is String && value.trim().isNotEmpty) return value;
