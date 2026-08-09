@@ -361,7 +361,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   _DateRange _selectedRange() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final monthFloor = DateTime(now.year, now.month);
     var start =
         DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     var end = start;
@@ -381,7 +380,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         end = DateTime(_selectedDate.year, 12, 31);
         break;
     }
-    if (start.isBefore(monthFloor)) start = monthFloor;
+    // Removed constraint that prevented viewing past months
     if (start.isAfter(today)) start = today;
     if (end.isAfter(today)) end = today;
     if (end.isBefore(start)) end = start;
@@ -400,7 +399,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     final userIds = users.map((user) => user.uid).toSet();
     final byUserDate = <String, Map<String, dynamic>>{};
     for (final record in records) {
-      final employeeId = record['employeeId'] as String? ?? '';
+      final employeeId = record['employeeId'] as String? ?? record['userId'] as String? ?? '';
       final date = record['date'] as String? ?? '';
       final parsed = DateTime.tryParse(date);
       if (!userIds.contains(employeeId) ||
@@ -413,10 +412,8 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
 
     final rows = <_HistoryRow>[];
     for (final day in _days(range)) {
-      if (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday) {
-        continue;
-      }
       final date = DateFormat('yyyy-MM-dd').format(day);
+      
       for (final user in users) {
         final record = byUserDate['${user.uid}|$date'];
         rows.add(_HistoryRow.from(user, date, record));

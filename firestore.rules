@@ -61,7 +61,7 @@ service cloud.firestore {
         (isManager() && request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.role in ["employee", "Employee", "EMPLOYEE"]);
       allow update: if isAdmin() ||
-        isOwner(userId) ||
+        (isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.status == resource.data.status) ||
         (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.managerId == request.auth.uid) &&
           (
             request.resource.data.role == resource.data.role ||
