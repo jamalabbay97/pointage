@@ -169,19 +169,19 @@ class AttendanceService {
       );
     } else {
       // Check-in logic:
-      // Rule 1: Between 7:00 AM and 8:00 AM -> record as 7:10 AM
-      // Rule 2: After 8:00 AM -> record actual scan time
+      // Rule 1: Between 7:00 AM and 8:14 AM -> record as 7:00 AM (on time)
+      // Rule 2: At 8:15 AM or later -> record actual scan time (late)
       DateTime checkInTime;
       String status = 'present';
 
-      // 7:00 AM to 8:00 AM inclusive (e.g. 07:00:00 to 08:00:00)
-      final is7to8AM = (now.hour == 7) ||
-          (now.hour == 8 && now.minute == 0 && now.second == 0);
+      // On-time window: 7:00 AM up to (but not including) 8:15 AM
+      final isOnTime = (now.hour == 7) || (now.hour == 8 && now.minute < 15);
 
-      if (is7to8AM) {
-        checkInTime = DateTime(now.year, now.month, now.day, 7, 10);
+      if (isOnTime) {
+        checkInTime = DateTime(now.year, now.month, now.day, 7, 00);
         status = 'present';
       } else if (now.hour >= 8) {
+        // 8:15 AM or later
         checkInTime = now;
         status = 'late';
       } else {

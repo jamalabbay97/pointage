@@ -103,6 +103,14 @@ class AppTranslations {
       'downloadReport': 'Download Report',
       'generatingReport': 'Generating report...',
       'reportDownloaded': 'Report generated successfully and saved to:',
+      // Notifications
+      'notifications': 'Notifications',
+      'noNotifications': 'No Notifications',
+      'noNotificationsSubtitle': 'You\'re all caught up! New announcements and messages will appear here.',
+      'markAllRead': 'Mark all read',
+      'sendNotification': 'Send Notification',
+      'systemNotification': 'System Notification',
+      'notifFrom': 'From',
     },
     'fr': {
       // Titles & General
@@ -201,6 +209,14 @@ class AppTranslations {
       'downloadReport': 'Télécharger le rapport',
       'generatingReport': 'Génération du rapport en cours...',
       'reportDownloaded': 'Rapport généré et enregistré avec succès dans :',
+      // Notifications
+      'notifications': 'Notifications',
+      'noNotifications': 'Aucune notification',
+      'noNotificationsSubtitle': 'Vous êtes à jour ! Les nouvelles annonces et messages apparaîtront ici.',
+      'markAllRead': 'Tout marquer comme lu',
+      'sendNotification': 'Envoyer une notification',
+      'systemNotification': 'Notification système',
+      'notifFrom': 'De',
     },
     'ar': {
       // Titles & General
@@ -299,6 +315,14 @@ class AppTranslations {
       'downloadReport': 'تحميل التقرير',
       'generatingReport': 'جاري إنشاء التقرير...',
       'reportDownloaded': 'تم إنشاء التقرير وحفظه بنجاح في:',
+      // Notifications
+      'notifications': 'الإشعارات',
+      'noNotifications': 'لا توجد إشعارات',
+      'noNotificationsSubtitle': 'أنت في وضع محدّث! ستظهر الإعلانات والرسائل الجديدة هنا.',
+      'markAllRead': 'تحديد الكل كمقروء',
+      'sendNotification': 'إرسال إشعار',
+      'systemNotification': 'إشعار النظام',
+      'notifFrom': 'من',
     },
     'es': {
       // Titles & General
@@ -397,6 +421,14 @@ class AppTranslations {
       'downloadReport': 'Descargar Reporte',
       'generatingReport': 'Generando reporte...',
       'reportDownloaded': 'Reporte generado y guardado con éxito en:',
+      // Notifications
+      'notifications': 'Notificaciones',
+      'noNotifications': 'Sin Notificaciones',
+      'noNotificationsSubtitle': '¡Estás al día! Los nuevos anuncios y mensajes aparecerán aquí.',
+      'markAllRead': 'Marcar todo como leído',
+      'sendNotification': 'Enviar Notificación',
+      'systemNotification': 'Notificación del Sistema',
+      'notifFrom': 'De',
     },
   };
 

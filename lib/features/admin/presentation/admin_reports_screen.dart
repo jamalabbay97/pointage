@@ -106,17 +106,18 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
 
         // Build a UserModel list for the export dialog
         final exportableUsers = usersSnapshot.data?.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return UserModel.fromJson(data, doc.id);
-        }).where((u) {
-          if (currentUser.isAdmin) return !u.isAdmin;
-          if (currentUser.isManager) {
-            return u.uid == authUser.uid ||
-                u.createdBy == authUser.uid ||
-                u.managerId == authUser.uid;
-          }
-          return u.uid == authUser.uid;
-        }).toList() ?? [];
+              final data = doc.data() as Map<String, dynamic>;
+              return UserModel.fromJson(data, doc.id);
+            }).where((u) {
+              if (currentUser.isAdmin) return !u.isAdmin;
+              if (currentUser.isManager) {
+                return u.uid == authUser.uid ||
+                    u.createdBy == authUser.uid ||
+                    u.managerId == authUser.uid;
+              }
+              return u.uid == authUser.uid;
+            }).toList() ??
+            [];
 
         return StreamBuilder<QuerySnapshot>(
           stream: _db.collection('attendance').snapshots(),
@@ -156,8 +157,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                       ValueListenableBuilder<String>(
                         valueListenable: _searchQueryNotifier,
                         builder: (context, searchQuery, _) {
-                          final filteredRows =
-                              _filterRows(rows, searchQuery);
+                          final filteredRows = _filterRows(rows, searchQuery);
                           return Column(
                             children: [
                               _buildStatusAndExport(
@@ -399,7 +399,8 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     final userIds = users.map((user) => user.uid).toSet();
     final byUserDate = <String, Map<String, dynamic>>{};
     for (final record in records) {
-      final employeeId = record['employeeId'] as String? ?? record['userId'] as String? ?? '';
+      final employeeId =
+          record['employeeId'] as String? ?? record['userId'] as String? ?? '';
       final date = record['date'] as String? ?? '';
       final parsed = DateTime.tryParse(date);
       if (!userIds.contains(employeeId) ||
@@ -413,7 +414,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     final rows = <_HistoryRow>[];
     for (final day in _days(range)) {
       final date = DateFormat('yyyy-MM-dd').format(day);
-      
+
       for (final user in users) {
         final record = byUserDate['${user.uid}|$date'];
         rows.add(_HistoryRow.from(user, date, record));
@@ -472,7 +473,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       .length;
   bool _inRange(DateTime day, _DateRange range) =>
       !day.isBefore(range.start) && !day.isAfter(range.end);
-
 }
 
 class _PersistentSearchBar extends StatefulWidget {

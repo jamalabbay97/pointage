@@ -130,6 +130,13 @@ class AdminScreen extends ConsumerWidget {
                     color: Colors.teal,
                     onTap: () => context.push('/admin/settings'),
                   ),
+                  _AdminCard(
+                    title: 'Send Notification',
+                    subtitle: 'Broadcast announcements to users',
+                    icon: Icons.campaign_rounded,
+                    color: Colors.deepPurple,
+                    onTap: () => context.push('/admin/notifications'),
+                  ),
                 ],
               ),
             ],

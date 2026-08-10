@@ -21,6 +21,8 @@ import 'features/history/presentation/history_screen.dart';
 import 'features/scanner/presentation/qr_scanner_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
+import 'features/notifications/presentation/notifications_screen.dart';
+import 'features/admin/presentation/send_notification_screen.dart';
 import 'features/auth/domain/auth_provider.dart';
 import 'features/auth/presentation/app_lock_wrapper.dart';
 import 'firebase_options.dart';
@@ -260,6 +262,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/notifications',
+        builder: (_, __) => const SendNotificationScreen(),
+      ),
     ],
   );
 });

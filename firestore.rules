@@ -55,17 +55,18 @@ service cloud.firestore {
     // =============================
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid);
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
       allow create: if isOwner(userId) ||
         (isAdmin() && request.resource.data.createdBy == request.auth.uid) ||
         (isManager() && request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.role in ["employee", "Employee", "EMPLOYEE"]);
       allow update: if isOwner(userId) || isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid &&
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&
           request.resource.data.createdBy == resource.data.createdBy &&
+          request.resource.data.get('managerId', '') == resource.data.get('managerId', '') &&
           request.resource.data.role == resource.data.role);
       allow delete: if isAdmin() ||
-        (isManager() && resource.data.createdBy == request.auth.uid);
+        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
     }
     
     // =============================
@@ -121,6 +122,27 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // =============================
+    // Notifications
+    // =============================
+    match /notifications/{notifId} {
+      // Any signed-in user can read; client-side filtering handles visibility.
+      allow read: if isSignedIn();
+
+      // Only admin or manager can create a notification.
+      allow create: if isAdminOrManager() &&
+        request.resource.data.senderId == request.auth.uid;
+
+      // Any signed-in user may update ONLY the readBy field (mark as read).
+      allow update: if isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
+        request.resource.data.readBy.hasAll(resource.data.readBy) &&
+        request.resource.data.readBy.hasAll([request.auth.uid]);
+
+      // Only admin can delete notifications.
+      allow delete: if isAdmin();
     }
   }
 }
