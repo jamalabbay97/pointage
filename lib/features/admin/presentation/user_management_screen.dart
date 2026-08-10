@@ -698,12 +698,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       setDialogState(() => isSaving = true);
 
                       try {
-                        if (!isEdit && await _userEmailExists(emailVal)) {
-                          throw _CreateUserException(
-                            'A user with $emailVal already exists.',
-                          );
-                        }
-
+                        // Note: email-uniqueness is enforced by Firebase Auth
+                        // (throws email-already-in-use). The Firestore query
+                        // check was removed because Managers can only read
+                        // their own employees, not the full users collection.
                         if (!isEdit) {
                           await _reconcileOrphanedAuthAccount(emailVal);
                         }
@@ -857,6 +855,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         options: Firebase.app().options,
       );
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      try {
+        await secondaryAuth.setPersistence(Persistence.NONE);
+      } catch (_) {
+        // Ignore on platforms that do not support setPersistence
+      }
       final cred = await secondaryAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -882,16 +885,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     } finally {
       await secondaryApp?.delete();
     }
-  }
-
-  Future<bool> _userEmailExists(String email) async {
-    final snapshot = await _db
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
-
-    return snapshot.docs.isNotEmpty;
   }
 
   String _createUserAuthErrorMessage(
