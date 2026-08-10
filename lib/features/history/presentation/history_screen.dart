@@ -86,9 +86,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         });
 
         final monthRecords = records.where(_isInSelectedMonth).toList();
+        final scheduleType = currentUser?.scheduleType ?? 'standard';
         final summary = _AttendanceSummary.fromRecords(
           selectedMonth: _selectedMonth,
           records: monthRecords,
+          scheduleType: scheduleType,
         );
 
         return ListView(
@@ -425,8 +427,9 @@ class _AttendanceSummary {
   factory _AttendanceSummary.fromRecords({
     required DateTime selectedMonth,
     required List<Map<String, dynamic>> records,
+    String scheduleType = 'standard',
   }) {
-    final workingDays = _countWeekdays(selectedMonth);
+    final workingDays = _countWorkingDays(selectedMonth, scheduleType);
     final checkIns = records.length;
     final lateArrivals = records
         .where(
@@ -444,7 +447,12 @@ class _AttendanceSummary {
     );
   }
 
-  static int _countWeekdays(DateTime month) {
+  /// Calculates the number of working days in [month] based on [scheduleType].
+  ///
+  /// - `'days_20_10'`: Fixed 20 working days per month (rotating 20-on/10-off).
+  /// - `'standard'` (or any other value): Count weekdays (Monday–Friday).
+  static int _countWorkingDays(DateTime month, String scheduleType) {
+    if (scheduleType == 'days_20_10') return 20;
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     var weekdays = 0;
     for (var day = 1; day <= daysInMonth; day++) {
