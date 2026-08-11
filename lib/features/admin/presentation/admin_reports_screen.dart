@@ -163,6 +163,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                         filteredRows,
                         stats,
                         visibleUsers,
+                        range,
                       );
                     },
                   ),
@@ -455,7 +456,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     );
   }
 
-  Widget _buildTeamOverview(_HistoryStats stats, int totalEmployees) {
+  Widget _buildTeamOverview(_HistoryStats stats, int totalEmployees, _DateRange range) {
     Widget tile(String label, int value, Color color) => Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -508,7 +509,8 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               tile('Employees', totalEmployees, Colors.blue),
               tile('Present', stats.presentDays, Colors.green),
               tile('Late', stats.lateDays, Colors.orange),
-              tile('Absent', stats.absentDays, Colors.red),
+              if (range.period == _PeriodFilter.day)
+                tile('Absent', stats.absentDays, Colors.red),
             ],
           ),
         ],
@@ -520,6 +522,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     List<_HistoryRow> rows,
     _HistoryStats stats,
     List<_HistoryUser> visibleUsers,
+    _DateRange range,
   ) {
     if (rows.isEmpty) {
       return _buildEmptyState();
@@ -532,7 +535,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       itemCount: dates.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
-          return _buildTeamOverview(stats, visibleUsers.length);
+          return _buildTeamOverview(stats, visibleUsers.length, range);
         }
 
         final date = dates[index - 1];
@@ -616,14 +619,14 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       ),
     );
 
-    final present = employeeRows.where((r) => r.status == 'present').length;
+    final present = employeeRows.where((r) => r.status == 'present' || r.status == 'late').length;
     final late = employeeRows.where((r) => r.status == 'late').length;
     final absent = employeeRows.where((r) => r.status == 'absent').length;
 
     if (employeeRows.isEmpty) {
       return Column(
         children: [
-          _buildEmployeeSummary(user, present, late, absent, range),
+          _buildEmployeeSummary(user, present, late, absent),
           Expanded(child: _buildEmptyState()),
         ],
       );
@@ -634,7 +637,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
 
     return Column(
       children: [
-        _buildEmployeeSummary(user, present, late, absent, range),
+        _buildEmployeeSummary(user, present, late, absent),
         Expanded(
           child: ListView.builder(
             itemCount: dates.length,
@@ -687,7 +690,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     int present,
     int late,
     int absent,
-    _DateRange range,
   ) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -754,11 +756,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               _buildSummaryStat('Present', present, Colors.green),
               _buildSummaryStat('Late', late, Colors.orange),
               _buildSummaryStat('Absent', absent, Colors.red),
-              _buildSummaryStat(
-                'Working Days',
-                _workingDays(range, user.scheduleType),
-                Colors.blue,
-              ),
             ],
           ),
         ],
@@ -1102,7 +1099,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       workingDays: expected,
       absentDays: (expected - attendanceRecords).clamp(0, expected).toInt(),
       attendanceRecords: attendanceRecords,
-      presentDays: presentRecords,
+      presentDays: presentRecords + lateRecords,
       lateDays: lateRecords,
     );
   }

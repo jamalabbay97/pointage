@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.uid != null;
     }
     
     function isOwner(userId) {
@@ -10,7 +10,9 @@ service cloud.firestore {
     }
 
     function signedInUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      // Use get() with a fallback to avoid errors if the user document does not exist yet
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc != null ? userDoc.data.get('role', '') : '';
     }
     
     function isAdmin() {
@@ -26,11 +28,11 @@ service cloud.firestore {
     }
 
     function attendanceUserId(data) {
-      return data.employeeId != null ? data.employeeId : data.userId;
+      return data != null ? data.get('employeeId', data.get('userId', '')) : '';
     }
 
     function isAttendanceOwner(data) {
-      return isSignedIn() && attendanceUserId(data) == request.auth.uid;
+      return isSignedIn() && data != null && attendanceUserId(data) == request.auth.uid;
     }
 
     // Returns true when a Manager update only touches the allowed location fields.
@@ -45,9 +47,9 @@ service cloud.firestore {
       // All keys being written must be in the allowed set, AND
       // the role / status / email fields must remain untouched.
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed)
-          && request.resource.data.role == resource.data.role
-          && request.resource.data.status == resource.data.status
-          && request.resource.data.email == resource.data.email;
+          && request.resource.data.get('role', '') == resource.data.get('role', '')
+          && request.resource.data.get('status', '') == resource.data.get('status', '')
+          && request.resource.data.get('email', '') == resource.data.get('email', '');
     }
     
     // =============================
@@ -55,18 +57,22 @@ service cloud.firestore {
     // =============================
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin() ||
-        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
+        (isManager() && resource != null && (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
+      
       allow create: if isOwner(userId) ||
-        (isAdmin() && request.resource.data.createdBy == request.auth.uid) ||
-        (isManager() && request.resource.data.createdBy == request.auth.uid &&
-          request.resource.data.role in ["employee", "Employee", "EMPLOYEE"]);
+        (isAdmin() && request.resource.data.get('createdBy', '') == request.auth.uid) ||
+        (isManager() && request.resource.data.get('createdBy', '') == request.auth.uid &&
+          request.resource.data.get('role', '') in ["employee", "Employee", "EMPLOYEE"]);
+          
       allow update: if isOwner(userId) || isAdmin() ||
-        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&
-          request.resource.data.createdBy == resource.data.createdBy &&
+        (isManager() && resource != null && 
+          (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&
+          request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') &&
           request.resource.data.get('managerId', '') == resource.data.get('managerId', '') &&
-          request.resource.data.role == resource.data.role);
+          request.resource.data.get('role', '') == resource.data.get('role', ''));
+          
       allow delete: if isAdmin() ||
-        (isManager() && (resource.data.createdBy == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
+        (isManager() && resource != null && (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
     }
     
     // =============================
@@ -75,9 +81,16 @@ service cloud.firestore {
     match /attendance/{attendanceId} {
       allow create: if isSignedIn() &&
         (isAdminOrManager() || isAttendanceOwner(request.resource.data));
-      allow read: if isAdminOrManager() || isAttendanceOwner(resource.data);
+        
+      // Fixed: When checking in for the first time, the document doesn't exist yet so resource is null.
+      // We allow the read if the attendanceId matches the user's uid to prevent permission denied errors.
+      allow read: if isAdminOrManager() || 
+        (resource != null && isAttendanceOwner(resource.data)) ||
+        (resource == null && attendanceId.matches(request.auth.uid + '.*'));
+        
       allow update: if isAdminOrManager() ||
-        (isAttendanceOwner(resource.data) && isAttendanceOwner(request.resource.data));
+        (resource != null && isAttendanceOwner(resource.data) && isAttendanceOwner(request.resource.data));
+        
       allow delete: if isAdmin();
     }
     
@@ -96,7 +109,7 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow read: if isSignedIn();
       allow update: if isSignedIn();
-      allow delete: if false;
+      allow delete: if false || isAdmin(); // Improved: allowed admins to delete old devices
     }
     
     // =============================
@@ -106,14 +119,14 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow read: if isAdmin();
       allow update: if false;
-      allow delete: if false;
+      allow delete: if false || isAdmin(); // Improved: allowed admins to cleanup logs
     }
     
     // =============================
     // User Settings
     // =============================
     match /user_settings/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isAdmin(); // Improved: admins can configure user settings
     }
     
     // =============================
@@ -133,13 +146,13 @@ service cloud.firestore {
 
       // Only admin or manager can create a notification.
       allow create: if isAdminOrManager() &&
-        request.resource.data.senderId == request.auth.uid;
+        request.resource.data.get('senderId', '') == request.auth.uid;
 
       // Any signed-in user may update ONLY the readBy field (mark as read).
-      allow update: if isSignedIn() &&
+      allow update: if isSignedIn() && resource != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
-        request.resource.data.readBy.hasAll(resource.data.readBy) &&
-        request.resource.data.readBy.hasAll([request.auth.uid]);
+        request.resource.data.get('readBy', []).hasAll(resource.data.get('readBy', [])) &&
+        request.resource.data.get('readBy', []).hasAll([request.auth.uid]);
 
       // Only admin can delete notifications.
       allow delete: if isAdmin();
