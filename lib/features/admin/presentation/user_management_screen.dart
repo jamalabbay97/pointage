@@ -42,20 +42,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
-    final isManager = currentUser?.isManager == true;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Management'),
         actions: [
-          if (isManager)
-            IconButton(
-              icon: const Icon(Icons.location_on_outlined),
-              tooltip: 'Set Location for All My Users',
-              onPressed: () =>
-                  _showManagerBulkLocationDialog(context, currentUser!),
-            ),
           IconButton(
             icon: const Icon(Icons.person_add_alt_1),
             tooltip: 'Add User',
@@ -1272,6 +1262,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
   /// Shows the bulk location assignment dialog for a Manager, allowing them to
   /// apply a single location to ALL users they manage.
+  // ignore: unused_element
   void _showManagerBulkLocationDialog(
     BuildContext context,
     UserModel currentUser,

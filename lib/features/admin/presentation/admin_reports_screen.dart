@@ -109,11 +109,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               final data = doc.data() as Map<String, dynamic>;
               return UserModel.fromJson(data, doc.id);
             }).where((u) {
-              if (currentUser.isAdmin) return !u.isAdmin;
+              if (currentUser.isAdmin) return !u.isAdmin && !u.isManager;
               if (currentUser.isManager) {
-                return u.uid == authUser.uid ||
-                    u.createdBy == authUser.uid ||
-                    u.managerId == authUser.uid;
+                return !u.isManager &&
+                    (u.createdBy == authUser.uid ||
+                        u.managerId == authUser.uid);
               }
               return u.uid == authUser.uid;
             }).toList() ??
@@ -342,16 +342,16 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     User authUser,
   ) {
     if (currentUser.isAdmin) {
-      return users.where((user) => !user.isAdmin).toList();
+      return users.where((user) => !user.isAdmin && !user.isManager).toList();
     }
     if (currentUser.isManager) {
       return users
           .where(
             (user) =>
-                user.uid == authUser.uid ||
-                user.createdBy == authUser.uid ||
-                user.managerId == authUser.uid ||
-                user.reportsTo == authUser.uid,
+                !user.isManager &&
+                (user.createdBy == authUser.uid ||
+                    user.managerId == authUser.uid ||
+                    user.reportsTo == authUser.uid),
           )
           .toList();
     }
@@ -539,6 +539,7 @@ class _HistoryUser {
   });
   final String uid, displayName, status, createdBy, managerId, reportsTo, role;
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
+  bool get isManager => role.trim().toLowerCase() == 'manager';
   factory _HistoryUser.fromDoc(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     String field(String key) => data[key] as String? ?? '';
