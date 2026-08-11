@@ -12,6 +12,8 @@ import 'widgets/export_attendance_dialog.dart';
 
 enum _PeriodFilter { day, week, month, year }
 
+enum _ViewMode { list, employee }
+
 class AdminReportsScreen extends ConsumerStatefulWidget {
   const AdminReportsScreen({super.key});
 
@@ -26,6 +28,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   _PeriodFilter _periodFilter = _PeriodFilter.month;
   DateTime _selectedDate = DateTime.now();
 
+  _ViewMode _viewMode = _ViewMode.list;
+  String? _selectedEmployeeId;
+
   @override
   void dispose() {
     _searchQueryNotifier.dispose();
@@ -38,7 +43,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     final userModelAsync = ref.watch(currentUserModelProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(ref.tr('reportsAnalytics'))),
+      appBar: AppBar(
+        title: Text(ref.tr('reportsAnalytics')),
+        elevation: 0,
+        centerTitle: true,
+      ),
       body: userModelAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error loading user: $error')),
@@ -74,7 +83,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           .where('createdBy', isEqualTo: authUid)
           .snapshots();
     }
-
     return _db.collection('users').snapshots();
   }
 
@@ -83,8 +91,8 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       stream: _usersStream(currentUser, authUser.uid),
       builder: (context, usersSnapshot) {
         if (usersSnapshot.hasError) {
-          return Center(
-            child: Text('Error loading users: ${usersSnapshot.error}'),
+          return _buildErrorState(
+            'Error loading users: ${usersSnapshot.error}',
           );
         }
         if (usersSnapshot.connectionState == ConnectionState.waiting) {
@@ -104,7 +112,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         final visibleUsers = _visibleUsers(allUsers, currentUser, authUser);
         final range = _selectedRange();
 
-        // Build a UserModel list for the export dialog
         final exportableUsers = usersSnapshot.data?.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               return UserModel.fromJson(data, doc.id);
@@ -123,10 +130,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           stream: _db.collection('attendance').snapshots(),
           builder: (context, attendanceSnapshot) {
             if (attendanceSnapshot.hasError) {
-              return Center(
-                child:
-                    Text('Error loading history: ${attendanceSnapshot.error}'),
-              );
+              return _buildErrorState('Unable to load attendance records');
             }
             if (attendanceSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -137,47 +141,29 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                     .toList() ??
                 [];
             final rows = _buildRows(visibleUsers, rawRecords, range);
-            final stats = _stats(rows, visibleUsers.length, range);
+            final stats = _stats(rows, visibleUsers, range);
 
             return Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _PersistentSearchBar(
-                        key: const ValueKey('reports-search'),
-                        onChanged: (val) =>
-                            _searchQueryNotifier.value = val.trim(),
-                        onClear: () => _searchQueryNotifier.value = '',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildPeriodFilters(range),
-                      const SizedBox(height: 12),
-                      ValueListenableBuilder<String>(
-                        valueListenable: _searchQueryNotifier,
-                        builder: (context, searchQuery, _) {
-                          final filteredRows = _filterRows(rows, searchQuery);
-                          return Column(
-                            children: [
-                              _buildStatusAndExport(
-                                filteredRows,
-                                exportableUsers,
-                              ),
-                              const SizedBox(height: 12),
-                              _buildStats(stats),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeader(visibleUsers, exportableUsers, range),
                 Expanded(
                   child: ValueListenableBuilder<String>(
                     valueListenable: _searchQueryNotifier,
                     builder: (context, searchQuery, _) {
-                      return _buildList(_filterRows(rows, searchQuery));
+                      final filteredRows = _filterRows(rows, searchQuery);
+
+                      if (_viewMode == _ViewMode.employee) {
+                        return _buildEmployeeView(
+                          filteredRows,
+                          visibleUsers,
+                          range,
+                        );
+                      }
+                      return _buildListView(
+                        filteredRows,
+                        stats,
+                        visibleUsers,
+                      );
                     },
                   ),
                 ),
@@ -189,150 +175,802 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     );
   }
 
-  Widget _buildPeriodFilters(_DateRange range) {
-    return Row(
-      children: [
-        DropdownButton<_PeriodFilter>(
-          value: _periodFilter,
-          items: const [
-            DropdownMenuItem(value: _PeriodFilter.day, child: Text('Day')),
-            DropdownMenuItem(value: _PeriodFilter.week, child: Text('Week')),
-            DropdownMenuItem(value: _PeriodFilter.month, child: Text('Month')),
-            DropdownMenuItem(value: _PeriodFilter.year, child: Text('Year')),
-          ],
-          onChanged: (value) {
-            if (value != null) setState(() => _periodFilter = value);
-          },
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(range.label, overflow: TextOverflow.ellipsis)),
-        TextButton.icon(
-          icon: const Icon(Icons.calendar_month),
-          label: const Text('Change'),
-          onPressed: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _selectedDate,
-              firstDate: DateTime(DateTime.now().year, DateTime.now().month),
-              lastDate: DateTime.now(),
-            );
-            if (picked != null) setState(() => _selectedDate = picked);
-          },
-        ),
-      ],
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(fontSize: 16)),
+        ],
+      ),
     );
   }
 
-  Widget _buildStatusAndExport(
-    List<_HistoryRow> rows,
+  Widget _buildHeader(
+    List<_HistoryUser> visibleUsers,
     List<UserModel> exportableUsers,
+    _DateRange range,
   ) {
-    return Row(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: ['All', 'Present', 'Late', 'Absent'].map((statusKey) {
-                final label = statusKey == 'All' ? ref.tr('all') : statusKey;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(label),
-                    selected: _statusFilter == statusKey,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _statusFilter = statusKey);
-                    },
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _PersistentSearchBar(
+                  key: const ValueKey('reports-search'),
+                  onChanged: (val) => _searchQueryNotifier.value = val.trim(),
+                  onClear: () => _searchQueryNotifier.value = '',
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                icon: const Icon(Icons.filter_list),
+                label: const Text('Filters'),
+                onPressed: () => _showFilterBottomSheet(visibleUsers),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                icon: const Icon(Icons.download_rounded),
+                tooltip: ref.tr('exportAttendanceData'),
+                onPressed: () {
+                  ExportAttendanceDialog.show(context, exportableUsers);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SegmentedButton<_ViewMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: _ViewMode.list,
+                    icon: Icon(Icons.list),
+                    label: Text('List'),
                   ),
-                );
-              }).toList(),
+                  ButtonSegment(
+                    value: _ViewMode.employee,
+                    icon: Icon(Icons.person),
+                    label: Text('Employee'),
+                  ),
+                ],
+                selected: {_viewMode},
+                onSelectionChanged: (Set<_ViewMode> newSelection) {
+                  setState(() => _viewMode = newSelection.first);
+                },
+              ),
+              Text(
+                range.label,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterBottomSheet(List<_HistoryUser> visibleUsers) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Filters',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Employee',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String?>(
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    initialValue: _selectedEmployeeId,
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('All Employees'),
+                      ),
+                      ...visibleUsers.map(
+                        (u) => DropdownMenuItem(
+                          value: u.uid,
+                          child: Text(u.displayName),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) =>
+                        setSheetState(() => _selectedEmployeeId = val),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Status',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children:
+                        ['All', 'Present', 'Late', 'Absent'].map((statusKey) {
+                      final label =
+                          statusKey == 'All' ? ref.tr('all') : statusKey;
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: _statusFilter == statusKey,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setSheetState(() => _statusFilter = statusKey);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Date Range',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<_PeriodFilter>(
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          initialValue: _periodFilter,
+                          items: const [
+                            DropdownMenuItem(
+                              value: _PeriodFilter.day,
+                              child: Text('Day'),
+                            ),
+                            DropdownMenuItem(
+                              value: _PeriodFilter.week,
+                              child: Text('Week'),
+                            ),
+                            DropdownMenuItem(
+                              value: _PeriodFilter.month,
+                              child: Text('Month'),
+                            ),
+                            DropdownMenuItem(
+                              value: _PeriodFilter.year,
+                              child: Text('Year'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setSheetState(() => _periodFilter = val);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.calendar_month),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDate,
+                            firstDate: DateTime(DateTime.now().year - 5),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => _selectedDate = picked);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            setSheetState(() {
+                              _selectedEmployeeId = null;
+                              _statusFilter = 'All';
+                              _periodFilter = _PeriodFilter.month;
+                              _selectedDate = DateTime.now();
+                            });
+                          },
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() {});
+                          },
+                          child: const Text(
+                            'Apply',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTeamOverview(_HistoryStats stats, int totalEmployees) {
+    Widget tile(String label, int value, Color color) => Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.download_rounded),
-          tooltip: ref.tr('exportAttendanceData'),
-          onPressed: () {
-            ExportAttendanceDialog.show(context, exportableUsers);
-          },
-        ),
-      ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'TEAM OVERVIEW',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              tile('Employees', totalEmployees, Colors.blue),
+              tile('Present', stats.presentDays, Colors.green),
+              tile('Late', stats.lateDays, Colors.orange),
+              tile('Absent', stats.absentDays, Colors.red),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildStats(_HistoryStats stats) {
-    Widget tile(String label, int value) => Expanded(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(10),
+  Widget _buildListView(
+    List<_HistoryRow> rows,
+    _HistoryStats stats,
+    List<_HistoryUser> visibleUsers,
+  ) {
+    if (rows.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    final grouped = _groupByDate(rows);
+    final dates = grouped.keys.toList();
+
+    return ListView.builder(
+      itemCount: dates.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildTeamOverview(stats, visibleUsers.length);
+        }
+
+        final date = dates[index - 1];
+        final dayRows = grouped[date]!;
+
+        DateTime? parsedDate = DateTime.tryParse(date);
+        String headerText = date;
+        if (parsedDate != null) {
+          headerText =
+              DateFormat('EEEE, MMMM d').format(parsedDate).toUpperCase();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$value',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    headerText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.grey,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                  Text(label, textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Divider(color: Colors.grey.withValues(alpha: 0.3)),
                 ],
               ),
             ),
-          ),
+            ...dayRows.map((row) => _buildCompactRow(row, showEmployee: true)),
+          ],
         );
-    return Row(
+      },
+    );
+  }
+
+  Widget _buildEmployeeView(
+    List<_HistoryRow> rows,
+    List<_HistoryUser> visibleUsers,
+    _DateRange range,
+  ) {
+    if (_selectedEmployeeId == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_search, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              'Select an employee to view their details',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => _showFilterBottomSheet(visibleUsers),
+              child: const Text('Select Employee'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final employeeRows =
+        rows.where((r) => r.employeeId == _selectedEmployeeId).toList();
+    final user = visibleUsers.firstWhere(
+      (u) => u.uid == _selectedEmployeeId,
+      orElse: () => const _HistoryUser(
+        uid: '',
+        displayName: 'Unknown',
+        status: '',
+        createdBy: '',
+        managerId: '',
+        reportsTo: '',
+        role: '',
+        scheduleType: 'standard',
+      ),
+    );
+
+    final present = employeeRows.where((r) => r.status == 'present').length;
+    final late = employeeRows.where((r) => r.status == 'late').length;
+    final absent = employeeRows.where((r) => r.status == 'absent').length;
+
+    if (employeeRows.isEmpty) {
+      return Column(
+        children: [
+          _buildEmployeeSummary(user, present, late, absent, range),
+          Expanded(child: _buildEmptyState()),
+        ],
+      );
+    }
+
+    final grouped = _groupByDate(employeeRows);
+    final dates = grouped.keys.toList();
+
+    return Column(
       children: [
-        tile('Working days', stats.workingDays),
-        tile('Absent days', stats.absentDays),
-        tile('Records', stats.attendanceRecords),
+        _buildEmployeeSummary(user, present, late, absent, range),
+        Expanded(
+          child: ListView.builder(
+            itemCount: dates.length,
+            itemBuilder: (context, index) {
+              final date = dates[index];
+              final dayRows = grouped[date]!;
+
+              DateTime? parsedDate = DateTime.tryParse(date);
+              String headerText = date;
+              if (parsedDate != null) {
+                headerText =
+                    DateFormat('EEEE, MMMM d').format(parsedDate).toUpperCase();
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          headerText,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Divider(color: Colors.grey.withValues(alpha: 0.3)),
+                      ],
+                    ),
+                  ),
+                  ...dayRows
+                      .map((row) => _buildCompactRow(row, showEmployee: false)),
+                ],
+              );
+            },
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildList(List<_HistoryRow> rows) {
-    if (rows.isEmpty) {
-      return Center(child: Text(ref.tr('noHistoryFound')));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: rows.length,
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        final isAbsent = row.status == 'absent';
-        final isLate = row.status == 'late';
-        final color =
-            isAbsent ? Colors.red : (isLate ? Colors.orange : Colors.green);
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(
-                isAbsent
-                    ? Icons.cancel
-                    : (isLate ? Icons.access_time_filled : Icons.verified_user),
-                color: color,
-              ),
-            ),
-            title: Text(
-              row.employeeName,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Text(
-              'Date: ${row.date}\nAttendance time: ${row.attendanceTime}\nCheck-out time: ${row.checkoutTime}\n${isAbsent ? 'No attendance record' : 'Device: ${row.device} (${row.battery}%)'}',
-              style: const TextStyle(fontSize: 12),
-            ),
-            isThreeLine: true,
-            trailing: Chip(
-              label: Text(
-                row.status.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+  Widget _buildEmployeeSummary(
+    _HistoryUser user,
+    int present,
+    int late,
+    int absent,
+    _DateRange range,
+  ) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border:
+            Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor:
+                    Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                child: Text(
+                  user.displayName.isNotEmpty
+                      ? user.displayName.substring(0, 1).toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
               ),
-              backgroundColor: color.withValues(alpha: 0.15),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.displayName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ID: ${user.uid.substring(0, 8)}...',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        );
-      },
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryStat('Present', present, Colors.green),
+              _buildSummaryStat('Late', late, Colors.orange),
+              _buildSummaryStat('Absent', absent, Colors.red),
+              _buildSummaryStat(
+                'Working Days',
+                _workingDays(range, user.scheduleType),
+                Colors.blue,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryStat(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          const Text(
+            'No attendance records found',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Try changing the date range or filters.',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Map<String, List<_HistoryRow>> _groupByDate(List<_HistoryRow> rows) {
+    final grouped = <String, List<_HistoryRow>>{};
+    for (final row in rows) {
+      if (!grouped.containsKey(row.date)) {
+        grouped[row.date] = [];
+      }
+      grouped[row.date]!.add(row);
+    }
+    final keys = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+    final sortedGrouped = <String, List<_HistoryRow>>{};
+    for (final key in keys) {
+      sortedGrouped[key] = grouped[key]!;
+    }
+    return sortedGrouped;
+  }
+
+  Widget _buildCompactRow(_HistoryRow row, {bool showEmployee = true}) {
+    final isAbsent = row.status == 'absent';
+    final isLate = row.status == 'late';
+    final color =
+        isAbsent ? Colors.red : (isLate ? Colors.orange : Colors.green);
+
+    final avatarText = row.employeeName.isNotEmpty
+        ? row.employeeName.substring(0, 1).toUpperCase()
+        : '?';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            if (showEmployee) ...[
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: color.withValues(alpha: 0.15),
+                child: Text(
+                  avatarText,
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showEmployee)
+                    Text(
+                      row.employeeName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (!showEmployee)
+                    Text(
+                      row.date,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (isAbsent)
+                        Text(
+                          'No attendance record',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        )
+                      else ...[
+                        Icon(
+                          Icons.login,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          row.attendanceTime,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.logout,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          row.checkoutTime,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isAbsent
+                        ? Icons.cancel
+                        : (isLate
+                            ? Icons.access_time_filled
+                            : Icons.verified_user),
+                    size: 14,
+                    color: color,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    row.status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -380,7 +1018,6 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         end = DateTime(_selectedDate.year, 12, 31);
         break;
     }
-    // Removed constraint that prevented viewing past months
     if (start.isAfter(today)) start = today;
     if (end.isAfter(today)) end = today;
     if (end.isBefore(start)) end = start;
@@ -388,6 +1025,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       start,
       end,
       '${DateFormat.yMMMd().format(start)} - ${DateFormat.yMMMd().format(end)}',
+      _periodFilter,
     );
   }
 
@@ -438,22 +1076,34 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           .where((row) => row.status == _statusFilter.toLowerCase())
           .toList();
     }
+    if (_selectedEmployeeId != null && _viewMode != _ViewMode.employee) {
+      filtered = filtered
+          .where((row) => row.employeeId == _selectedEmployeeId)
+          .toList();
+    }
     return filtered;
   }
 
   _HistoryStats _stats(
     List<_HistoryRow> rows,
-    int visibleUserCount,
+    List<_HistoryUser> visibleUsers,
     _DateRange range,
   ) {
-    final workingDays = _workingDays(range);
-    final attendanceRecords =
-        rows.where((row) => row.status != 'absent').length;
-    final expected = workingDays * visibleUserCount;
+    var expected = 0;
+    for (final user in visibleUsers) {
+      expected += _workingDays(range, user.scheduleType);
+    }
+    
+    final presentRecords = rows.where((row) => row.status == 'present').length;
+    final lateRecords = rows.where((row) => row.status == 'late').length;
+    final attendanceRecords = presentRecords + lateRecords;
+    
     return _HistoryStats(
-      workingDays: workingDays,
-      absentDays: expected - attendanceRecords,
+      workingDays: expected,
+      absentDays: (expected - attendanceRecords).clamp(0, expected).toInt(),
       attendanceRecords: attendanceRecords,
+      presentDays: presentRecords,
+      lateDays: lateRecords,
     );
   }
 
@@ -465,12 +1115,17 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     }
   }
 
-  int _workingDays(_DateRange range) => _days(range)
-      .where(
-        (day) =>
-            day.weekday != DateTime.saturday && day.weekday != DateTime.sunday,
-      )
-      .length;
+  int _workingDays(_DateRange range, [String scheduleType = 'standard']) {
+    if (scheduleType == 'days_20_10' && range.period == _PeriodFilter.month) {
+      return 20;
+    }
+    return _days(range)
+        .where(
+          (day) =>
+              day.weekday != DateTime.saturday && day.weekday != DateTime.sunday,
+        )
+        .length;
+  }
   bool _inRange(DateTime day, _DateRange range) =>
       !day.isBefore(range.start) && !day.isAfter(range.end);
 }
@@ -512,6 +1167,10 @@ class _PersistentSearchBarState extends State<_PersistentSearchBar> {
           controller: _controller,
           hintText: 'Search by employee, date, device, or status...',
           leading: const Icon(Icons.search),
+          elevation: WidgetStateProperty.all(0),
+          backgroundColor: WidgetStateProperty.all(
+            Theme.of(context).dividerColor.withValues(alpha: 0.05),
+          ),
           trailing: _controller.text.isNotEmpty
               ? [
                   IconButton(
@@ -536,8 +1195,9 @@ class _HistoryUser {
     required this.managerId,
     required this.reportsTo,
     required this.role,
+    required this.scheduleType,
   });
-  final String uid, displayName, status, createdBy, managerId, reportsTo, role;
+  final String uid, displayName, status, createdBy, managerId, reportsTo, role, scheduleType;
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
   factory _HistoryUser.fromDoc(QueryDocumentSnapshot doc) {
@@ -552,6 +1212,7 @@ class _HistoryUser {
       managerId: field('managerId'),
       reportsTo: field('reportsTo'),
       role: field('role'),
+      scheduleType: field('scheduleType').isEmpty ? 'standard' : field('scheduleType'),
     );
   }
 
@@ -564,12 +1225,14 @@ class _HistoryUser {
       managerId: user.managerId ?? '',
       reportsTo: '',
       role: user.role,
+      scheduleType: user.scheduleType,
     );
   }
 }
 
 class _HistoryRow {
   const _HistoryRow({
+    required this.employeeId,
     required this.employeeName,
     required this.date,
     required this.attendanceTime,
@@ -578,7 +1241,13 @@ class _HistoryRow {
     required this.device,
     required this.battery,
   });
-  final String employeeName, date, attendanceTime, checkoutTime, status, device;
+  final String employeeId,
+      employeeName,
+      date,
+      attendanceTime,
+      checkoutTime,
+      status,
+      device;
   final Object battery;
 
   factory _HistoryRow.from(
@@ -588,6 +1257,7 @@ class _HistoryRow {
   ) {
     if (record == null) {
       return _HistoryRow(
+        employeeId: user.uid,
         employeeName: user.displayName,
         date: date,
         attendanceTime: '-',
@@ -606,6 +1276,7 @@ class _HistoryRow {
     }
 
     return _HistoryRow(
+      employeeId: user.uid,
       employeeName: _displayName(record['employeeName'], user.displayName),
       date: date,
       attendanceTime: time(record['time']),
@@ -635,9 +1306,10 @@ class _HistoryRow {
 }
 
 class _DateRange {
-  const _DateRange(this.start, this.end, this.label);
+  const _DateRange(this.start, this.end, this.label, this.period);
   final DateTime start, end;
   final String label;
+  final _PeriodFilter period;
 }
 
 class _HistoryStats {
@@ -645,6 +1317,8 @@ class _HistoryStats {
     required this.workingDays,
     required this.absentDays,
     required this.attendanceRecords,
+    required this.presentDays,
+    required this.lateDays,
   });
-  final int workingDays, absentDays, attendanceRecords;
+  final int workingDays, absentDays, attendanceRecords, presentDays, lateDays;
 }
