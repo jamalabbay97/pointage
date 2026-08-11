@@ -55,16 +55,27 @@ service cloud.firestore {
     // =============================
     // Users
     // =============================
+    // Rules Summary:
+    // - A Manager can edit an employee if they are the createdBy or managerId.
+    // - A Manager cannot change the employee's role, createdBy, or managerId.
+    // - A Manager can delete employees associated with them.
+    // - A Manager cannot create an Admin or Manager; creation is restricted to Employees only.
+    // - An Employee can modify almost all of their account data, but cannot change their role, createdBy, or managerId.
+    // - An Admin can modify/delete all users, even if they did not create them.
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin() ||
         (isManager() && resource != null && (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
       
-      allow create: if isOwner(userId) ||
+      allow create: if (isOwner(userId) && request.resource.data.get('role', 'employee').lower() == 'employee') ||
         (isAdmin() && request.resource.data.get('createdBy', '') == request.auth.uid) ||
         (isManager() && request.resource.data.get('createdBy', '') == request.auth.uid &&
           request.resource.data.get('role', '') in ["employee", "Employee", "EMPLOYEE"]);
           
-      allow update: if isOwner(userId) || isAdmin() ||
+      allow update: if (isOwner(userId) && 
+          request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '') &&
+          request.resource.data.get('createdBy', resource.data.get('createdBy', '')) == resource.data.get('createdBy', '') &&
+          request.resource.data.get('managerId', resource.data.get('managerId', '')) == resource.data.get('managerId', '')) || 
+        isAdmin() ||
         (isManager() && resource != null && 
           (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&
           request.resource.data.get('createdBy', '') == resource.data.get('createdBy', '') &&
