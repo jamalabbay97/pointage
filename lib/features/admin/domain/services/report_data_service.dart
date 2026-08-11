@@ -48,13 +48,24 @@ class ReportDataService {
 
     final authorizedUserIds = authorizedUsers.map((u) => u.uid).toSet();
 
-    // 2. Fetch Attendance Records within Date Range
-    // Due to Firestore query limitations on 'in', we fetch by date and filter by authorized users
-    final attendanceSnap = await _db
-        .collection('attendance')
-        .get(); // Note: Without a date index, we fetch all or filter locally.
-    // Wait, let's optimize if possible.
-    final rawDocs = attendanceSnap.docs.map((d) => d.data()).toList();
+    // 2. Fetch Attendance Records – only for authorized employees.
+    // Firestore 'whereIn' supports at most 30 values per query, so we batch.
+    final List<Map<String, dynamic>> rawDocs = [];
+    if (authorizedUserIds.isNotEmpty) {
+      final idList = authorizedUserIds.toList();
+      const batchSize = 30;
+      for (int i = 0; i < idList.length; i += batchSize) {
+        final batch = idList.sublist(
+          i,
+          (i + batchSize) > idList.length ? idList.length : (i + batchSize),
+        );
+        final snap = await _db
+            .collection('attendance')
+            .where('employeeId', whereIn: batch)
+            .get();
+        rawDocs.addAll(snap.docs.map((d) => d.data()));
+      }
+    }
 
     List<Map<String, dynamic>> filteredRecords = [];
 
@@ -97,21 +108,31 @@ class ReportDataService {
   }
 
   Future<List<UserModel>> _fetchAuthorizedUsers(UserModel currentUser) async {
-    final querySnap = await _db.collection('users').get();
-    final allUsers =
-        querySnap.docs.map((d) => UserModel.fromJson(d.data(), d.id)).toList();
-
     if (currentUser.isAdmin) {
-      return allUsers; // Admins can see everyone
-    } else {
-      // Managers can only see employees they created or manage
-      return allUsers
-          .where(
-            (u) =>
-                u.createdBy == currentUser.uid ||
-                u.managerId == currentUser.uid,
-          )
+      // Admins can see everyone – a full collection read is allowed by rules.
+      final querySnap = await _db.collection('users').get();
+      return querySnap.docs
+          .map((d) => UserModel.fromJson(d.data(), d.id))
           .toList();
+    } else {
+      // Managers can only read users where createdBy == their UID  OR
+      // managerId == their UID.  A full collection .get() would be denied by
+      // Firestore rules, so we issue two filtered queries and merge.
+      final byCreatedBy = await _db
+          .collection('users')
+          .where('createdBy', isEqualTo: currentUser.uid)
+          .get();
+      final byManagerId = await _db
+          .collection('users')
+          .where('managerId', isEqualTo: currentUser.uid)
+          .get();
+
+      // Merge and de-duplicate by document ID.
+      final Map<String, UserModel> merged = {};
+      for (final d in [...byCreatedBy.docs, ...byManagerId.docs]) {
+        merged[d.id] = UserModel.fromJson(d.data(), d.id);
+      }
+      return merged.values.toList();
     }
   }
 
