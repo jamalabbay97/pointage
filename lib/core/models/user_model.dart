@@ -17,6 +17,7 @@ class UserModel {
     this.assignedLocationLng,
     this.assignedLocationRadius,
     this.locationAssignedBy,
+    this.kioskPin,
   });
 
   final String uid;
@@ -38,8 +39,12 @@ class UserModel {
   final double? assignedLocationLat;
   final double? assignedLocationLng;
   final double? assignedLocationRadius;
+
   /// UID of the manager who assigned this location, or 'admin' if set by admin.
   final String? locationAssignedBy;
+
+  /// Optional PIN set by the manager/admin to exit presenter mode
+  final String? kioskPin;
 
   /// Returns true if this user has a custom location that was assigned by a manager.
   bool get hasManagerLocation =>
@@ -78,6 +83,7 @@ class UserModel {
       assignedLocationRadius:
           (json['assignedLocationRadius'] as num?)?.toDouble(),
       locationAssignedBy: _nullableString(json['locationAssignedBy']),
+      kioskPin: _nullableString(json['kioskPin']),
     );
   }
 
@@ -103,6 +109,7 @@ class UserModel {
           'assignedLocationRadius': assignedLocationRadius,
         if (locationAssignedBy != null)
           'locationAssignedBy': locationAssignedBy,
+        if (kioskPin != null) 'kioskPin': kioskPin,
       };
 
   UserModel copyWith({
@@ -123,6 +130,7 @@ class UserModel {
     Object? assignedLocationLng = _sentinel,
     Object? assignedLocationRadius = _sentinel,
     Object? locationAssignedBy = _sentinel,
+    Object? kioskPin = _sentinel,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -150,6 +158,7 @@ class UserModel {
       locationAssignedBy: locationAssignedBy == _sentinel
           ? this.locationAssignedBy
           : locationAssignedBy as String?,
+      kioskPin: kioskPin == _sentinel ? this.kioskPin : kioskPin as String?,
     );
   }
 

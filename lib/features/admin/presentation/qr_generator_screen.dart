@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
   Future<void> _fetchSettingsAndStart() async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('settings').doc('company').get();
+      final doc = await FirebaseFirestore.instance
+          .collection('settings')
+          .doc('company')
+          .get();
       if (doc.exists && doc.data() != null) {
         _settings = CompanySettings.fromJson(doc.data()!);
       }
@@ -96,8 +100,12 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                 top: 16,
                 right: 16,
                 child: IconButton(
-                  icon: const Icon(Icons.fullscreen_exit, color: Colors.white, size: 32),
-                  onPressed: () => setState(() => _isFullscreen = false),
+                  icon: const Icon(
+                    Icons.fullscreen_exit,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                  onPressed: _exitFullscreen,
                 ),
               ),
               Center(
@@ -137,7 +145,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           IconButton(
             icon: const Icon(Icons.fullscreen),
             tooltip: 'Presenter Mode',
-            onPressed: () => setState(() => _isFullscreen = true),
+            onPressed: _enterFullscreen,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -148,86 +156,107 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
       ),
       body: WebLayout(
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text(
-                      _settings.companyName,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Dynamic HMAC-SHA256 Anti-Spoofing Attendance QR',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildQrCard(size: 220),
-                    const SizedBox(height: 24),
-                    _buildCountdownTimer(),
-                    const SizedBox(height: 16),
-                    FilledButton.tonalIcon(
-                      onPressed: _rotateQR,
-                      icon: const Icon(Icons.sync_rounded),
-                      label: const Text('Force Rotation'),
-                    ),
-                  ],
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Text(
+                        _settings.companyName,
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Dynamic HMAC-SHA256 Anti-Spoofing Attendance QR',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      _buildQrCard(size: 220),
+                      const SizedBox(height: 24),
+                      _buildCountdownTimer(),
+                      const SizedBox(height: 16),
+                      FilledButton.tonalIcon(
+                        onPressed: _rotateQR,
+                        icon: const Icon(Icons.sync_rounded),
+                        label: const Text('Force Rotation'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.security, size: 20, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text(
-                          'Security Parameters',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.security, size: 20, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text(
+                            'Security Parameters',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      _buildParamRow(
+                        'Rotation Interval',
+                        '${_settings.qrRotateIntervalSeconds} seconds',
+                      ),
+                      _buildParamRow(
+                        'Geofence Radius',
+                        '${_settings.radiusMeters.toInt()} meters',
+                      ),
+                      _buildParamRow(
+                        'Current UTC Time',
+                        DateFormat('HH:mm:ss UTC')
+                            .format(DateTime.now().toUtc()),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Signed Payload Snippet:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
                         ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    _buildParamRow('Rotation Interval', '${_settings.qrRotateIntervalSeconds} seconds'),
-                    _buildParamRow('Geofence Radius', '${_settings.radiusMeters.toInt()} meters'),
-                    _buildParamRow('Current UTC Time', DateFormat('HH:mm:ss UTC').format(DateTime.now().toUtc())),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Signed Payload Snippet:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        _rawPayload,
-                        style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _rawPayload,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -261,7 +290,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
         const SizedBox(height: 8),
         Text(
           'Rotates in $_secondsLeft s',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
         ),
       ],
     );
@@ -291,6 +323,85 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
               size: size,
               gapless: false,
             ),
+    );
+  }
+
+  void _enterFullscreen() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .get();
+      final pin = userDoc.data()?['kioskPin'] as String?;
+      if (pin == null || pin.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please set a Presenter PIN in Settings first.'),
+            ),
+          );
+        }
+        return;
+      }
+      setState(() => _isFullscreen = true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking PIN: $e')),
+        );
+      }
+    }
+  }
+
+  void _exitFullscreen() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Enter PIN to Exit'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Presenter PIN'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                final userDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .get();
+                final pin = userDoc.data()?['kioskPin'] as String?;
+
+                if (pin != null && pin == controller.text.trim()) {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (mounted) setState(() => _isFullscreen = false);
+                } else {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Incorrect PIN')),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text('Verification error: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
     );
   }
 }

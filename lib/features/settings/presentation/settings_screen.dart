@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
 import '../../profile/presentation/profile_screen.dart';
+import '../../../core/models/user_model.dart';
 import '../data/settings_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -207,6 +209,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showAutoLockPicker(context),
                   ),
+                  if (userModel?.isAdminOrManager == true) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.password_outlined),
+                      title: const Text('Presenter PIN'),
+                      subtitle: Text(
+                        userModel?.kioskPin != null ? 'PIN is set' : 'Not set',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _showSetPinDialog(context, userModel!),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -403,6 +417,74 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _showSetPinDialog(BuildContext context, UserModel user) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Presenter PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This PIN is required to exit the full-screen QR generator mode.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Enter PIN (4-6 digits)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ref.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final pin = controller.text.trim();
+              if (pin.length < 4 || pin.length > 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN must be 4 to 6 digits')),
+                );
+                return;
+              }
+              try {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .update({'kioskPin': pin});
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Presenter PIN saved successfully'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to save PIN: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
