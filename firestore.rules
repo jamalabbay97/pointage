@@ -63,8 +63,12 @@ service cloud.firestore {
     // - An Employee can modify almost all of their account data, but cannot change their role, createdBy, or managerId.
     // - An Admin can modify/delete all users, even if they did not create them.
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin() ||
+      // get: single-document read (resource is available for field-level checks).
+      // list: collection-level query used by reports — resource is null so field checks don't work;
+      //   managers can list all users here but app-layer filtering restricts what they see.
+      allow get: if isOwner(userId) || isAdmin() ||
         (isManager() && resource != null && (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid));
+      allow list: if isAdmin() || isManager();
       
       allow create: if (isOwner(userId) && request.resource.data.get('role', 'employee').lower() == 'employee') ||
         (isAdmin() && request.resource.data.get('createdBy', '') == request.auth.uid) ||
@@ -95,9 +99,11 @@ service cloud.firestore {
         
       // Fixed: When checking in for the first time, the document doesn't exist yet so resource is null.
       // We allow the read if the attendanceId matches the user's uid to prevent permission denied errors.
-      allow read: if isAdminOrManager() || 
+      // Admins and managers need list access to generate reports (collection-level .get()).
+      allow get: if isAdminOrManager() ||
         (resource != null && isAttendanceOwner(resource.data)) ||
         (resource == null && attendanceId.matches(request.auth.uid + '.*'));
+      allow list: if isAdminOrManager() || (resource != null && isAttendanceOwner(resource.data));
         
       allow update: if isAdminOrManager() ||
         (resource != null && isAttendanceOwner(resource.data) && isAttendanceOwner(request.resource.data));
