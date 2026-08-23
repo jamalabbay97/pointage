@@ -154,8 +154,8 @@ class PdfExportService {
                 report.totalWorkedHours.toStringAsFixed(1),
               ),
               _buildSummaryItem(
-                'Total Late Minutes',
-                report.totalLateMinutes.toString(),
+                'Total Late Hours',
+                (report.totalLateMinutes / 60).toStringAsFixed(1),
               ),
               pw.SizedBox(width: 50), // Spacer
             ],
@@ -253,7 +253,7 @@ class PdfExportService {
             'In',
             'Out',
             'Status',
-            'Late',
+            'Late (Hrs)',
             'Hrs',
           ],
           headerStyle: pw.TextStyle(
@@ -274,7 +274,7 @@ class PdfExportService {
                   r.checkIn != null ? timeFormat.format(r.checkIn!) : '—',
                   r.checkOut != null ? timeFormat.format(r.checkOut!) : '—',
                   r.status.toUpperCase(),
-                  '${r.lateMinutes} min',
+                  (r.lateMinutes / 60).toStringAsFixed(1),
                   r.workHours.toStringAsFixed(1),
                 ],
               )

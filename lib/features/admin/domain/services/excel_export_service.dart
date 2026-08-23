@@ -68,8 +68,8 @@ class ExcelExportService {
       TextCellValue('${report.attendanceRate.toStringAsFixed(1)}%'),
     ]);
     sheet.appendRow([
-      TextCellValue('Total Late Minutes'),
-      IntCellValue(report.totalLateMinutes),
+      TextCellValue('Total Late Hours'),
+      DoubleCellValue(report.totalLateMinutes / 60.0),
     ]);
     sheet.appendRow([
       TextCellValue('Total Worked Hours'),
@@ -95,7 +95,7 @@ class ExcelExportService {
       TextCellValue('Leave'),
       TextCellValue('Holidays'),
       TextCellValue('Incomplete'),
-      TextCellValue('Total Late Minutes'),
+      TextCellValue('Total Late Hours'),
       TextCellValue('Total Worked Hours'),
       TextCellValue('Attendance Rate (%)'),
     ]);
@@ -114,7 +114,7 @@ class ExcelExportService {
         IntCellValue(emp.leaves),
         IntCellValue(emp.holidays),
         IntCellValue(emp.incomplete),
-        IntCellValue(emp.totalLateMinutes),
+        DoubleCellValue(emp.totalLateMinutes / 60.0),
         DoubleCellValue(emp.totalWorkedHours),
         DoubleCellValue(emp.attendanceRate),
       ]);
@@ -134,7 +134,7 @@ class ExcelExportService {
       TextCellValue('Check-in'),
       TextCellValue('Check-out'),
       TextCellValue('Status'),
-      TextCellValue('Late (min)'),
+      TextCellValue('Late (hrs)'),
       TextCellValue('Work Hours'),
       TextCellValue('Device'),
       TextCellValue('Notes'),
@@ -158,7 +158,7 @@ class ExcelExportService {
           record.checkOut != null ? timeFormat.format(record.checkOut!) : '—',
         ),
         TextCellValue(record.status),
-        IntCellValue(record.lateMinutes),
+        DoubleCellValue(record.lateMinutes / 60.0),
         DoubleCellValue(record.workHours),
         TextCellValue(record.device),
         TextCellValue(record.notes),
