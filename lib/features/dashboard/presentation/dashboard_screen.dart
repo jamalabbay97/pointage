@@ -148,7 +148,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   gradient: LinearGradient(
                     colors: isDark
                         ? [const Color(0xFF202020), const Color(0xFF181818)]
-                        : [const Color(0xFF246BFD), const Color(0xFF1E5BB8)],
+                        : [
+                            const Color.fromARGB(255, 60, 166, 136),
+                            const Color.fromARGB(255, 62, 167, 134),
+                          ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -160,7 +163,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     BoxShadow(
                       color: isDark
                           ? const Color.fromRGBO(0, 0, 0, 0.35)
-                          : Colors.blue.withValues(alpha: 0.15),
+                          : const Color.fromARGB(255, 60, 169, 138)
+                              .withValues(alpha: 0.15),
                       blurRadius: isDark ? 2 : 16,
                       offset: isDark ? const Offset(0, 1) : const Offset(0, 8),
                     ),

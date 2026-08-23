@@ -165,14 +165,15 @@ service cloud.firestore {
       allow create: if isAdminOrManager() &&
         request.resource.data.get('senderId', '') == request.auth.uid;
 
-      // Any signed-in user may update ONLY the readBy field (mark as read).
+      // Any signed-in user may update ONLY the readBy and deletedBy fields.
       allow update: if isSignedIn() && resource != null &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'deletedBy']) &&
         request.resource.data.get('readBy', []).hasAll(resource.data.get('readBy', [])) &&
-        request.resource.data.get('readBy', []).hasAll([request.auth.uid]);
+        request.resource.data.get('deletedBy', []).hasAll(resource.data.get('deletedBy', []));
 
-      // Only admin can delete notifications.
-      allow delete: if isAdmin();
+      // Admin can delete any notification. Manager can delete their own notifications.
+      allow delete: if isAdmin() || 
+        (isManager() && resource != null && resource.data.get('senderId', '') == request.auth.uid);
     }
   }
 }

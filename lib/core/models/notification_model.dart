@@ -9,8 +9,10 @@ class AppNotification {
     required this.senderId,
     required this.createdAt,
     required this.readBy,
+    required this.deletedBy,
     this.senderName, // null for admin (system) notifications
     this.targetManagerId, // null for admin broadcasts
+    this.link,
   });
 
   final String id;
@@ -20,8 +22,10 @@ class AppNotification {
   final String senderId;
   final String? senderName;
   final String? targetManagerId;
+  final String? link;
   final DateTime createdAt;
   final List<String> readBy;
+  final List<String> deletedBy;
 
   bool get isAdminType => type == 'admin';
   bool get isManagerType => type == 'manager';
@@ -35,11 +39,13 @@ class AppNotification {
       senderId: json['senderId'] as String? ?? '',
       senderName: json['senderName'] as String?,
       targetManagerId: json['targetManagerId'] as String?,
+      link: json['link'] as String?,
       createdAt: json['createdAt'] is Timestamp
           ? (json['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
               DateTime.now(),
       readBy: List<String>.from(json['readBy'] as List? ?? []),
+      deletedBy: List<String>.from(json['deletedBy'] as List? ?? []),
     );
   }
 
@@ -50,7 +56,9 @@ class AppNotification {
         'senderId': senderId,
         if (senderName != null) 'senderName': senderName,
         if (targetManagerId != null) 'targetManagerId': targetManagerId,
+        if (link != null) 'link': link,
         'createdAt': FieldValue.serverTimestamp(),
         'readBy': readBy,
+        'deletedBy': deletedBy,
       };
 }

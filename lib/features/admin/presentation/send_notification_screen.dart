@@ -18,12 +18,14 @@ class _SendNotificationScreenState
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _bodyCtrl = TextEditingController();
+  final _linkCtrl = TextEditingController();
   bool _sending = false;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _bodyCtrl.dispose();
+    _linkCtrl.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,9 @@ class _SendNotificationScreenState
     final service = ref.read(notificationServiceProvider);
 
     try {
+      final link = _linkCtrl.text.trim();
+      final finalLink = link.isEmpty ? null : link;
+
       if (userModel.isAdmin) {
         // Admin → system broadcast, no sender name, no target manager
         await service.send(
@@ -50,6 +55,7 @@ class _SendNotificationScreenState
           senderId: authUser.uid,
           senderName: null,
           targetManagerId: null,
+          link: finalLink,
         );
       } else if (userModel.isManager) {
         // Manager → targeted to their own employees
@@ -60,12 +66,14 @@ class _SendNotificationScreenState
           senderId: authUser.uid,
           senderName: userModel.displayName,
           targetManagerId: authUser.uid,
+          link: finalLink,
         );
       }
 
       if (mounted) {
         _titleCtrl.clear();
         _bodyCtrl.clear();
+        _linkCtrl.clear();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
@@ -236,6 +244,41 @@ class _SendNotificationScreenState
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
                       return 'Please enter a message';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // URL field
+                const Text(
+                  'URL (Optional)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _linkCtrl,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. https://example.com/update',
+                    prefixIcon: const Icon(Icons.link_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF1E1E1E)
+                        : const Color(0xFFF8F8F8),
+                  ),
+                  validator: (v) {
+                    if (v != null && v.trim().isNotEmpty) {
+                      final uri = Uri.tryParse(v.trim());
+                      if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+                        return 'Please enter a valid URL (e.g. https://...)';
+                      }
                     }
                     return null;
                   },

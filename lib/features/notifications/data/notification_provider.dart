@@ -28,6 +28,7 @@ class NotificationService {
     required String senderId,
     String? senderName,
     String? targetManagerId,
+    String? link,
   }) async {
     await _col.add({
       'title': title,
@@ -36,8 +37,10 @@ class NotificationService {
       'senderId': senderId,
       if (senderName != null) 'senderName': senderName,
       if (targetManagerId != null) 'targetManagerId': targetManagerId,
+      if (link != null) 'link': link,
       'createdAt': FieldValue.serverTimestamp(),
       'readBy': <String>[],
+      'deletedBy': <String>[],
     });
   }
 
@@ -46,6 +49,18 @@ class NotificationService {
     await _col.doc(docId).update({
       'readBy': FieldValue.arrayUnion([uid]),
     });
+  }
+
+  /// Appends the current user's UID to a notification's [deletedBy] list.
+  Future<void> markAsDeleted(String docId, String uid) async {
+    await _col.doc(docId).update({
+      'deletedBy': FieldValue.arrayUnion([uid]),
+    });
+  }
+
+  /// Deletes the notification document globally (Admin only).
+  Future<void> deleteGlobally(String docId) async {
+    await _col.doc(docId).delete();
   }
 }
 
@@ -87,6 +102,16 @@ bool _isVisible(
   User authUser,
   UserModel? userModel,
 ) {
+  // If the user has deleted this notification, don't show it
+  if (n.deletedBy.contains(authUser.uid)) {
+    return false;
+  }
+
+  // If the notification was sent before the user account was created, don't show it
+  if (userModel?.createdAt != null && n.createdAt.isBefore(userModel!.createdAt!)) {
+    return false;
+  }
+
   // Admins and managers see everything they sent, plus admin broadcasts
   if (userModel?.isAdmin == true || userModel?.isManager == true) {
     return n.isAdminType || n.senderId == authUser.uid;

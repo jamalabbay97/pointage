@@ -283,6 +283,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           width: 140,
           child: LinearProgressIndicator(
             value: progress,
+            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(8),
             minHeight: 8,
           ),
@@ -290,9 +292,9 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
         const SizedBox(height: 8),
         Text(
           'Rotates in $_secondsLeft s',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ],
