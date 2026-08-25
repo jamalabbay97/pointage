@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/models/user_model.dart';
 import '../../../../core/services/app_translations.dart';
+import '../../../../core/services/language_provider.dart';
 import '../../domain/services/report_data_service.dart';
 import '../../domain/services/excel_export_service.dart';
 import '../../domain/services/pdf_export_service.dart';
@@ -116,7 +117,7 @@ class _ExportAttendanceDialogState
         setState(() => _isGenerating = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating preview: $e'),
+            content: Text('${ref.tr('errorGeneratingPreview')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -148,10 +149,16 @@ class _ExportAttendanceDialogState
       String fileExtension;
 
       if (format == ExportFormat.pdf) {
-        fileBytes = await _pdfService.generatePdf(_previewReport!);
+        fileBytes = await _pdfService.generatePdf(
+          _previewReport!,
+          ref.read(languageProvider).code,
+        );
         fileExtension = 'pdf';
       } else {
-        fileBytes = _excelService.generateExcel(_previewReport!);
+        fileBytes = _excelService.generateExcel(
+          _previewReport!,
+          ref.read(languageProvider).code,
+        );
         fileExtension = 'xlsx';
       }
 
@@ -232,7 +239,7 @@ class _ExportAttendanceDialogState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Generate Attendance Report',
+                  ref.tr('generateAttendanceReport'),
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
@@ -267,9 +274,9 @@ class _ExportAttendanceDialogState
                 if (_target == ExportTarget.single)
                   DropdownButtonFormField<String>(
                     initialValue: _selectedEmployeeId,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Employee',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: ref.tr('selectEmployee'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: widget.availableEmployees
                         .map(
@@ -292,26 +299,26 @@ class _ExportAttendanceDialogState
 
                 DropdownButtonFormField<ExportDateRange>(
                   initialValue: _dateRange,
-                  decoration: const InputDecoration(
-                    labelText: 'Date Range',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: ref.tr('dateRange'),
+                    border: const OutlineInputBorder(),
                   ),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: ExportDateRange.day,
-                      child: Text('Today'),
+                      child: Text(ref.tr('today')),
                     ),
                     DropdownMenuItem(
                       value: ExportDateRange.month,
-                      child: Text('This Month'),
+                      child: Text(ref.tr('thisMonth')),
                     ),
                     DropdownMenuItem(
                       value: ExportDateRange.year,
-                      child: Text('This Year'),
+                      child: Text(ref.tr('thisYear')),
                     ),
                     DropdownMenuItem(
                       value: ExportDateRange.custom,
-                      child: Text('Custom Range'),
+                      child: Text(ref.tr('customRange')),
                     ),
                   ],
                   onChanged: (val) {
@@ -389,25 +396,25 @@ class _ExportAttendanceDialogState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Preview Data',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        Text(
+                          ref.tr('previewData'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Total Employees: ${_previewReport!.totalEmployees}',
+                          '${ref.tr('totalEmployees')}: ${_previewReport!.totalEmployees}',
                         ),
                         Text(
-                          'Attendance Records: ${_previewReport!.present + _previewReport!.late}',
+                          '${ref.tr('attendanceRecords')}: ${_previewReport!.present + _previewReport!.late}',
                         ),
                         Text(
-                          'Attendance Rate: ${_previewReport!.attendanceRate.toStringAsFixed(1)}%',
+                          '${ref.tr('attendanceRate')}: ${_previewReport!.attendanceRate.toStringAsFixed(1)}%',
                         ),
                         Text(
-                          'Total Late Minutes: ${_previewReport!.totalLateMinutes}',
+                          '${ref.tr('totalLateMinutes')}: ${_previewReport!.totalLateMinutes}',
                         ),
                         Text(
-                          'Total Worked Hours: ${_previewReport!.totalWorkedHours.toStringAsFixed(1)}',
+                          '${ref.tr('totalWorkedHours')}: ${_previewReport!.totalWorkedHours.toStringAsFixed(1)}',
                         ),
                       ],
                     ),
@@ -425,7 +432,7 @@ class _ExportAttendanceDialogState
                           width: double.infinity,
                           child: FilledButton(
                             onPressed: _generatePreview,
-                            child: const Text('Generate Preview'),
+                            child: Text(ref.tr('generatePreview')),
                           ),
                         )
                       else ...[
@@ -439,7 +446,7 @@ class _ExportAttendanceDialogState
                                   Icons.table_chart,
                                   color: Colors.green,
                                 ),
-                                label: const Text('Export Excel'),
+                                label: Text(ref.tr('exportExcelLabel')),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -451,7 +458,7 @@ class _ExportAttendanceDialogState
                                   Icons.picture_as_pdf,
                                   color: Colors.red,
                                 ),
-                                label: const Text('Export PDF'),
+                                label: Text(ref.tr('exportPdfLabel')),
                               ),
                             ),
                           ],
@@ -460,7 +467,7 @@ class _ExportAttendanceDialogState
                       const SizedBox(height: 8),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
+                        child: Text(ref.tr('cancel')),
                       ),
                     ],
                   ),

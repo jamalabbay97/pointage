@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/services/app_translations.dart';
 import '../../../core/models/notification_model.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -20,14 +21,14 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(ref.tr('notifications')),
         actions: [
           notificationsAsync.when(
             data: (list) {
               final unread = authUser == null
                   ? 0
                   : list.where((n) => !n.readBy.contains(authUser.uid)).length;
-              
+
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -37,39 +38,45 @@ class NotificationsScreen extends ConsumerWidget {
                         if (authUser == null) return;
                         for (final n in list) {
                           if (!n.readBy.contains(authUser.uid)) {
-                            await notificationService.markAsRead(n.id, authUser.uid);
+                            await notificationService.markAsRead(
+                              n.id,
+                              authUser.uid,
+                            );
                           }
                         }
                       },
                       icon: const Icon(Icons.done_all_rounded, size: 18),
-                      label: const Text('Mark all read'),
+                      label: Text(ref.tr('markAllRead')),
                     ),
                   if (list.isNotEmpty)
                     IconButton(
                       icon: const Icon(Icons.delete_sweep_rounded),
-                      tooltip: 'Clear all',
+                      tooltip: ref.tr('clearAll'),
                       onPressed: () async {
                         if (authUser == null) return;
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: const Text('Clear All Notifications?'),
-                            content: const Text('Are you sure you want to delete all notifications? This action cannot be undone.'),
+                            title: Text(ref.tr('clearAllNotifications')),
+                            content: Text(ref.tr('clearAllNotificationsDesc')),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(c, false),
-                                child: const Text('Cancel'),
+                                child: Text(ref.tr('cancel')),
                               ),
                               FilledButton(
                                 onPressed: () => Navigator.pop(c, true),
-                                child: const Text('Clear All'),
+                                child: Text(ref.tr('clearAllBtn')),
                               ),
                             ],
                           ),
                         );
                         if (confirm == true) {
                           for (final n in list) {
-                            await notificationService.markAsDeleted(n.id, authUser.uid);
+                            await notificationService.markAsDeleted(
+                              n.id,
+                              authUser.uid,
+                            );
                           }
                         }
                       },
@@ -143,8 +150,8 @@ class _NotificationCard extends ConsumerWidget {
             : accent.withValues(alpha: 0.05));
 
     final senderLabel = isAdmin
-        ? 'System Notification'
-        : 'From: ${notification.senderName ?? 'Manager'}';
+        ? ref.tr('systemNotification')
+        : '${ref.tr('notifFrom')}: ${notification.senderName ?? ref.tr('manager')}';
 
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final isCurrentUserAdmin = userModel?.isAdmin ?? false;
@@ -163,9 +170,7 @@ class _NotificationCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isRead
-                  ? (isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFE0E0E0))
+                  ? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0))
                   : accent.withValues(alpha: 0.35),
               width: isRead ? 1 : 1.5,
             ),
@@ -183,9 +188,7 @@ class _NotificationCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  isAdmin
-                      ? Icons.campaign_rounded
-                      : Icons.person_pin_rounded,
+                  isAdmin ? Icons.campaign_rounded : Icons.person_pin_rounded,
                   color: accent,
                   size: 20,
                 ),
@@ -202,9 +205,8 @@ class _NotificationCard extends ConsumerWidget {
                           child: Text(
                             notification.title,
                             style: TextStyle(
-                              fontWeight: isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.bold,
+                              fontWeight:
+                                  isRead ? FontWeight.w500 : FontWeight.bold,
                               fontSize: 15,
                             ),
                           ),
@@ -237,7 +239,10 @@ class _NotificationCard extends ConsumerWidget {
                         onTap: () async {
                           final uri = Uri.tryParse(notification.link!);
                           if (uri != null) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         },
                         borderRadius: BorderRadius.circular(8),
@@ -303,15 +308,22 @@ class _NotificationCard extends ConsumerWidget {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                       tooltip: 'Delete notification',
                       onPressed: () {
-                        notificationService.markAsDeleted(notification.id, authUser.uid);
+                        notificationService.markAsDeleted(
+                          notification.id,
+                          authUser.uid,
+                        );
                       },
                     ),
-                    if (isCurrentUserAdmin || (isCurrentUserManager && notification.senderId == authUser.uid))
+                    if (isCurrentUserAdmin ||
+                        (isCurrentUserManager &&
+                            notification.senderId == authUser.uid))
                       IconButton(
-                        icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                        icon:
+                            const Icon(Icons.delete_forever_rounded, size: 20),
                         color: Colors.red.shade400,
                         tooltip: 'Delete for everyone',
                         onPressed: () async {
@@ -319,14 +331,18 @@ class _NotificationCard extends ConsumerWidget {
                             context: context,
                             builder: (c) => AlertDialog(
                               title: const Text('Delete Globally?'),
-                              content: const Text('This will permanently delete the notification for ALL users.'),
+                              content: const Text(
+                                'This will permanently delete the notification for ALL users.',
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(c, false),
                                   child: const Text('Cancel'),
                                 ),
                                 FilledButton(
-                                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
                                   onPressed: () => Navigator.pop(c, true),
                                   child: const Text('Delete Globally'),
                                 ),
@@ -334,7 +350,8 @@ class _NotificationCard extends ConsumerWidget {
                             ),
                           );
                           if (confirm == true) {
-                            await notificationService.deleteGlobally(notification.id);
+                            await notificationService
+                                .deleteGlobally(notification.id);
                           }
                         },
                       ),
@@ -365,12 +382,12 @@ String _formatRelative(DateTime dt) {
 // Empty State
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends ConsumerWidget {
   const _EmptyState({required this.isDark});
   final bool isDark;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -380,9 +397,8 @@ class _EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF1E1E1E)
-                    : const Color(0xFFF5F5F5),
+                color:
+                    isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -393,14 +409,14 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'No Notifications',
+              ref.tr('noNotifications'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 8),
             Text(
-              'You\'re all caught up! New announcements and\nmessages will appear here.',
+              ref.tr('noNotificationsSubtitle'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,

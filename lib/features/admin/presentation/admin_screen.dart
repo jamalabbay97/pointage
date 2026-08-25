@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
+import '../../../core/services/app_translations.dart';
+
 class AdminScreen extends ConsumerWidget {
   const AdminScreen({super.key});
 
@@ -14,8 +16,10 @@ class AdminScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
     final isAdmin = currentUser?.isAdmin ?? false;
 
-    final appBarTitle = isAdmin ? 'Admin Panel Hub' : 'Manager Panel Hub';
-    final portalTitle = isAdmin ? 'Administrator Portal' : 'Manager Portal';
+    final appBarTitle =
+        isAdmin ? ref.tr('adminPanelHub') : ref.tr('managerPanelHub');
+    final portalTitle =
+        isAdmin ? ref.tr('administratorPortal') : ref.tr('managerPortal');
 
     return Scaffold(
       appBar: AppBar(
@@ -68,10 +72,12 @@ class AdminScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Manage users, security parameters, dynamic QR codes, and enterprise analytics.',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 13),
+                          Text(
+                            ref.tr('adminPortalDesc'),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -81,7 +87,7 @@ class AdminScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Management Tools',
+                ref.tr('managementTools'),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -96,43 +102,43 @@ class AdminScreen extends ConsumerWidget {
                 childAspectRatio: 0.9,
                 children: [
                   _AdminCard(
-                    title: 'User Management',
-                    subtitle: 'Create, edit, enable & disable accounts',
+                    title: ref.tr('userManagement'),
+                    subtitle: ref.tr('userManagementSub'),
                     icon: Icons.people_alt_outlined,
                     color: Colors.blue,
                     onTap: () => context.push('/admin/users'),
                   ),
                   _AdminCard(
-                    title: 'Role & Permissions',
-                    subtitle: 'Access control matrices & role rules',
+                    title: ref.tr('rolePermissions'),
+                    subtitle: ref.tr('rolePermissionsSub'),
                     icon: Icons.shield_outlined,
                     color: Colors.purple,
                     onTap: () => context.push('/admin/roles'),
                   ),
                   _AdminCard(
-                    title: 'Dynamic QR Rotator',
-                    subtitle: 'HMAC-signed anti-spoofing presenter',
+                    title: ref.tr('dynamicQrRotator'),
+                    subtitle: ref.tr('dynamicQrRotatorSub'),
                     icon: Icons.qr_code_2_rounded,
                     color: Colors.orange,
                     onTap: () => context.push('/admin/qr'),
                   ),
                   _AdminCard(
-                    title: 'Reports & Analytics',
-                    subtitle: 'Real-time logs, PDF & Excel export',
+                    title: ref.tr('reportsAnalyticsTitle'),
+                    subtitle: ref.tr('reportsAnalyticsSub'),
                     icon: Icons.bar_chart_rounded,
                     color: Colors.green,
                     onTap: () => context.push('/admin/reports'),
                   ),
                   _AdminCard(
-                    title: 'System & Geofence',
-                    subtitle: 'Office GPS, radius, HMAC key config',
+                    title: ref.tr('systemGeofence'),
+                    subtitle: ref.tr('systemGeofenceSub'),
                     icon: Icons.settings_applications_rounded,
                     color: Colors.teal,
                     onTap: () => context.push('/admin/settings'),
                   ),
                   _AdminCard(
-                    title: 'Send Notification',
-                    subtitle: 'Broadcast announcements to users',
+                    title: ref.tr('sendNotification'),
+                    subtitle: ref.tr('sendNotificationSub'),
                     icon: Icons.campaign_rounded,
                     color: Colors.deepPurple,
                     onTap: () => context.push('/admin/notifications'),

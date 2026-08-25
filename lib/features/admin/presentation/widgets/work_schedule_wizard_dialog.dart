@@ -218,7 +218,9 @@ class _WorkScheduleWizardDialogState
                         )
                       : const Icon(Icons.check_circle_rounded),
                   label: Text(
-                    _saving ? 'Saving...' : ref.tr('confirmSchedule'),
+                    _saving
+                        ? ref.tr('savingSchedule')
+                        : ref.tr('confirmSchedule'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -280,9 +282,7 @@ class _ScheduleOptionTile extends StatelessWidget {
           children: [
             Icon(
               isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: isSelected
-                  ? color
-                  : Theme.of(context).colorScheme.outline,
+              color: isSelected ? color : Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(width: 8),
             Container(

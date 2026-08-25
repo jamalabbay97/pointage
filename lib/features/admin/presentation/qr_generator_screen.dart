@@ -8,17 +8,19 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/company_settings.dart';
+import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
 
-class QrGeneratorScreen extends StatefulWidget {
+class QrGeneratorScreen extends ConsumerStatefulWidget {
   const QrGeneratorScreen({super.key});
 
   @override
-  State<QrGeneratorScreen> createState() => _QrGeneratorScreenState();
+  ConsumerState<QrGeneratorScreen> createState() => _QrGeneratorScreenState();
 }
 
-class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
+class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
   CompanySettings _settings = CompanySettings.defaultSettings;
   Timer? _timer;
   int _secondsLeft = 15;
@@ -121,9 +123,10 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Scan to Register Attendance',
-                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    Text(
+                      ref.tr('scanToRegister'),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 18),
                     ),
                     const SizedBox(height: 32),
                     _buildQrCard(size: 280),
@@ -140,16 +143,16 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dynamic QR Generator'),
+        title: Text(ref.tr('dynamicQrGenerator')),
         actions: [
           IconButton(
             icon: const Icon(Icons.fullscreen),
-            tooltip: 'Presenter Mode',
+            tooltip: ref.tr('presenterMode'),
             onPressed: _enterFullscreen,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Rotate Now',
+            tooltip: ref.tr('rotateNow'),
             onPressed: _rotateQR,
           ),
         ],
@@ -173,7 +176,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Dynamic HMAC-SHA256 Anti-Spoofing Attendance QR',
+                        ref.tr('dynamicHmacDesc'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.grey.shade600,
                             ),
@@ -187,7 +190,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       FilledButton.tonalIcon(
                         onPressed: _rotateQR,
                         icon: const Icon(Icons.sync_rounded),
-                        label: const Text('Force Rotation'),
+                        label: Text(ref.tr('forceRotation')),
                       ),
                     ],
                   ),
@@ -200,13 +203,17 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.security, size: 20, color: Colors.blue),
-                          SizedBox(width: 8),
+                          const Icon(
+                            Icons.security,
+                            size: 20,
+                            color: Colors.blue,
+                          ),
+                          const SizedBox(width: 8),
                           Text(
-                            'Security Parameters',
-                            style: TextStyle(
+                            ref.tr('securityParameters'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -215,21 +222,21 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                       ),
                       const Divider(height: 24),
                       _buildParamRow(
-                        'Rotation Interval',
-                        '${_settings.qrRotateIntervalSeconds} seconds',
+                        ref.tr('rotationInterval'),
+                        '${_settings.qrRotateIntervalSeconds} ${ref.tr('seconds')}',
                       ),
                       _buildParamRow(
-                        'Geofence Radius',
-                        '${_settings.radiusMeters.toInt()} meters',
+                        ref.tr('geofenceRadiusLabel'),
+                        '${_settings.radiusMeters.toInt()} ${ref.tr('radiusMeters')}',
                       ),
                       _buildParamRow(
-                        'Current UTC Time',
+                        ref.tr('currentUtcTime'),
                         DateFormat('HH:mm:ss UTC')
                             .format(DateTime.now().toUtc()),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Signed Payload Snippet:',
+                        ref.tr('signedPayload'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -283,7 +290,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
           width: 140,
           child: LinearProgressIndicator(
             value: progress,
-            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            backgroundColor:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
             color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(8),
             minHeight: 8,
@@ -291,7 +299,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Rotates in $_secondsLeft s',
+          '${ref.tr('rotatesIn')} $_secondsLeft ${ref.tr('seconds')}',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.primary,
@@ -338,8 +346,8 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
       if (pin == null || pin.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please set a Presenter PIN in Settings first.'),
+            SnackBar(
+              content: Text(ref.tr('setPinFirst')),
             ),
           );
         }
@@ -349,7 +357,7 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking PIN: $e')),
+          SnackBar(content: Text('${ref.tr('errorCheckingPin')}: $e')),
         );
       }
     }
@@ -361,17 +369,17 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Enter PIN to Exit'),
+        title: Text(ref.tr('enterPinToExit')),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'Presenter PIN'),
+          decoration: InputDecoration(labelText: ref.tr('presenterPin')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(ref.tr('cancel')),
           ),
           FilledButton(
             onPressed: () async {
@@ -388,19 +396,21 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
                 } else {
                   if (ctx.mounted) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      const SnackBar(content: Text('Incorrect PIN')),
+                      SnackBar(content: Text(ref.tr('incorrectPin'))),
                     );
                   }
                 }
               } catch (e) {
                 if (ctx.mounted) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text('Verification error: $e')),
+                    SnackBar(
+                      content: Text('${ref.tr('verificationError')}: $e'),
+                    ),
                   );
                 }
               }
             },
-            child: const Text('Verify'),
+            child: Text(ref.tr('verify')),
           ),
         ],
       ),

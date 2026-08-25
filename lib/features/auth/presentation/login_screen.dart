@@ -8,17 +8,20 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/services/app_translations.dart';
 import '../../../core/utils/async_timeout.dart';
 import '../domain/user_sync_service.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final email = TextEditingController();
   final password = TextEditingController();
   bool remember = true;
@@ -52,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (savedEmail != null && savedPassword != null) {
         final didAuthenticate = await _auth.authenticate(
-          localizedReason: 'Please authenticate to log in automatically',
+          localizedReason: ref.tr('biometricReason'),
           options: const AuthenticationOptions(biometricOnly: true),
         );
         if (didAuthenticate) {
@@ -95,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (email.text.trim().isEmpty || password.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        SnackBar(content: Text(ref.tr('fillAllFields'))),
       );
       return;
     }
@@ -120,20 +123,20 @@ class _LoginScreenState extends State<LoginScreen> {
           await showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.block, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Account Disabled'),
+                  const Icon(Icons.block, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Text(ref.tr('accountDisabled')),
                 ],
               ),
-              content: const Text(
-                'Your user account has been disabled by an administrator. Please contact IT support or your manager to restore access.',
+              content: Text(
+                ref.tr('accountDisabledDesc'),
               ),
               actions: [
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK'),
+                  child: Text(ref.tr('ok')),
                 ),
               ],
             ),
@@ -143,9 +146,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (syncResult == UserSyncResult.failed && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Signed in, but profile sync is delayed. Some data may appear shortly.',
+                ref.tr('syncDelayed'),
               ),
             ),
           );
@@ -159,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message ?? 'Connection timed out'),
+          content: Text(e.message ?? ref.tr('connectionTimedOut')),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -167,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message ?? 'Login failed'),
+          content: Text(e.message ?? ref.tr('loginFailed')),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -233,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Enterprise Attendance Portal',
+                          ref.tr('enterprisePortal'),
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: Theme.of(context)
@@ -245,9 +248,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: email,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email Address',
-                            prefixIcon: Icon(Icons.email_outlined),
+                          decoration: InputDecoration(
+                            labelText: ref.tr('emailAddress'),
+                            prefixIcon: const Icon(Icons.email_outlined),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -255,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: password,
                           obscureText: obscurePassword,
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: ref.tr('passwordLabel'),
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -279,15 +282,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               onChanged: (v) =>
                                   setState(() => remember = v ?? true),
                             ),
-                            const Text('Remember me'),
+                            Text(ref.tr('rememberMe')),
                             const Spacer(),
                             TextButton(
                               onPressed: () async {
                                 if (email.text.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Please enter your email address first',
+                                        ref.tr('enterEmailFirst'),
                                       ),
                                     ),
                                   );
@@ -304,9 +307,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   );
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('Password reset email sent'),
+                                      SnackBar(
+                                        content: Text(
+                                          ref.tr('passwordResetEmailSent'),
+                                        ),
                                         backgroundColor: Colors.green,
                                       ),
                                     );
@@ -322,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   }
                                 }
                               },
-                              child: const Text('Forgot password?'),
+                              child: Text(ref.tr('forgotPassword')),
                             ),
                           ],
                         ),
@@ -342,7 +346,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : const Icon(Icons.login_rounded),
                             label: Text(
-                              loading ? 'Authenticating...' : 'Secure Login',
+                              loading
+                                  ? ref.tr('authenticating')
+                                  : ref.tr('secureLogin'),
                             ),
                           ),
                         ),

@@ -44,8 +44,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             padding: const EdgeInsets.all(24),
             child: Text(
               currentUser?.isAdmin == true
-                  ? 'Administrators do not record personal attendance. Use Attendance Reports & Analytics to verify employee records.'
-                  : 'Managers are supervisors and do not have personal attendance records.',
+                  ? ref.tr('adminNoAttendance')
+                  : ref.tr('managerNoAttendance'),
               textAlign: TextAlign.center,
             ),
           ),
@@ -68,7 +68,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
-            child: Text('Error loading history: ${snapshot.error}'),
+            child: Text('${ref.tr('errorLoadingHistory')}: ${snapshot.error}'),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -185,7 +185,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 }
 
-class _MonthFilterCard extends StatefulWidget {
+class _MonthFilterCard extends ConsumerStatefulWidget {
   const _MonthFilterCard({
     super.key,
     required this.selectedMonth,
@@ -200,10 +200,10 @@ class _MonthFilterCard extends StatefulWidget {
   final ValueChanged<String> onSearchChanged;
 
   @override
-  State<_MonthFilterCard> createState() => _MonthFilterCardState();
+  ConsumerState<_MonthFilterCard> createState() => _MonthFilterCardState();
 }
 
-class _MonthFilterCardState extends State<_MonthFilterCard> {
+class _MonthFilterCardState extends ConsumerState<_MonthFilterCard> {
   late final TextEditingController _searchController;
 
   @override
@@ -227,7 +227,7 @@ class _MonthFilterCardState extends State<_MonthFilterCard> {
               Row(
                 children: [
                   IconButton(
-                    tooltip: 'Previous month',
+                    tooltip: ref.tr('previousMonth'),
                     onPressed: widget.onPreviousMonth,
                     icon: const Icon(Icons.chevron_left),
                   ),
@@ -241,7 +241,7 @@ class _MonthFilterCardState extends State<_MonthFilterCard> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Next month',
+                    tooltip: ref.tr('nextMonth'),
                     onPressed: widget.onNextMonth,
                     icon: const Icon(Icons.chevron_right),
                   ),
@@ -251,10 +251,10 @@ class _MonthFilterCardState extends State<_MonthFilterCard> {
               TextField(
                 controller: _searchController,
                 onChanged: widget.onSearchChanged,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  labelText: 'Search by date, month, or status',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  labelText: ref.tr('searchByDateStatus'),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -263,13 +263,13 @@ class _MonthFilterCardState extends State<_MonthFilterCard> {
       );
 }
 
-class _SummaryDashboard extends StatelessWidget {
+class _SummaryDashboard extends ConsumerWidget {
   const _SummaryDashboard({required this.summary});
 
   final _AttendanceSummary summary;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context, WidgetRef ref) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -280,7 +280,7 @@ class _SummaryDashboard extends StatelessWidget {
                   const Icon(Icons.insights),
                   const SizedBox(width: 8),
                   Text(
-                    'Monthly attendance summary',
+                    ref.tr('monthlyAttendanceSummary'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -290,7 +290,9 @@ class _SummaryDashboard extends StatelessWidget {
               const SizedBox(height: 12),
               LinearProgressIndicator(value: summary.attendanceRatio),
               const SizedBox(height: 8),
-              Text('${summary.attendancePercentage}% attendance rate'),
+              Text(
+                '${summary.attendancePercentage}${ref.tr('attendanceRateLabel')}',
+              ),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 10,
@@ -298,25 +300,25 @@ class _SummaryDashboard extends StatelessWidget {
                 children: [
                   _StatTile(
                     icon: Icons.calendar_month,
-                    label: 'Working days',
+                    label: ref.tr('workingDays'),
                     value: '${summary.workingDays}',
                     color: Colors.blue,
                   ),
                   _StatTile(
                     icon: Icons.login,
-                    label: 'Check-ins',
+                    label: ref.tr('checkIns'),
                     value: '${summary.checkIns}',
                     color: Colors.green,
                   ),
                   _StatTile(
                     icon: Icons.person_off,
-                    label: 'Absences',
+                    label: ref.tr('absences'),
                     value: '${summary.absences}',
                     color: Colors.red,
                   ),
                   _StatTile(
                     icon: Icons.schedule,
-                    label: 'Late arrivals',
+                    label: ref.tr('lateArrivals'),
                     value: '${summary.lateArrivals}',
                     color: Colors.orange,
                   ),
@@ -366,13 +368,13 @@ class _StatTile extends StatelessWidget {
       );
 }
 
-class _HistoryCard extends StatelessWidget {
+class _HistoryCard extends ConsumerWidget {
   const _HistoryCard({required this.record});
 
   final Map<String, dynamic> record;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final status = (record['status'] as String? ?? 'present').toLowerCase();
     final isLate = status == 'late';
     final color = isLate ? Colors.orange : Colors.green;
@@ -390,15 +392,15 @@ class _HistoryCard extends StatelessWidget {
           ),
         ),
         title: Text(
-          record['date']?.toString() ?? 'Date',
+          record['date']?.toString() ?? ref.tr('date'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          'Attendance time: $time\nCheck-out time: $checkout\nDevice: ${record['deviceModel'] ?? 'Mobile Device'}',
+          '${ref.tr('attendanceTime')}: $time\n${ref.tr('checkOutTime')}: $checkout\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Mobile Device'}',
         ),
         isThreeLine: true,
         trailing: Chip(
-          label: Text(status.toUpperCase()),
+          label: Text(ref.tr(status).toUpperCase()),
           backgroundColor: color.withValues(alpha: 0.15),
         ),
       ),

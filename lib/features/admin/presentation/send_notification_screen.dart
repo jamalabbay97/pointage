@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../notifications/data/notification_provider.dart';
@@ -76,11 +77,15 @@ class _SendNotificationScreenState
         _linkCtrl.clear();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                SizedBox(width: 10),
-                Text('Notification sent successfully!'),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Text(ref.tr('notificationSent')),
               ],
             ),
             backgroundColor: Colors.green.shade600,
@@ -95,7 +100,7 @@ class _SendNotificationScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send: $e'),
+            content: Text('${ref.tr('failedToSend')}: $e'),
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
             shape:
@@ -119,7 +124,11 @@ class _SendNotificationScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAdmin ? 'Send System Notification' : 'Send Notification'),
+        title: Text(
+          isAdmin
+              ? ref.tr('sendSystemNotification')
+              : ref.tr('sendNotification'),
+        ),
       ),
       body: WebLayout(
         child: SingleChildScrollView(
@@ -155,8 +164,8 @@ class _SendNotificationScreenState
                           children: [
                             Text(
                               isAdmin
-                                  ? 'Broadcast to All Users'
-                                  : 'Send to Your Employees',
+                                  ? ref.tr('broadcastAllUsers')
+                                  : ref.tr('sendToEmployees'),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: accentColor,
@@ -166,8 +175,8 @@ class _SendNotificationScreenState
                             const SizedBox(height: 3),
                             Text(
                               isAdmin
-                                  ? 'This message will appear as a system notification to all users. Your name will not be shown.'
-                                  : 'This message will only be visible to employees you have registered. Your name will appear as the sender.',
+                                  ? ref.tr('broadcastDesc')
+                                  : ref.tr('employeeMsgDesc'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -184,9 +193,9 @@ class _SendNotificationScreenState
                 const SizedBox(height: 24),
 
                 // Title field
-                const Text(
-                  'Notification Title',
-                  style: TextStyle(
+                Text(
+                  ref.tr('notificationTitle'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -197,7 +206,7 @@ class _SendNotificationScreenState
                   maxLength: 80,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText: 'e.g. Important announcement',
+                    hintText: ref.tr('notificationTitleHint'),
                     prefixIcon: const Icon(Icons.title_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -209,7 +218,7 @@ class _SendNotificationScreenState
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Please enter a title';
+                      return ref.tr('enterTitle');
                     }
                     return null;
                   },
@@ -217,9 +226,9 @@ class _SendNotificationScreenState
                 const SizedBox(height: 16),
 
                 // Body field
-                const Text(
-                  'Message',
-                  style: TextStyle(
+                Text(
+                  ref.tr('message'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -231,7 +240,7 @@ class _SendNotificationScreenState
                   maxLength: 500,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText: 'Write your message here...',
+                    hintText: ref.tr('messageHint'),
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -243,7 +252,7 @@ class _SendNotificationScreenState
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Please enter a message';
+                      return ref.tr('enterMessage');
                     }
                     return null;
                   },
@@ -251,9 +260,9 @@ class _SendNotificationScreenState
                 const SizedBox(height: 16),
 
                 // URL field
-                const Text(
-                  'URL (Optional)',
-                  style: TextStyle(
+                Text(
+                  ref.tr('urlOptional'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -263,7 +272,7 @@ class _SendNotificationScreenState
                   controller: _linkCtrl,
                   keyboardType: TextInputType.url,
                   decoration: InputDecoration(
-                    hintText: 'e.g. https://example.com/update',
+                    hintText: ref.tr('urlHint'),
                     prefixIcon: const Icon(Icons.link_rounded),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -277,7 +286,7 @@ class _SendNotificationScreenState
                     if (v != null && v.trim().isNotEmpty) {
                       final uri = Uri.tryParse(v.trim());
                       if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-                        return 'Please enter a valid URL (e.g. https://...)';
+                        return ref.tr('enterValidUrl');
                       }
                     }
                     return null;
@@ -307,7 +316,9 @@ class _SendNotificationScreenState
                             ),
                           )
                         : const Icon(Icons.send_rounded),
-                    label: Text(_sending ? 'Sending...' : 'Send Notification'),
+                    label: Text(
+                      _sending ? ref.tr('sending') : ref.tr('sendNotification'),
+                    ),
                   ),
                 ),
               ],

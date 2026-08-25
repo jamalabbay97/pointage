@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
@@ -14,37 +13,21 @@ class RoleManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _RoleManagementScreenState extends ConsumerState<RoleManagementScreen> {
-  final Map<String, List<String>> _rolePermissions = {
-    'Admin': [
-      'Full System Access',
-      'Manage All Users & Roles',
-      'Configure Geofence & QR Parameters',
-      'Generate Dynamic QR Codes',
-      'Export PDF & Excel Reports',
-      'View Real-time Attendance Analytics',
-    ],
-    'Manager': [
-      'View Department Attendance Logs',
-      'Manage Users & Roles',
-      'Configure Geofence & QR Parameters',
-      'Generate Dynamic QR Codes',
-      'Export Department PDF & Excel Reports',
-      'View Department Analytics',
-    ],
-    'Employee': [
-      'Scan Dynamic QR Codes',
-      'View Personal Attendance History',
-      'Manage Personal Profile',
-      'Customize Personal App Settings',
-    ],
-  };
+  Map<String, List<String>> _getLocalizedRolePermissions() {
+    return {
+      'Admin': ref.tr('roleAdminPerms').split('|'),
+      'Manager': ref.tr('roleManagerPerms').split('|'),
+      'Employee': ref.tr('roleEmployeePerms').split('|'),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserModelProvider).valueOrNull;
     final isAdmin = currentUser?.isAdmin ?? false;
+    final rolePermissions = _getLocalizedRolePermissions();
 
-    final rolesToDisplay = _rolePermissions.entries.where((entry) {
+    final rolesToDisplay = rolePermissions.entries.where((entry) {
       if (!isAdmin && entry.key.toLowerCase() == 'admin') {
         return false;
       }
@@ -53,7 +36,7 @@ class _RoleManagementScreenState extends ConsumerState<RoleManagementScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Role & Permission Management'),
+        title: Text(ref.tr('rolePermissionManagement')),
       ),
       body: WebLayout(
         child: ListView(
@@ -76,7 +59,7 @@ class _RoleManagementScreenState extends ConsumerState<RoleManagementScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        'Access Control Matrix allows administrators to review and enforce role permissions across the application.',
+                        ref.tr('accessControlMatrixDesc'),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -86,25 +69,32 @@ class _RoleManagementScreenState extends ConsumerState<RoleManagementScreen> {
             ),
             const SizedBox(height: 20),
             ...rolesToDisplay.map((entry) {
-              final roleName = entry.key;
+              final roleKey = entry.key;
+              final roleName = roleKey == 'Admin'
+                  ? ref.tr('roleAdmin')
+                  : (roleKey == 'Manager'
+                      ? ref.tr('roleManager')
+                      : ref.tr('roleEmployee'));
               final permissions = entry.value;
-              final color = _getRoleColor(roleName);
+              final color = _getRoleColor(roleKey);
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: ExpansionTile(
                   leading: CircleAvatar(
                     backgroundColor: color.withValues(alpha: 0.2),
-                    child: Icon(_getRoleIcon(roleName), color: color),
+                    child: Icon(_getRoleIcon(roleKey), color: color),
                   ),
                   title: Text(
-                    '$roleName Role',
+                    '$roleName ${ref.tr('role')}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
-                  subtitle: Text('${permissions.length} active permissions'),
+                  subtitle: Text(
+                    '${permissions.length} ${ref.tr('activePermissions')}',
+                  ),
                   children: [
                     const Divider(),
                     Padding(
