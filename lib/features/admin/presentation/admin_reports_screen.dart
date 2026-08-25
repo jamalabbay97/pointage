@@ -456,7 +456,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     );
   }
 
-  Widget _buildTeamOverview(_HistoryStats stats, int totalEmployees, _DateRange range) {
+  Widget _buildTeamOverview(
+    _HistoryStats stats,
+    int totalEmployees,
+    _DateRange range,
+  ) {
     Widget tile(String label, int value, Color color) => Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -619,9 +623,13 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       ),
     );
 
-    final present = employeeRows.where((r) => r.status == 'present' || r.status == 'late').length;
+    final present = employeeRows
+        .where((r) => r.status == 'present' || r.status == 'late')
+        .length;
     final late = employeeRows.where((r) => r.status == 'late').length;
-    final absent = employeeRows.where((r) => r.status == 'absent').length;
+
+    final expectedDays = _workingDays(range, user.scheduleType);
+    final absent = (expectedDays - present).clamp(0, expectedDays).toInt();
 
     if (employeeRows.isEmpty) {
       return Column(
@@ -697,8 +705,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -839,8 +848,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1052,7 +1062,18 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
 
       for (final user in users) {
         final record = byUserDate['${user.uid}|$date'];
-        rows.add(_HistoryRow.from(user, date, record));
+
+        // For days_20_10: no day is ever "day off" — any day can be a working
+        // day in the rotating 20-on/10-off cycle. Only standard schedules
+        // treat weekends as non-working.
+        bool expectedToWork = true;
+        if (user.scheduleType != 'days_20_10' &&
+            (day.weekday == DateTime.saturday ||
+                day.weekday == DateTime.sunday)) {
+          expectedToWork = false;
+        }
+
+        rows.add(_HistoryRow.from(user, date, record, expectedToWork));
       }
     }
     rows.sort(
@@ -1090,11 +1111,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     for (final user in visibleUsers) {
       expected += _workingDays(range, user.scheduleType);
     }
-    
+
     final presentRecords = rows.where((row) => row.status == 'present').length;
     final lateRecords = rows.where((row) => row.status == 'late').length;
     final attendanceRecords = presentRecords + lateRecords;
-    
+
     return _HistoryStats(
       workingDays: expected,
       absentDays: (expected - attendanceRecords).clamp(0, expected).toInt(),
@@ -1113,16 +1134,23 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   }
 
   int _workingDays(_DateRange range, [String scheduleType = 'standard']) {
-    if (scheduleType == 'days_20_10' && range.period == _PeriodFilter.month) {
-      return 20;
+    if (scheduleType == 'days_20_10') {
+      if (range.period == _PeriodFilter.month) {
+        return 20;
+      }
+      // For non-month ranges (week/year/custom), every calendar day can be
+      // a work day in the rotating cycle — no weekends are automatically "off".
+      return _days(range).length;
     }
     return _days(range)
         .where(
           (day) =>
-              day.weekday != DateTime.saturday && day.weekday != DateTime.sunday,
+              day.weekday != DateTime.saturday &&
+              day.weekday != DateTime.sunday,
         )
         .length;
   }
+
   bool _inRange(DateTime day, _DateRange range) =>
       !day.isBefore(range.start) && !day.isAfter(range.end);
 }
@@ -1194,7 +1222,14 @@ class _HistoryUser {
     required this.role,
     required this.scheduleType,
   });
-  final String uid, displayName, status, createdBy, managerId, reportsTo, role, scheduleType;
+  final String uid,
+      displayName,
+      status,
+      createdBy,
+      managerId,
+      reportsTo,
+      role,
+      scheduleType;
   bool get isAdmin => role.trim().toLowerCase() == 'admin';
   bool get isManager => role.trim().toLowerCase() == 'manager';
   factory _HistoryUser.fromDoc(QueryDocumentSnapshot doc) {
@@ -1209,7 +1244,8 @@ class _HistoryUser {
       managerId: field('managerId'),
       reportsTo: field('reportsTo'),
       role: field('role'),
-      scheduleType: field('scheduleType').isEmpty ? 'standard' : field('scheduleType'),
+      scheduleType:
+          field('scheduleType').isEmpty ? 'standard' : field('scheduleType'),
     );
   }
 
@@ -1250,8 +1286,9 @@ class _HistoryRow {
   factory _HistoryRow.from(
     _HistoryUser user,
     String date,
-    Map<String, dynamic>? record,
-  ) {
+    Map<String, dynamic>? record, [
+    bool expectedToWork = true,
+  ]) {
     if (record == null) {
       return _HistoryRow(
         employeeId: user.uid,
@@ -1259,7 +1296,7 @@ class _HistoryRow {
         date: date,
         attendanceTime: '-',
         checkoutTime: '-',
-        status: 'absent',
+        status: expectedToWork ? 'absent' : 'day_off',
         device: '-',
         battery: '-',
       );

@@ -13,6 +13,7 @@ import '../../domain/services/report_data_service.dart';
 import '../../domain/services/excel_export_service.dart';
 import '../../domain/services/pdf_export_service.dart';
 import '../../domain/models/attendance_report_model.dart';
+import 'web_download_stub.dart';
 
 enum ExportTarget { all, single }
 
@@ -159,7 +160,7 @@ class _ExportAttendanceDialogState
       String savedLocationDesc = fileName;
 
       if (kIsWeb) {
-        // ... (Web File Saving logic is omitted here for brevity, usually depends on `universal_html`)
+        downloadFileWeb(fileBytes, fileName);
       } else if (Platform.isAndroid || Platform.isIOS) {
         Directory? outputDir;
         if (Platform.isAndroid) {

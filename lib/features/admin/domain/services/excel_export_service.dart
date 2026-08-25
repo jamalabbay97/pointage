@@ -56,7 +56,6 @@ class ExcelExportService {
     sheet.appendRow([TextCellValue('Present'), IntCellValue(report.present)]);
     sheet.appendRow([TextCellValue('Late'), IntCellValue(report.late)]);
     sheet.appendRow([TextCellValue('Absent'), IntCellValue(report.absent)]);
-    sheet.appendRow([TextCellValue('Day Off'), IntCellValue(report.daysOff)]);
     sheet.appendRow([TextCellValue('Leave'), IntCellValue(report.leaves)]);
     sheet.appendRow([TextCellValue('Holidays'), IntCellValue(report.holidays)]);
     sheet.appendRow([
@@ -91,7 +90,6 @@ class ExcelExportService {
       TextCellValue('Present'),
       TextCellValue('Late'),
       TextCellValue('Absent'),
-      TextCellValue('Day Off'),
       TextCellValue('Leave'),
       TextCellValue('Holidays'),
       TextCellValue('Incomplete'),
@@ -110,7 +108,6 @@ class ExcelExportService {
         IntCellValue(emp.present),
         IntCellValue(emp.late),
         IntCellValue(emp.absent),
-        IntCellValue(emp.daysOff),
         IntCellValue(emp.leaves),
         IntCellValue(emp.holidays),
         IntCellValue(emp.incomplete),

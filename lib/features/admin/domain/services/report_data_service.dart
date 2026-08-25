@@ -171,8 +171,7 @@ class ReportDataService {
 
         bool expectedToWork = _isExpectedToWork(user, date);
         if (expectedToWork) {
-          empExpectedDays++;
-          totalExpectedDays++;
+          // We don't increment empExpectedDays here, it's calculated upfront
         }
 
         if (record != null) {
@@ -245,10 +244,15 @@ class ReportDataService {
             ),
           );
         } else {
-          if (expectedToWork && date.isBefore(DateTime.now())) {
-            // Did not work when expected
-            empAbsent++;
-            totalAbsent++;
+          final bool is2010 = user.scheduleType == 'days_20_10';
+          // For days_20_10: any past day without a record is absent — no concept
+          // of "day off" since the rotating cycle can land on any day of the week.
+          // For standard: only missed expected days (weekdays) count as absent.
+          final bool countAsAbsent = is2010
+              ? date.isBefore(DateTime.now())
+              : (expectedToWork && date.isBefore(DateTime.now()));
+
+          if (countAsAbsent) {
             detailedRecords.add(
               DetailedRecord(
                 date: date,
@@ -266,8 +270,8 @@ class ReportDataService {
                 notes: 'Missing Record',
               ),
             );
-          } else {
-            // Not expected to work, or future date
+          } else if (!is2010) {
+            // Standard schedule: add a not_scheduled record for weekends/future
             detailedRecords.add(
               DetailedRecord(
                 date: date,
@@ -286,8 +290,33 @@ class ReportDataService {
               ),
             );
           }
+          // For days_20_10 future dates: no record is added at all.
         }
       }
+
+      // Calculate expected days based on schedule
+      bool isFullMonth = false;
+      if (startDate.day == 1 && daysInRange.length >= 28) {
+        final lastDayOfMonth =
+            DateTime(startDate.year, startDate.month + 1, 0).day;
+        if (endDate.day == lastDayOfMonth) {
+          isFullMonth = true;
+        }
+      }
+
+      if (user.scheduleType == 'days_20_10' && isFullMonth) {
+        empExpectedDays = 20;
+      } else {
+        empExpectedDays =
+            daysInRange.where((d) => _isExpectedToWork(user, d)).length;
+      }
+      totalExpectedDays += empExpectedDays;
+
+      empAbsent = (empExpectedDays -
+              (empPresent + empLate + empLeaves + empHolidays + empDaysOff))
+          .clamp(0, empExpectedDays)
+          .toInt();
+      totalAbsent += empAbsent;
 
       double empAttRate = empExpectedDays > 0
           ? ((empPresent + empLate) / empExpectedDays) * 100
@@ -343,11 +372,9 @@ class ReportDataService {
   }
 
   bool _isExpectedToWork(UserModel user, DateTime date) {
-    // Basic schedule assumption: Weekends are off?
-    // In many applications, this is customizable. We will assume Mon-Fri or Mon-Sat based on general defaults,
-    // or if the app has a specific field, we can use it.
-    // For now, if date is Sunday, assume off.
-    if (date.weekday == DateTime.sunday) return false;
+    if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+      return false;
+    }
     return true;
   }
 

@@ -32,9 +32,9 @@ class PdfExportService {
         build: (pw.Context context) => [
           _buildExecutiveSummary(report),
           pw.SizedBox(height: 20),
-          _buildEmployeeSummary(report),
+          ..._buildEmployeeSummary(report),
           pw.SizedBox(height: 20),
-          _buildDetailedAttendance(report, dateFormat, hmFormat),
+          ..._buildDetailedAttendance(report, dateFormat, hmFormat),
         ],
       ),
     );
@@ -147,7 +147,6 @@ class PdfExportService {
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              _buildSummaryItem('Day Off', report.daysOff.toString()),
               _buildSummaryItem('Leave', report.leaves.toString()),
               _buildSummaryItem(
                 'Total Worked Hours',
@@ -181,12 +180,10 @@ class PdfExportService {
     );
   }
 
-  pw.Widget _buildEmployeeSummary(AttendanceReport report) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'Employee Summary',
+  List<pw.Widget> _buildEmployeeSummary(AttendanceReport report) {
+    return [
+      pw.Text(
+        'Employee Summary',
           style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 8),
@@ -228,20 +225,17 @@ class PdfExportService {
               )
               .toList(),
         ),
-      ],
-    );
+    ];
   }
 
-  pw.Widget _buildDetailedAttendance(
+  List<pw.Widget> _buildDetailedAttendance(
     AttendanceReport report,
     DateFormat dateFormat,
     DateFormat timeFormat,
   ) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'Detailed Attendance',
+    return [
+      pw.Text(
+        'Detailed Attendance',
           style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
         ),
         pw.SizedBox(height: 8),
@@ -280,7 +274,6 @@ class PdfExportService {
               )
               .toList(),
         ),
-      ],
-    );
+    ];
   }
 }
