@@ -628,7 +628,12 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         .length;
     final late = employeeRows.where((r) => r.status == 'late').length;
 
-    final expectedDays = _workingDays(range, user.scheduleType);
+    final expectedDays = () {
+      final scheduled = _workingDays(range, user.scheduleType);
+      // If the employee attended more days than their schedule allows,
+      // raise the baseline so absent is always ≥ 0.
+      return present > scheduled ? present : scheduled;
+    }();
     final absent = (expectedDays - present).clamp(0, expectedDays).toInt();
 
     if (employeeRows.isEmpty) {
@@ -1107,14 +1112,25 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     List<_HistoryUser> visibleUsers,
     _DateRange range,
   ) {
-    var expected = 0;
-    for (final user in visibleUsers) {
-      expected += _workingDays(range, user.scheduleType);
-    }
-
     final presentRecords = rows.where((row) => row.status == 'present').length;
     final lateRecords = rows.where((row) => row.status == 'late').length;
     final attendanceRecords = presentRecords + lateRecords;
+
+    // Calculate expected days per user, bumping to actual attendance count
+    // for days_20_10 employees who worked more than 20 days.
+    var expected = 0;
+    for (final user in visibleUsers) {
+      final userAttended = rows
+          .where(
+            (r) =>
+                r.employeeId == user.uid &&
+                (r.status == 'present' || r.status == 'late'),
+          )
+          .length;
+      final scheduled = _workingDays(range, user.scheduleType);
+      // If the employee attended more days than scheduled, raise the baseline.
+      expected += userAttended > scheduled ? userAttended : scheduled;
+    }
 
     return _HistoryStats(
       workingDays: expected,

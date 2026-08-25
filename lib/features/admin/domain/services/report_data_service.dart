@@ -294,30 +294,40 @@ class ReportDataService {
         }
       }
 
-      // Calculate expected days based on schedule
-      // For days_20_10: the contract is always 20 working days per calendar month,
-      // regardless of whether the month is complete or still in progress.
-      // For non-monthly ranges (week / custom / year), count every calendar day
-      // since any day can be a work day in the rotating 20-on/10-off cycle.
+      // ── Expected-days calculation ────────────────────────────────────────
+      // For days_20_10 the contract is 20 working days per calendar month.
+      // If an employee actually attended MORE than 20 days we raise the
+      // expected-days baseline to match reality so that the absent count is
+      // always ≥ 0 and the summary is self-consistent.
       if (user.scheduleType == 'days_20_10') {
-        // Check if the range is contained within a single calendar month.
         final bool isSingleMonth =
             startDate.year == endDate.year && startDate.month == endDate.month;
-        empExpectedDays = isSingleMonth ? 20 : daysInRange.length;
+        if (isSingleMonth) {
+          // Never let expectedDays fall below the actual attended days.
+          final int attended = empPresent + empLate;
+          empExpectedDays = attended > 20 ? attended : 20;
+        } else {
+          // Non-monthly range: every calendar day is a potential work day.
+          empExpectedDays = daysInRange.length;
+        }
       } else {
         empExpectedDays =
             daysInRange.where((d) => _isExpectedToWork(user, d)).length;
       }
       totalExpectedDays += empExpectedDays;
 
+      // Absent = scheduled days not covered by any positive status.
+      // Clamped to 0 so it is never negative (extra attendance days → absent 0).
       empAbsent = (empExpectedDays -
               (empPresent + empLate + empLeaves + empHolidays + empDaysOff))
           .clamp(0, empExpectedDays)
           .toInt();
       totalAbsent += empAbsent;
 
+      // Attendance rate: cap at 100 % — working extra days is excellent but
+      // should not produce a rate above 100 %.
       double empAttRate = empExpectedDays > 0
-          ? ((empPresent + empLate) / empExpectedDays) * 100
+          ? (((empPresent + empLate) / empExpectedDays) * 100).clamp(0, 100)
           : 0.0;
 
       employeeSummaries.add(
@@ -343,7 +353,7 @@ class ReportDataService {
     }
 
     double globalAttRate = totalExpectedDays > 0
-        ? ((totalPresent + totalLate) / totalExpectedDays) * 100
+        ? (((totalPresent + totalLate) / totalExpectedDays) * 100).clamp(0, 100)
         : 0.0;
 
     return AttendanceReport(
