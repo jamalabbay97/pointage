@@ -184,47 +184,47 @@ class PdfExportService {
     return [
       pw.Text(
         'Employee Summary',
-          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 8),
+      pw.TableHelper.fromTextArray(
+        headers: [
+          'Employee ID',
+          'Name',
+          'Dept',
+          'Sch.',
+          'Exp. Days',
+          'Present',
+          'Late',
+          'Absent',
+          'Hrs',
+          'Rate',
+        ],
+        headerStyle: pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.white,
+          fontSize: 10,
         ),
-        pw.SizedBox(height: 8),
-        pw.TableHelper.fromTextArray(
-          headers: [
-            'Employee ID',
-            'Name',
-            'Dept',
-            'Sch.',
-            'Exp. Days',
-            'Present',
-            'Late',
-            'Absent',
-            'Hrs',
-            'Rate',
-          ],
-          headerStyle: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.white,
-            fontSize: 10,
-          ),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.blue600),
-          cellStyle: const pw.TextStyle(fontSize: 9),
-          cellHeight: 20,
-          data: report.employeeSummaries
-              .map(
-                (emp) => [
-                  emp.employeeId,
-                  emp.employeeName,
-                  emp.department,
-                  emp.schedule,
-                  emp.expectedWorkingDays.toString(),
-                  emp.present.toString(),
-                  emp.late.toString(),
-                  emp.absent.toString(),
-                  emp.totalWorkedHours.toStringAsFixed(1),
-                  '${emp.attendanceRate.toStringAsFixed(1)}%',
-                ],
-              )
-              .toList(),
-        ),
+        headerDecoration: const pw.BoxDecoration(color: PdfColors.blue600),
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        cellHeight: 20,
+        data: report.employeeSummaries
+            .map(
+              (emp) => [
+                emp.employeeId,
+                emp.employeeName,
+                emp.department,
+                emp.schedule,
+                emp.expectedWorkingDays.toString(),
+                emp.present.toString(),
+                emp.late.toString(),
+                emp.absent.toString(),
+                emp.totalWorkedHours.toStringAsFixed(1),
+                '${emp.attendanceRate.toStringAsFixed(1)}%',
+              ],
+            )
+            .toList(),
+      ),
     ];
   }
 
@@ -236,44 +236,43 @@ class PdfExportService {
     return [
       pw.Text(
         'Detailed Attendance',
-          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 8),
+      pw.TableHelper.fromTextArray(
+        headers: [
+          'Date',
+          'Employee',
+          'Expected',
+          'In',
+          'Out',
+          'Status',
+          'Late (Hrs)',
+          'Hrs',
+        ],
+        headerStyle: pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.white,
+          fontSize: 10,
         ),
-        pw.SizedBox(height: 8),
-        pw.TableHelper.fromTextArray(
-          headers: [
-            'Date',
-            'Employee',
-            'Expected',
-            'In',
-            'Out',
-            'Status',
-            'Late (Hrs)',
-            'Hrs',
-          ],
-          headerStyle: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.white,
-            fontSize: 10,
-          ),
-          headerDecoration:
-              const pw.BoxDecoration(color: PdfColors.blueGrey600),
-          cellStyle: const pw.TextStyle(fontSize: 9),
-          cellHeight: 20,
-          data: report.detailedRecords
-              .map(
-                (r) => [
-                  dateFormat.format(r.date),
-                  r.employeeName,
-                  r.expectedToWork ? 'Yes' : 'No',
-                  r.checkIn != null ? timeFormat.format(r.checkIn!) : '—',
-                  r.checkOut != null ? timeFormat.format(r.checkOut!) : '—',
-                  r.status.toUpperCase(),
-                  (r.lateMinutes / 60).toStringAsFixed(1),
-                  r.workHours.toStringAsFixed(1),
-                ],
-              )
-              .toList(),
-        ),
+        headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey600),
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        cellHeight: 20,
+        data: report.detailedRecords
+            .map(
+              (r) => [
+                dateFormat.format(r.date),
+                r.employeeName,
+                r.expectedToWork ? 'Yes' : 'No',
+                r.checkIn != null ? timeFormat.format(r.checkIn!) : '—',
+                r.checkOut != null ? timeFormat.format(r.checkOut!) : '—',
+                r.status.toUpperCase(),
+                (r.lateMinutes / 60).toStringAsFixed(1),
+                r.workHours.toStringAsFixed(1),
+              ],
+            )
+            .toList(),
+      ),
     ];
   }
 }
