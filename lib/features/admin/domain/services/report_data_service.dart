@@ -295,17 +295,15 @@ class ReportDataService {
       }
 
       // Calculate expected days based on schedule
-      bool isFullMonth = false;
-      if (startDate.day == 1 && daysInRange.length >= 28) {
-        final lastDayOfMonth =
-            DateTime(startDate.year, startDate.month + 1, 0).day;
-        if (endDate.day == lastDayOfMonth) {
-          isFullMonth = true;
-        }
-      }
-
-      if (user.scheduleType == 'days_20_10' && isFullMonth) {
-        empExpectedDays = 20;
+      // For days_20_10: the contract is always 20 working days per calendar month,
+      // regardless of whether the month is complete or still in progress.
+      // For non-monthly ranges (week / custom / year), count every calendar day
+      // since any day can be a work day in the rotating 20-on/10-off cycle.
+      if (user.scheduleType == 'days_20_10') {
+        // Check if the range is contained within a single calendar month.
+        final bool isSingleMonth =
+            startDate.year == endDate.year && startDate.month == endDate.month;
+        empExpectedDays = isSingleMonth ? 20 : daysInRange.length;
       } else {
         empExpectedDays =
             daysInRange.where((d) => _isExpectedToWork(user, d)).length;
@@ -372,6 +370,13 @@ class ReportDataService {
   }
 
   bool _isExpectedToWork(UserModel user, DateTime date) {
+    // For the 20-on/10-off rotating schedule every calendar day (including
+    // weekends) is a potential work day.  The cycle does not follow a fixed
+    // Mon-Fri pattern, so we never exclude any day of the week.
+    if (user.scheduleType == 'days_20_10') {
+      return true;
+    }
+    // Standard schedule: weekends are always non-working days.
     if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
       return false;
     }
