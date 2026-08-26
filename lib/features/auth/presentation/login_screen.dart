@@ -407,10 +407,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 }
 
                                 recoveryToken = data['recoveryToken'];
+                                final debugOtp = data['debugOtp'];
                                 setDialogState(() {
                                   currentStep = _RecoveryStep.verifyOtpAndReset;
                                   isSubmitting = false;
                                   dialogError = null;
+                                  if (debugOtp != null) {
+                                    otpController.text = debugOtp.toString();
+                                  }
                                 });
                               } else if (resp.statusCode == 404) {
                                 setDialogState(() {

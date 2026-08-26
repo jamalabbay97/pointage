@@ -182,6 +182,8 @@ app.post('/users/request-phone-otp', async (request, reply) => {
 
     const recoveryToken = crypto.randomUUID();
 
+    let generatedOtp: string | undefined = undefined;
+
     if (!snapshot.empty) {
         const userDoc = snapshot.docs[0];
         const uid = userDoc.id;
@@ -196,6 +198,7 @@ app.post('/users/request-phone-otp', async (request, reply) => {
                     expiresAt: Date.now() + 10 * 60 * 1000,
                     attempts: 0,
                 });
+                generatedOtp = otp;
                 app.log.info(`[RECOVERY OTP GENERATED] Phone: ${phoneNumber}, OTP: ${otp}, UID: ${uid}`);
             }
         } catch (e) {
@@ -207,6 +210,7 @@ app.post('/users/request-phone-otp', async (request, reply) => {
         success: true,
         message: 'If this phone number is registered, you will receive a verification code.',
         recoveryToken,
+        debugOtp: generatedOtp,
     });
 });
 
