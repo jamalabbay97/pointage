@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/language_provider.dart';
 import '../../auth/domain/auth_provider.dart';
 import 'widgets/export_attendance_dialog.dart';
 
@@ -561,8 +562,10 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         DateTime? parsedDate = DateTime.tryParse(date);
         String headerText = date;
         if (parsedDate != null) {
-          headerText =
-              DateFormat('EEEE, MMMM d').format(parsedDate).toUpperCase();
+          final langCode = ref.watch(languageProvider).code;
+          headerText = DateFormat('EEEE, MMMM d', langCode)
+              .format(parsedDate)
+              .toUpperCase();
         }
 
         return Column(
@@ -674,8 +677,10 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               DateTime? parsedDate = DateTime.tryParse(date);
               String headerText = date;
               if (parsedDate != null) {
-                headerText =
-                    DateFormat('EEEE, MMMM d').format(parsedDate).toUpperCase();
+                final langCode = ref.watch(languageProvider).code;
+                headerText = DateFormat('EEEE, MMMM d', langCode)
+                    .format(parsedDate)
+                    .toUpperCase();
               }
 
               return Column(
@@ -1046,10 +1051,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
     if (start.isAfter(today)) start = today;
     if (end.isAfter(today)) end = today;
     if (end.isBefore(start)) end = start;
+    final langCode = ref.watch(languageProvider).code;
     return _DateRange(
       start,
       end,
-      '${DateFormat.yMMMd().format(start)} - ${DateFormat.yMMMd().format(end)}',
+      '${DateFormat.yMMMd(langCode).format(start)} - ${DateFormat.yMMMd(langCode).format(end)}',
       _periodFilter,
     );
   }
@@ -1184,7 +1190,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       !day.isBefore(range.start) && !day.isAfter(range.end);
 }
 
-class _PersistentSearchBar extends StatefulWidget {
+class _PersistentSearchBar extends ConsumerStatefulWidget {
   const _PersistentSearchBar({
     super.key,
     required this.onChanged,
@@ -1195,11 +1201,18 @@ class _PersistentSearchBar extends StatefulWidget {
   final VoidCallback onClear;
 
   @override
-  State<_PersistentSearchBar> createState() => _PersistentSearchBarState();
+  ConsumerState<_PersistentSearchBar> createState() =>
+      __PersistentSearchBarState();
 }
 
-class _PersistentSearchBarState extends State<_PersistentSearchBar> {
-  final TextEditingController _controller = TextEditingController();
+class __PersistentSearchBarState extends ConsumerState<_PersistentSearchBar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
 
   @override
   void dispose() {
@@ -1214,12 +1227,12 @@ class _PersistentSearchBarState extends State<_PersistentSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _controller,
+      builder: (context, value, _) {
         return SearchBar(
           controller: _controller,
-          hintText: 'Search by employee, date, device, or status...',
+          hintText: ref.tr('searchByEmployeeDateDeviceStatus'),
           leading: const Icon(Icons.search),
           elevation: WidgetStateProperty.all(0),
           backgroundColor: WidgetStateProperty.all(

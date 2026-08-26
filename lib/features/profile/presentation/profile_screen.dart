@@ -122,7 +122,9 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 Chip(
                   avatar: const Icon(Icons.badge_outlined, size: 16),
-                  label: Text((userModel?.role ?? 'employee').toUpperCase()),
+                  label: Text(
+                    ref.trRole(userModel?.role ?? 'employee').toUpperCase(),
+                  ),
                   backgroundColor: Colors.blue.withValues(alpha: 0.1),
                 ),
                 const SizedBox(width: 8),
@@ -149,8 +151,8 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const Divider(height: 24),
                     _buildProfileRow(
-                      ref.tr('statusFilter').replaceAll(':', ''),
-                      (userModel?.status ?? 'active').toUpperCase(),
+                      ref.tr('status'),
+                      ref.trStatus(userModel?.status ?? 'active').toUpperCase(),
                     ),
                     _buildProfileRow(
                       ref.tr('department'),
@@ -158,7 +160,10 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     _buildProfileRow(
                       ref.tr('authProvider'),
-                      user?.providerData.firstOrNull?.providerId ?? 'password',
+                      ref.trAuthProvider(
+                        user?.providerData.firstOrNull?.providerId ??
+                            'password',
+                      ),
                     ),
                   ],
                 ),
@@ -441,14 +446,14 @@ class ProfileScreen extends ConsumerWidget {
                         if (newPassword.isNotEmpty) {
                           if (newPassword.length < 6) {
                             dialogSetState(
-                              () => errorMessage =
-                                  'Password must be at least 6 characters.',
+                              () => errorMessage = ref.tr('passwordMinLength'),
                             );
                             return;
                           }
                           if (newPassword != confirmPassword) {
                             dialogSetState(
-                              () => errorMessage = 'Passwords do not match.',
+                              () =>
+                                  errorMessage = ref.tr('passwordsDoNotMatch'),
                             );
                             return;
                           }
@@ -498,17 +503,17 @@ class ProfileScreen extends ConsumerWidget {
                           dialogSetState(() {
                             isLoading = false;
                             if (e.code == 'requires-recent-login') {
-                              errorMessage =
-                                  'For security reasons, changing your password requires recent login. Please sign out and sign back in before updating password.';
+                              errorMessage = ref.tr('requiresRecentLogin');
                             } else {
                               errorMessage =
-                                  e.message ?? 'Failed to update password.';
+                                  e.message ?? ref.tr('failedToUpdateProfile');
                             }
                           });
                         } catch (e) {
                           dialogSetState(() {
                             isLoading = false;
-                            errorMessage = 'Failed to update profile: $e';
+                            errorMessage =
+                                '${ref.tr('failedToUpdateProfile')}: $e';
                           });
                         }
                       },

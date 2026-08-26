@@ -213,9 +213,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.password_outlined),
-                      title: const Text('Presenter PIN'),
+                      title: Text(ref.tr('presenterPin')),
                       subtitle: Text(
-                        userModel?.kioskPin != null ? 'PIN is set' : 'Not set',
+                        userModel?.kioskPin != null
+                            ? ref.tr('pinIsSet')
+                            : ref.tr('pinNotSet'),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _showSetPinDialog(context, userModel!),
@@ -282,7 +284,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     leading: const Icon(Icons.gps_fixed),
                     title: Text(ref.tr('geofenceTol')),
                     subtitle: Text(
-                      '${userModel?.assignedLocationRadius?.toInt() ?? 500} meters from registered headquarters',
+                      '${userModel?.assignedLocationRadius?.toInt() ?? 500} ${ref.tr('metersFromHq')}',
                     ),
                   ),
                 ],
@@ -400,20 +402,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showAutoLockPicker(BuildContext context) {
+    final options = [
+      {'val': '1 minute', 'label': ref.tr('1minute')},
+      {'val': '5 minutes', 'label': ref.tr('5minutes')},
+      {'val': '15 minutes', 'label': ref.tr('15minutes')},
+      {'val': 'Never', 'label': ref.tr('never')},
+    ];
+
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: Text(ref.tr('autoLock')),
-        children:
-            ['1 minute', '5 minutes', '15 minutes', 'Never'].map((option) {
+        children: options.map((opt) {
           return SimpleDialogOption(
             onPressed: () {
-              ref.read(userSettingsProvider.notifier).updateLock(option);
+              ref.read(userSettingsProvider.notifier).updateLock(opt['val']!);
               Navigator.pop(ctx);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(option),
+              child: Text(opt['label']!),
             ),
           );
         }).toList(),
@@ -426,13 +434,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Set Presenter PIN'),
+        title: Text(ref.tr('setPresenterPin')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'This PIN is required to exit the full-screen QR generator mode.',
-              style: TextStyle(fontSize: 14),
+            Text(
+              ref.tr('pinHelpText'),
+              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -440,9 +448,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               keyboardType: TextInputType.number,
               maxLength: 6,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Enter PIN (4-6 digits)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: ref.tr('enterPinLength'),
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -457,7 +465,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               final pin = controller.text.trim();
               if (pin.length < 4 || pin.length > 6) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PIN must be 4 to 6 digits')),
+                  SnackBar(content: Text(ref.tr('pinLengthError'))),
                 );
                 return;
               }
@@ -469,20 +477,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Presenter PIN saved successfully'),
+                    SnackBar(
+                      content: Text(ref.tr('pinSaved')),
                     ),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to save PIN: $e')),
+                    SnackBar(content: Text('${ref.tr('failedToSavePin')}: $e')),
                   );
                 }
               }
             },
-            child: const Text('Save'),
+            child: Text(ref.tr('save')),
           ),
         ],
       ),
@@ -494,10 +502,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(ref.tr('terms')),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Chez Le Pointage is an enterprise attendance verification system. By using this application, you agree to allow geolocation verification during attendance clock-in events to confirm presence within designated office parameters.',
-          ),
+        content: SingleChildScrollView(
+          child: Text(ref.tr('termsContent')),
         ),
         actions: [
           TextButton(
@@ -514,10 +520,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(ref.tr('privacy')),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Your location data is only accessed during active QR scanning and attendance registration events. Geolocation is used strictly for distance verification against official office coordinates and is stored securely in compliance with privacy regulations.',
-          ),
+        content: SingleChildScrollView(
+          child: Text(ref.tr('privacyContent')),
         ),
         actions: [
           TextButton(

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'core/services/language_provider.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -280,12 +282,25 @@ class ChezLePointageApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final currentLang = ref.watch(languageProvider);
 
     return MaterialApp.router(
       title: 'Chez Le Pointage',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
+      locale: Locale(currentLang.code),
+      supportedLocales: const [
+        Locale('en'),
+        Locale('fr'),
+        Locale('ar'),
+        Locale('es'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: ref.watch(appRouterProvider),
       debugShowCheckedModeBanner: false,
     );

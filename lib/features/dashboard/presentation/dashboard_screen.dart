@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/language_provider.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -225,7 +226,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            (userModel?.role ?? 'employee').toUpperCase(),
+                            ref
+                                .trRole(userModel?.role ?? 'employee')
+                                .toUpperCase(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -245,7 +248,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              DateFormat.yMMMMEEEEd().format(now),
+                              DateFormat.yMMMMEEEEd(
+                                ref.watch(languageProvider).code,
+                              ).format(now),
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 13,

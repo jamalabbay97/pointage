@@ -1824,12 +1824,69 @@ class AppTranslations {
         _localizedValues['en']?[key] ??
         key;
   }
+
+  static String roleLabel(String langCode, String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return text(langCode, 'admin');
+      case 'manager':
+        return text(langCode, 'manager');
+      case 'employee':
+      default:
+        return text(langCode, 'employee');
+    }
+  }
+
+  static String statusLabel(String langCode, String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return text(langCode, 'active');
+      case 'disabled':
+      case 'inactive':
+        return text(langCode, 'disabled');
+      case 'present':
+        return text(langCode, 'present');
+      case 'late':
+        return text(langCode, 'late');
+      case 'absent':
+        return text(langCode, 'absent');
+      case 'dayoff':
+      case 'day_off':
+        return text(langCode, 'dayOff');
+      default:
+        return status;
+    }
+  }
+
+  static String authProviderLabel(String langCode, String providerId) {
+    if (providerId.contains('password')) {
+      return text(langCode, 'password');
+    } else if (providerId.contains('google')) {
+      return 'Google';
+    }
+    return providerId;
+  }
 }
 
 extension AppTranslationsRef on WidgetRef {
   String tr(String key) {
     final lang = watch(languageProvider);
     return AppTranslations.text(lang.code, key);
+  }
+
+  String trRole(String role) {
+    final lang = watch(languageProvider);
+    return AppTranslations.roleLabel(lang.code, role);
+  }
+
+  String trStatus(String status) {
+    final lang = watch(languageProvider);
+    return AppTranslations.statusLabel(lang.code, status);
+  }
+
+  String trAuthProvider(String providerId) {
+    final lang = watch(languageProvider);
+    return AppTranslations.authProviderLabel(lang.code, providerId);
   }
 }
 

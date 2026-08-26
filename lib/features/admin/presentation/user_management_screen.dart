@@ -329,7 +329,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                     ),
                                   ),
                                   child: Text(
-                                    user.role.toUpperCase(),
+                                    ref.trRole(user.role).toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
@@ -479,12 +479,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
   String _userSubtitle(UserModel user, Map<String, String> managersById) {
     final managerId = user.managerId ?? user.createdBy;
-    final managerName = managerId == null
-        ? null
-        : managersById[managerId] ?? 'Manager ID: $managerId';
-    final managerLine = managerName == null ? '' : '\nCreated by: $managerName';
+    final managerName =
+        managerId == null ? null : managersById[managerId] ?? 'ID: $managerId';
+    final managerLine = managerName == null
+        ? ''
+        : '\n${ref.tr('createdByLine').replaceAll('{name}', managerName)}';
 
-    return '${user.email}\nDepartment: ${user.department}$managerLine';
+    return '${user.email}\n${ref.tr('departmentLine').replaceAll('{dept}', user.department)}$managerLine';
   }
 
   Color _getRoleColor(String role) {
@@ -555,16 +556,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       barrierDismissible: !isSaving,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEdit ? 'Edit User Details' : 'Create New User Account'),
+          title: Text(
+            isEdit ? ref.tr('editUserDetails') : ref.tr('createNewUserAccount'),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person_outline),
+                  decoration: InputDecoration(
+                    labelText: ref.tr('fullName'),
+                    prefixIcon: const Icon(Icons.person_outline),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -572,9 +575,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   controller: emailController,
                   enabled: !isEdit,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: ref.tr('emailAddress'),
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                 ),
                 if (!isEdit) ...[
@@ -583,14 +586,14 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     controller: passwordController,
                     obscureText: obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'Initial Password',
+                      labelText: ref.tr('initialPassword'),
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             icon: const Icon(Icons.refresh, size: 20),
-                            tooltip: 'Generate New Random Password',
+                            tooltip: ref.tr('generatePasswordTooltip'),
                             onPressed: () {
                               setDialogState(() {
                                 passwordController.text = _generatePassword();
@@ -618,32 +621,32 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: deptController,
-                  decoration: const InputDecoration(
-                    labelText: 'Department',
-                    prefixIcon: Icon(Icons.business_outlined),
+                  decoration: InputDecoration(
+                    labelText: ref.tr('department'),
+                    prefixIcon: const Icon(Icons.business_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   initialValue: role,
-                  decoration: const InputDecoration(
-                    labelText: 'Assigned Role',
-                    prefixIcon: Icon(Icons.shield_outlined),
+                  decoration: InputDecoration(
+                    labelText: ref.tr('assignedRole'),
+                    prefixIcon: const Icon(Icons.shield_outlined),
                   ),
                   items: [
                     if (canAssignPrivilegedRoles)
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: 'admin',
-                        child: Text('Admin (Full Access)'),
+                        child: Text(ref.tr('adminRoleOption')),
                       ),
                     if (canAssignPrivilegedRoles)
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: 'manager',
-                        child: Text('Manager (Dept Access)'),
+                        child: Text(ref.tr('managerRoleOption')),
                       ),
-                    const DropdownMenuItem(
+                    DropdownMenuItem(
                       value: 'employee',
-                      child: Text('Employee (Standard)'),
+                      child: Text(ref.tr('employeeRoleOption')),
                     ),
                   ],
                   onChanged: isCurrentUser || !canAssignPrivilegedRoles
@@ -669,7 +672,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           actions: [
             TextButton(
               onPressed: isSaving ? null : () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel'),
+              child: Text(ref.tr('cancel')),
             ),
             FilledButton(
               onPressed: isSaving
@@ -683,8 +686,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
                       if (name.isEmpty || emailVal.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please enter name and email'),
+                          SnackBar(
+                            content: Text(ref.tr('pleaseEnterNameEmail')),
                           ),
                         );
                         return;
@@ -693,9 +696,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       if (!isEdit &&
                           (passwordVal.isEmpty || passwordVal.length < 6)) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Password must be at least 6 characters'),
+                          SnackBar(
+                            content: Text(ref.tr('passwordMinLength')),
                           ),
                         );
                         return;
@@ -769,8 +771,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             Navigator.pop(dialogCtx);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content:
-                                    Text('User $name updated successfully'),
+                                content: Text(
+                                  ref
+                                      .tr('userUpdatedSuccess')
+                                      .replaceAll('{name}', name),
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -835,7 +840,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(isEdit ? 'Save Changes' : 'Create Account'),
+                  : Text(
+                      isEdit ? ref.tr('saveChanges') : ref.tr('createAccount'),
+                    ),
             ),
           ],
         ),
@@ -945,11 +952,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 10),
-            Text('User Account Created'),
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 10),
+            Text(ref.tr('userCreatedSuccessTitle')),
           ],
         ),
         content: Column(
@@ -957,7 +964,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Account for $name ($role) has been successfully initialized in Firebase.',
+              ref
+                  .tr('userCreatedSuccessSub')
+                  .replaceAll('{name}', name)
+                  .replaceAll('{role}', ref.trRole(role)),
             ),
             const SizedBox(height: 16),
             Container(
@@ -971,12 +981,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SelectableText(
-                    'Email: $email',
+                    '${ref.tr('emailAddress')}: $email',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   SelectableText(
-                    'Password: $password',
+                    '${ref.tr('password')}: $password',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.deepOrange,
@@ -986,16 +996,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'The user can now log in immediately using these credentials.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Text(
+              ref.tr('initialCredentialsInfo'),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Done'),
+            child: Text(ref.tr('done')),
           ),
         ],
       ),
@@ -1064,7 +1074,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Password reset email sent to ${user.email}'),
+            content: Text(
+              ref
+                  .tr('passwordResetEmailSent')
+                  .replaceAll('{email}', user.email),
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -1073,7 +1087,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send reset email: $e'),
+            content: Text(
+              ref
+                  .tr('failedToSendResetEmail')
+                  .replaceAll('{error}', e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -1085,16 +1103,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete User'),
+        title: Text(ref.tr('confirmDeleteUserTitle')),
         content: Text(
-          'This permanently removes ${user.displayName} from Firebase '
-          'Authentication and deletes related app records, so the same email '
-          'can be registered again later.',
+          ref
+              .tr('confirmDeleteUserBody')
+              .replaceAll('{name}', user.displayName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(ref.tr('cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -1103,9 +1121,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content:
-                          Text('You cannot delete your own admin account.'),
+                    SnackBar(
+                      content: Text(ref.tr('cannotDeleteOwnAccount')),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
@@ -1120,7 +1137,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '${user.displayName} was deleted from Firebase.',
+                        ref
+                            .tr('userDeletedSuccess')
+                            .replaceAll('{name}', user.displayName),
                       ),
                       backgroundColor: Colors.green,
                     ),
@@ -1138,7 +1157,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 }
               }
             },
-            child: const Text('Delete'),
+            child: Text(ref.tr('deleteUser')),
           ),
         ],
       ),
@@ -1178,16 +1197,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             color: Colors.teal,
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Location Override',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ref.tr('locationOverrideTitle'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
           ),
           if (hasLocation)
             TextButton.icon(
               icon: const Icon(Icons.clear, size: 16),
-              label: const Text('Clear'),
+              label: Text(ref.tr('clearLocation')),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               onPressed: () {
                 setDialogState(() {
@@ -1200,8 +1219,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       ),
       const SizedBox(height: 4),
       Text(
-        'Overrides the global Admin location for this employee. '
-        'Leave blank to use the Admin default.',
+        ref.tr('locationOverrideDesc'),
         style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
       ),
       const SizedBox(height: 12),
@@ -1214,9 +1232,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Latitude',
-                prefixIcon: Icon(Icons.explore_outlined, size: 18),
+              decoration: InputDecoration(
+                labelText: ref.tr('latitude'),
+                prefixIcon: const Icon(Icons.explore_outlined, size: 18),
                 isDense: true,
               ),
             ),
@@ -1229,9 +1247,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Longitude',
-                prefixIcon: Icon(Icons.explore_outlined, size: 18),
+              decoration: InputDecoration(
+                labelText: ref.tr('longitude'),
+                prefixIcon: const Icon(Icons.explore_outlined, size: 18),
                 isDense: true,
               ),
             ),
@@ -1242,9 +1260,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       TextField(
         controller: locationRadiusController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          labelText: 'Radius (meters)',
-          prefixIcon: Icon(Icons.radar_outlined, size: 18),
+        decoration: InputDecoration(
+          labelText: ref.tr('radiusMeters'),
+          prefixIcon: const Icon(Icons.radar_outlined, size: 18),
           isDense: true,
         ),
       ),
@@ -1253,7 +1271,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         width: double.infinity,
         child: OutlinedButton.icon(
           icon: const Icon(Icons.my_location, size: 16),
-          label: const Text('Use Current GPS Position'),
+          label: Text(ref.tr('useCurrentGps')),
           onPressed: () async {
             try {
               final pos = await Geolocator.getCurrentPosition(
@@ -1266,7 +1284,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             } catch (e) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Could not get GPS: $e')),
+                  SnackBar(
+                    content: Text('${ref.tr('couldNotGetGps')}: $e'),
+                  ),
                 );
               }
             }

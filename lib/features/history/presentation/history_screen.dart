@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/language_provider.dart';
 import '../../auth/domain/auth_provider.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -233,7 +234,8 @@ class _MonthFilterCardState extends ConsumerState<_MonthFilterCard> {
                   ),
                   Expanded(
                     child: Text(
-                      DateFormat('MMMM yyyy').format(widget.selectedMonth),
+                      DateFormat('MMMM yyyy', ref.watch(languageProvider).code)
+                          .format(widget.selectedMonth),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
