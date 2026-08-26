@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
 import '../../../core/theme/theme_provider.dart';
@@ -322,6 +324,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(ref.tr('privacy')),
                     trailing: const Icon(Icons.open_in_new, size: 18),
                     onTap: () => _showPrivacyModal(context),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.email_outlined),
+                    title: Text(ref.tr('contactDeveloper')),
+                    subtitle: const Text('jamal.abbay@gmail.com'),
+                    trailing: const Icon(Icons.mail, size: 18),
+                    onTap: () async {
+                      final uri = Uri.parse(
+                        'mailto:jamal.abbay@gmail.com?subject=App%20Pointage%20Feedback%20/%20Request',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                      } else if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Developer email: jamal.abbay@gmail.com'),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),

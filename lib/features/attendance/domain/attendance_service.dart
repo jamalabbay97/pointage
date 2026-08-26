@@ -201,6 +201,25 @@ class AttendanceService {
         ).toJson(),
       );
 
+      if (status == 'late') {
+        try {
+          final formattedScanTime = DateFormat('hh:mm a').format(now);
+          await _db.collection('notifications').add({
+            'title': 'Late Attendance Registered',
+            'body':
+                '$employeeName registered attendance late at $formattedScanTime (Designated time: 08:15 AM).',
+            'type': 'admin',
+            'senderId': employeeId,
+            'senderName': employeeName,
+            'createdAt': FieldValue.serverTimestamp(),
+            'readBy': <String>[],
+            'deletedBy': <String>[],
+          });
+        } catch (_) {
+          // Silent fallback if notification fails
+        }
+      }
+
       final formattedCheckIn = DateFormat('hh:mm a').format(checkInTime);
       return AttendanceScanResult(
         type: AttendanceType.checkIn,
