@@ -205,6 +205,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             duration: const Duration(seconds: 4),
           ),
         );
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/dashboard');
+        }
       }
       handled = false;
     } finally {
