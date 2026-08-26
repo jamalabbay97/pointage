@@ -127,7 +127,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw StateError('Not authenticated');
+      if (user == null) throw StateError('ERR:notAuthenticated');
 
       final db = FirebaseFirestore.instance;
       final userDoc = await db.collection('users').doc(user.uid).get();
@@ -138,8 +138,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       if (userRole == 'admin' || userRole == 'manager') {
         throw StateError(
           userRole == 'admin'
-              ? 'Administrators cannot check in or check out. Use the admin reports dashboard to manage employee attendance.'
-              : 'Managers are supervisors and cannot check in or check out.',
+              ? 'ERR:adminCannotCheckIn'
+              : 'ERR:managerCannotCheckIn',
         );
       }
 
@@ -156,12 +156,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         try {
           final isVerified = verifier.verify(code);
           if (!isVerified) {
-            throw StateError('Invalid or expired QR code signature.');
+            throw StateError('ERR:invalidQrCode');
           }
         } catch (e) {
-          throw StateError(
-            'QR Verification failed: ${e.toString().replaceAll('StateError: ', '')}',
-          );
+          final msg = e.toString().replaceAll('StateError: ', '');
+          if (msg.startsWith('ERR:')) throw StateError(msg);
+          throw StateError('ERR:qrVerificationFailed');
         }
       }
 
@@ -179,7 +179,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 10),
-                Expanded(child: Text(result.message)),
+                Expanded(child: Text(_localizeMessage(result.message))),
               ],
             ),
             backgroundColor: Colors.green,
@@ -194,14 +194,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final rawMsg = e
+            .toString()
+            .replaceAll('Exception: ', '')
+            .replaceAll('StateError: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e
-                  .toString()
-                  .replaceAll('Exception: ', '')
-                  .replaceAll('StateError: ', ''),
-            ),
+            content: Text(_localizeMessage(rawMsg)),
             backgroundColor: Colors.redAccent,
             duration: const Duration(seconds: 4),
           ),
@@ -211,6 +210,40 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     } finally {
       if (mounted) setState(() => processing = false);
     }
+  }
+
+  /// Decodes a structured ERR:/SUCCESS: code (from AttendanceService) into
+  /// a localized string for the current language. Falls back to the raw
+  /// message if the code is not recognized.
+  String _localizeMessage(String raw) {
+    if (raw.startsWith('ERR:')) {
+      final parts = raw.substring(4).split('|');
+      final key = parts[0];
+      switch (key) {
+        case 'notInOfficePerimeter':
+          // parts[1] = distance, parts[2] = allowed radius
+          final dist = parts.length > 1 ? parts[1] : '?';
+          final radius = parts.length > 2 ? parts[2] : '?';
+          return '${ref.tr('notInOfficePerimeter')} (${dist}m, max ${radius}m)';
+        default:
+          final localized = ref.tr(key);
+          // If the key was resolved (not returned as-is), use it;
+          // otherwise fall through to the raw message.
+          return localized != key ? localized : raw;
+      }
+    }
+    if (raw.startsWith('SUCCESS:')) {
+      final parts = raw.substring(8).split('|');
+      final type = parts[0];
+      final time = parts.length > 1 ? parts[1] : '';
+      if (type == 'checkIn') {
+        return ref.tr('checkInSuccess').replaceAll('{time}', time);
+      }
+      if (type == 'checkOut') {
+        return ref.tr('checkOutSuccess').replaceAll('{time}', time);
+      }
+    }
+    return raw;
   }
 
   String _accountOwnerName(Map<String, dynamic>? userData, User user) {

@@ -365,7 +365,7 @@ class AppTranslations {
       'connectionTimedOut': 'Connection timed out',
       'loginFailed': 'Login failed',
       'enterEmailFirst': 'Please enter your email address first',
-      'passwordResetEmailSent': 'Password reset email sent',
+      'passwordResetEmailSent': 'Password reset email sent to {email}',
       'biometricReason': 'Please authenticate to log in automatically',
 
       // ── Notifications Screen ──────────────────────────────────────────────────
@@ -454,6 +454,108 @@ class AppTranslations {
       'pdfColLateHrs': 'Late (Hrs)',
       'pdfPageOf': 'Page',
       'pdfOf': 'of',
+
+      // ── QR Scanner Screen ─────────────────────────────────────────────────────
+      'gpsRequired': 'GPS Location Required',
+      'alignQrCodeFrame': 'Align the QR code within the frame to scan',
+      'enableGps': 'Enable GPS',
+      'enableGpsToScan': 'Enable GPS to Scan',
+      'verifyingGeofence': 'Verifying location...',
+      'openSettings': 'Open Settings',
+      'invalidQrCode': 'Invalid or expired QR code. Please request a new one.',
+      'qrVerificationFailed': 'QR verification failed.',
+      'notInOfficePerimeter':
+          'You are outside the office attendance perimeter.',
+      'adminCannotCheckIn':
+          'Administrators cannot check in or out. Use the admin reports dashboard.',
+      'managerCannotCheckIn':
+          'Managers are supervisors and cannot check in or out.',
+      'notAuthenticated': 'You are not authenticated. Please sign in again.',
+      'noInternetAttendance':
+          'Internet connection is required for attendance registration.',
+      'gpsServiceRequired':
+          'GPS location service must be enabled on your device.',
+      'locationPermissionDenied':
+          'Location permission is required for attendance verification.',
+      'alreadyCompletedToday':
+          'You have already completed your check-in and check-out for today.',
+      'checkoutNotBefore1030':
+          'Check-out is not allowed before 10:30 AM. Please work at least half a day before checking out.',
+      'checkInSuccess': 'Check-in registered successfully at {time}!',
+      'checkOutSuccess': 'Check-out registered successfully at {time}!',
+
+      // ── Dashboard Quick Services ──────────────────────────────────────────────
+      'viewPunchHistory': 'View your punch-in/out history',
+
+      // ── User Management missing keys ──────────────────────────────────────────
+      'createNewUserAccount': 'Create New User Account',
+      'editUserDetails': 'Edit User Details',
+      'initialPassword': 'Initial Password',
+      'assignedRole': 'Assigned Role',
+      'adminRoleOption': 'Admin (Full Access)',
+      'managerRoleOption': 'Manager (Dept Access)',
+      'employeeRoleOption': 'Employee (Standard)',
+      'createAccount': 'Create Account',
+      'saveChanges': 'Save Changes',
+      'generatePasswordTooltip': 'Generate New Random Password',
+      'pleaseEnterNameEmail': 'Please enter name and email',
+      'passwordMinLength': 'Password must be at least 6 characters',
+      'passwordsDoNotMatch': 'Passwords do not match',
+      'requiresRecentLogin':
+          'For security, please sign out and sign back in before changing your password.',
+      'failedToUpdateProfile': 'Failed to update profile',
+      'profileUpdated': 'Profile updated successfully',
+      'userUpdatedSuccess': 'User {name} updated successfully',
+      'userCreatedSuccessTitle': 'User Account Created',
+      'userCreatedSuccessSub':
+          'Account for {name} ({role}) has been successfully initialized.',
+      'initialCredentialsInfo':
+          'The user can now log in immediately using these credentials.',
+      'done': 'Done',
+      'departmentLine': 'Department: {dept}',
+      'createdByLine': 'Created by: {name}',
+      'failedToSendResetEmail': 'Failed to send reset email: {error}',
+      'confirmDeleteUserTitle': 'Delete User',
+      'confirmDeleteUserBody':
+          'This permanently removes {name} from Firebase Authentication and deletes related app records.',
+      'cannotDeleteOwnAccount': 'You cannot delete your own admin account.',
+      'userDeletedSuccess': '{name} was deleted successfully.',
+
+      // ── Settings missing keys ─────────────────────────────────────────────────
+      'pinIsSet': 'PIN is set',
+      'pinNotSet': 'Not set',
+      'metersFromHq': 'meters from registered headquarters',
+      'setPresenterPin': 'Set Presenter PIN',
+      'pinHelpText':
+          'This PIN is required to exit the full-screen QR generator mode.',
+      'enterPinLength': 'Enter PIN (4-6 digits)',
+      'pinLengthError': 'PIN must be 4 to 6 digits',
+      '1minute': '1 minute',
+      '5minutes': '5 minutes',
+      '15minutes': '15 minutes',
+      'never': 'Never',
+      'authProvider': 'Authentication Provider',
+      'editProfile': 'Edit Profile',
+      'profilePicture': 'Profile Picture',
+      'accountInfo': 'Account Information',
+      'leaveBlankPassword': 'Leave blank to keep current password',
+      'newPassword': 'New Password',
+      'confirmNewPassword': 'Confirm New Password',
+      'gallery': 'Gallery',
+      'camera': 'Camera',
+      'remove': 'Remove',
+
+      // ── Attendance Reports missing keys ───────────────────────────────────────
+      'searchByEmployeeDateDeviceStatus':
+          'Search by employee, date, device, or status...',
+
+      // ── Location Override missing keys ────────────────────────────────────────
+      'locationOverrideTitle': 'Location Override',
+      'locationOverrideDesc':
+          'Overrides the global Admin location for this employee. Leave blank to use the Admin default.',
+      'clearLocation': 'Clear',
+      'useCurrentGps': 'Use Current GPS Position',
+      'couldNotGetGps': 'Could not get GPS location',
     },
     'fr': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -823,7 +925,7 @@ class AppTranslations {
       'loginFailed': 'Connexion échouée',
       'enterEmailFirst': 'Veuillez d\'abord saisir votre adresse e-mail',
       'passwordResetEmailSent':
-          'E-mail de réinitialisation de mot de passe envoyé',
+          'E-mail de réinitialisation de mot de passe envoyé à {email}',
       'biometricReason':
           'Veuillez vous authentifier pour vous connecter automatiquement',
 
@@ -913,6 +1015,113 @@ class AppTranslations {
       'pdfColLateHrs': 'Retard (h)',
       'pdfPageOf': 'Page',
       'pdfOf': 'sur',
+
+      // ── QR Scanner Screen ─────────────────────────────────────────────────────
+      'gpsRequired': 'Localisation GPS requise',
+      'alignQrCodeFrame': 'Alignez le code QR dans le cadre pour scanner',
+      'enableGps': 'Activer le GPS',
+      'enableGpsToScan': 'Activer le GPS pour scanner',
+      'verifyingGeofence': 'Vérification de la localisation...',
+      'openSettings': 'Ouvrir les paramètres',
+      'invalidQrCode':
+          'Code QR invalide ou expiré. Veuillez en demander un nouveau.',
+      'qrVerificationFailed': 'Échec de la vérification du code QR.',
+      'notInOfficePerimeter':
+          'Vous êtes en dehors du périmètre de présence du bureau.',
+      'adminCannotCheckIn':
+          'Les administrateurs ne peuvent pas pointer. Utilisez le tableau de bord des rapports.',
+      'managerCannotCheckIn':
+          'Les responsables sont des superviseurs et ne peuvent pas pointer.',
+      'notAuthenticated':
+          "Vous n'êtes pas authentifié. Veuillez vous reconnecter.",
+      'noInternetAttendance':
+          "Une connexion Internet est requise pour l'enregistrement de la présence.",
+      'gpsServiceRequired':
+          'Le service GPS doit être activé sur votre appareil.',
+      'locationPermissionDenied':
+          "L'autorisation de localisation est requise pour la vérification de présence.",
+      'alreadyCompletedToday':
+          "Vous avez déjà effectué votre pointage d'entrée et de sortie aujourd'hui.",
+      'checkoutNotBefore1030':
+          "La sortie n'est pas autorisée avant 10h30. Vous devez travailler au moins une demi-journée avant de pointer la sortie.",
+      'checkInSuccess': 'Pointage d\'entrée enregistré avec succès à {time}!',
+      'checkOutSuccess': 'Pointage de sortie enregistré avec succès à {time}!',
+
+      // ── Dashboard Quick Services ──────────────────────────────────────────────
+      'viewPunchHistory': 'Voir l\'historique de vos pointages',
+
+      // ── User Management missing keys ──────────────────────────────────────────
+      'createNewUserAccount': 'Créer un nouveau compte utilisateur',
+      'editUserDetails': 'Modifier les détails utilisateur',
+      'initialPassword': 'Mot de passe initial',
+      'assignedRole': 'Rôle attribué',
+      'adminRoleOption': 'Administrateur (Accès complet)',
+      'managerRoleOption': 'Responsable (Accès département)',
+      'employeeRoleOption': 'Employé (Standard)',
+      'createAccount': 'Créer le compte',
+      'saveChanges': 'Enregistrer les modifications',
+      'generatePasswordTooltip': 'Générer un nouveau mot de passe aléatoire',
+      'pleaseEnterNameEmail': 'Veuillez saisir le nom et l\'e-mail',
+      'passwordMinLength':
+          'Le mot de passe doit comporter au moins 6 caractères',
+      'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
+      'requiresRecentLogin':
+          'Pour des raisons de sécurité, veuillez vous déconnecter et vous reconnecter avant de changer votre mot de passe.',
+      'failedToUpdateProfile': 'Échec de la mise à jour du profil',
+      'profileUpdated': 'Profil mis à jour avec succès',
+      'userUpdatedSuccess': 'Utilisateur {name} mis à jour avec succès',
+      'userCreatedSuccessTitle': 'Compte utilisateur créé',
+      'userCreatedSuccessSub':
+          'Le compte pour {name} ({role}) a été initialisé avec succès.',
+      'initialCredentialsInfo':
+          'L\'utilisateur peut maintenant se connecter avec ces identifiants.',
+      'done': 'Terminé',
+      'departmentLine': 'Département : {dept}',
+      'createdByLine': 'Créé par : {name}',
+      'failedToSendResetEmail': 'Échec de l\'envoi de l\'e-mail : {error}',
+      'confirmDeleteUserTitle': 'Supprimer l\'utilisateur',
+      'confirmDeleteUserBody':
+          'Cela supprime définitivement {name} de Firebase Authentication et efface ses enregistrements.',
+      'cannotDeleteOwnAccount':
+          'Vous ne pouvez pas supprimer votre propre compte administrateur.',
+      'userDeletedSuccess': '{name} a été supprimé avec succès.',
+
+      // ── Settings missing keys ─────────────────────────────────────────────────
+      'pinIsSet': 'Code PIN configuré',
+      'pinNotSet': 'Non configuré',
+      'metersFromHq': 'mètres du siège social enregistré',
+      'setPresenterPin': 'Définir le code PIN présentateur',
+      'pinHelpText':
+          'Ce code PIN est requis pour quitter le mode plein écran du générateur QR.',
+      'enterPinLength': 'Entrez le code PIN (4-6 chiffres)',
+      'pinLengthError': 'Le PIN doit comporter 4 à 6 chiffres',
+      '1minute': '1 minute',
+      '5minutes': '5 minutes',
+      '15minutes': '15 minutes',
+      'never': 'Jamais',
+      'authProvider': 'Fournisseur d\'authentification',
+      'editProfile': 'Modifier le profil',
+      'profilePicture': 'Photo de profil',
+      'accountInfo': 'Informations du compte',
+      'leaveBlankPassword':
+          'Laisser vide pour conserver le mot de passe actuel',
+      'newPassword': 'Nouveau mot de passe',
+      'confirmNewPassword': 'Confirmer le nouveau mot de passe',
+      'gallery': 'Galerie',
+      'camera': 'Caméra',
+      'remove': 'Supprimer',
+
+      // ── Attendance Reports missing keys ───────────────────────────────────────
+      'searchByEmployeeDateDeviceStatus':
+          'Rechercher par employé, date, appareil ou statut...',
+
+      // ── Location Override missing keys ────────────────────────────────────────
+      'locationOverrideTitle': 'Override de localisation',
+      'locationOverrideDesc':
+          'Remplace la localisation Admin globale pour cet employé. Laisser vide pour utiliser la valeur par défaut.',
+      'clearLocation': 'Effacer',
+      'useCurrentGps': 'Utiliser la position GPS actuelle',
+      'couldNotGetGps': 'Impossible d\'obtenir la position GPS',
     },
     'ar': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1270,7 +1479,8 @@ class AppTranslations {
       'connectionTimedOut': 'انتهت مهلة الاتصال',
       'loginFailed': 'فشل تسجيل الدخول',
       'enterEmailFirst': 'يرجى إدخال عنوان البريد الإلكتروني أولاً',
-      'passwordResetEmailSent': 'تم إرسال بريد إعادة تعيين كلمة المرور',
+      'passwordResetEmailSent':
+          'تم إرسال بريد إعادة تعيين كلمة المرور إلى {email}',
       'biometricReason': 'يرجى المصادقة لتسجيل الدخول تلقائياً',
 
       // ── Notifications Screen ──────────────────────────────────────────────────
@@ -1359,6 +1569,102 @@ class AppTranslations {
       'pdfColLateHrs': 'التأخر (ساعات)',
       'pdfPageOf': 'صفحة',
       'pdfOf': 'من',
+
+      // ── QR Scanner Screen ─────────────────────────────────────────────────────
+      'gpsRequired': 'إذن الموقع مطلوب',
+      'alignQrCodeFrame': 'ضع رمز QR داخل الإطار للمسح',
+      'enableGps': 'تفعيل GPS',
+      'enableGpsToScan': 'فعّل GPS للمسح الضوئي',
+      'verifyingGeofence': 'جار التحقق من الموقع...',
+      'openSettings': 'فتح الإعدادات',
+      'invalidQrCode': 'رمز QR غير صالح أو منتهي الصلاحية. يرجى طلب رمز جديد.',
+      'qrVerificationFailed': 'فشل التحقق من رمز QR.',
+      'notInOfficePerimeter': 'أنت خارج محيط الحضور المسموح به في المكتب.',
+      'adminCannotCheckIn':
+          'لا يمكن للمسؤولين تسجيل الدخول أو الخروج. استخدم لوحة تقارير الحضور.',
+      'managerCannotCheckIn':
+          'المديرون مشرفون ولا يمكنهم تسجيل الدخول أو الخروج.',
+      'notAuthenticated': 'أنت غير مصادق عليك. يرجى تسجيل الدخول مجدداً.',
+      'noInternetAttendance': 'الاتصال بالإنترنت مطلوب لتسجيل الحضور.',
+      'gpsServiceRequired': 'يجب تفعيل خدمة GPS على جهازك.',
+      'locationPermissionDenied': 'إذن الموقع مطلوب للتحقق من الحضور.',
+      'alreadyCompletedToday':
+          'لقد أكملت تسجيل الدخول والخروج لهذا اليوم بالفعل.',
+      'checkoutNotBefore1030':
+          'لا يُسمح بتسجيل الخروج قبل الساعة 10:30 صباحاً. يجب العمل نصف يوم على الأقل قبل الخروج.',
+      'checkInSuccess': 'تم تسجيل الدخول بنجاح في {time}!',
+      'checkOutSuccess': 'تم تسجيل الخروج بنجاح في {time}!',
+
+      // ── Dashboard Quick Services ──────────────────────────────────────────────
+      'viewPunchHistory': 'عرض سجل تسجيلات الدخول والخروج',
+
+      // ── User Management missing keys ──────────────────────────────────────────
+      'createNewUserAccount': 'إنشاء حساب مستخدم جديد',
+      'editUserDetails': 'تعديل تفاصيل المستخدم',
+      'initialPassword': 'كلمة المرور الأولية',
+      'assignedRole': 'الدور المعيّن',
+      'adminRoleOption': 'مسؤول النظام (صلاحية كاملة)',
+      'managerRoleOption': 'مدير (صلاحية القسم)',
+      'employeeRoleOption': 'موظف (قياسي)',
+      'createAccount': 'إنشاء الحساب',
+      'saveChanges': 'حفظ التغييرات',
+      'generatePasswordTooltip': 'إنشاء كلمة مرور عشوائية جديدة',
+      'pleaseEnterNameEmail': 'يرجى إدخال الاسم والبريد الإلكتروني',
+      'passwordMinLength': 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+      'passwordsDoNotMatch': 'كلمتا المرور غير متطابقتين',
+      'requiresRecentLogin':
+          'لأسباب أمنية، يرجى تسجيل الخروج وإعادة تسجيل الدخول قبل تغيير كلمة المرور.',
+      'failedToUpdateProfile': 'فشل تحديث الملف الشخصي',
+      'profileUpdated': 'تم تحديث الملف الشخصي بنجاح',
+      'userUpdatedSuccess': 'تم تحديث المستخدم {name} بنجاح',
+      'userCreatedSuccessTitle': 'تم إنشاء حساب المستخدم',
+      'userCreatedSuccessSub': 'تم تهيئة حساب {name} ({role}) بنجاح.',
+      'initialCredentialsInfo':
+          'يمكن للمستخدم الآن تسجيل الدخول باستخدام هذه البيانات.',
+      'done': 'تم',
+      'departmentLine': 'القسم: {dept}',
+      'createdByLine': 'أنشأه: {name}',
+      'failedToSendResetEmail': 'فشل إرسال البريد: {error}',
+      'confirmDeleteUserTitle': 'حذف المستخدم',
+      'confirmDeleteUserBody':
+          'سيؤدي هذا إلى حذف {name} بشكل دائم من Firebase Authentication وإزالة سجلاته.',
+      'cannotDeleteOwnAccount': 'لا يمكنك حذف حساب المسؤول الخاص بك.',
+      'userDeletedSuccess': 'تم حذف {name} بنجاح.',
+
+      // ── Settings missing keys ─────────────────────────────────────────────────
+      'pinIsSet': 'رمز PIN مضبوط',
+      'pinNotSet': 'غير مضبوط',
+      'metersFromHq': 'متر من المقر الرئيسي المسجّل',
+      'setPresenterPin': 'تعيين رمز PIN للعرض',
+      'pinHelpText': 'هذا الرمز مطلوب للخروج من وضع ملء الشاشة لمولّد رمز QR.',
+      'enterPinLength': 'أدخل رمز PIN (4-6 أرقام)',
+      'pinLengthError': 'يجب أن يكون PIN من 4 إلى 6 أرقام',
+      '1minute': 'دقيقة واحدة',
+      '5minutes': '5 دقائق',
+      '15minutes': '15 دقيقة',
+      'never': 'أبداً',
+      'authProvider': 'مزود المصادقة',
+      'editProfile': 'تعديل الملف الشخصي',
+      'profilePicture': 'صورة الملف الشخصي',
+      'accountInfo': 'معلومات الحساب',
+      'leaveBlankPassword': 'اتركه فارغاً للإبقاء على كلمة المرور الحالية',
+      'newPassword': 'كلمة المرور الجديدة',
+      'confirmNewPassword': 'تأكيد كلمة المرور الجديدة',
+      'gallery': 'المعرض',
+      'camera': 'الكاميرا',
+      'remove': 'إزالة',
+
+      // ── Attendance Reports missing keys ───────────────────────────────────────
+      'searchByEmployeeDateDeviceStatus':
+          'البحث حسب الموظف أو التاريخ أو الجهاز أو الحالة...',
+
+      // ── Location Override missing keys ────────────────────────────────────────
+      'locationOverrideTitle': 'تجاوز الموقع',
+      'locationOverrideDesc':
+          'يتجاوز موقع المسؤول العام لهذا الموظف. اتركه فارغاً لاستخدام الإعداد الافتراضي.',
+      'clearLocation': 'مسح',
+      'useCurrentGps': 'استخدام موقع GPS الحالي',
+      'couldNotGetGps': 'تعذّر الحصول على موقع GPS',
     },
     'es': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1726,7 +2032,7 @@ class AppTranslations {
       'loginFailed': 'Error al iniciar sesión',
       'enterEmailFirst': 'Por favor ingrese su correo electrónico primero',
       'passwordResetEmailSent':
-          'Correo de restablecimiento de contraseña enviado',
+          'Correo de restablecimiento de contraseña enviado a {email}',
       'biometricReason':
           'Por favor autentíquese para iniciar sesión automáticamente',
 
@@ -1816,6 +2122,112 @@ class AppTranslations {
       'pdfColLateHrs': 'Retraso (hrs)',
       'pdfPageOf': 'Página',
       'pdfOf': 'de',
+
+      // ── QR Scanner Screen ─────────────────────────────────────────────────────
+      'gpsRequired': 'Permiso de ubicación requerido',
+      'alignQrCodeFrame':
+          'Alinea el código QR dentro del marco para escanearlo',
+      'enableGps': 'Activar GPS',
+      'enableGpsToScan': 'Activa el GPS para escanear',
+      'verifyingGeofence': 'Verificando ubicación...',
+      'openSettings': 'Abrir configuración',
+      'invalidQrCode': 'Código QR inválido o expirado. Solicite uno nuevo.',
+      'qrVerificationFailed': 'Falló la verificación del código QR.',
+      'notInOfficePerimeter':
+          'Está fuera del perímetro de asistencia de la oficina.',
+      'adminCannotCheckIn':
+          'Los administradores no pueden registrar entrada o salida. Use el panel de informes.',
+      'managerCannotCheckIn':
+          'Los gerentes son supervisores y no pueden registrar entrada o salida.',
+      'notAuthenticated':
+          'No está autenticado. Por favor inicie sesión de nuevo.',
+      'noInternetAttendance':
+          'Se requiere conexión a Internet para el registro de asistencia.',
+      'gpsServiceRequired':
+          'El servicio GPS debe estar activado en su dispositivo.',
+      'locationPermissionDenied':
+          'Se requiere permiso de ubicación para la verificación de asistencia.',
+      'alreadyCompletedToday':
+          'Ya ha completado su registro de entrada y salida de hoy.',
+      'checkoutNotBefore1030':
+          'No se permite registrar salida antes de las 10:30 AM. Debe trabajar al menos medio día antes de salir.',
+      'checkInSuccess': '¡Entrada registrada con éxito a las {time}!',
+      'checkOutSuccess': '¡Salida registrada con éxito a las {time}!',
+
+      // ── Dashboard Quick Services ──────────────────────────────────────────────
+      'viewPunchHistory': 'Ver historial de registros de entrada/salida',
+
+      // ── User Management missing keys ──────────────────────────────────────────
+      'createNewUserAccount': 'Crear una nueva cuenta de usuario',
+      'editUserDetails': 'Editar detalles del usuario',
+      'initialPassword': 'Contraseña inicial',
+      'assignedRole': 'Rol asignado',
+      'adminRoleOption': 'Administrador (Acceso completo)',
+      'managerRoleOption': 'Gerente (Acceso departamental)',
+      'employeeRoleOption': 'Empleado (Estándar)',
+      'createAccount': 'Crear cuenta',
+      'saveChanges': 'Guardar cambios',
+      'generatePasswordTooltip': 'Generar nueva contraseña aleatoria',
+      'pleaseEnterNameEmail':
+          'Por favor ingrese el nombre y el correo electrónico',
+      'passwordMinLength': 'La contraseña debe tener al menos 6 caracteres',
+      'passwordsDoNotMatch': 'Las contraseñas no coinciden',
+      'requiresRecentLogin':
+          'Por seguridad, cierre sesión e inicie sesión de nuevo antes de cambiar la contraseña.',
+      'failedToUpdateProfile': 'Error al actualizar el perfil',
+      'profileUpdated': 'Perfil actualizado con éxito',
+      'userUpdatedSuccess': 'Usuario {name} actualizado con éxito',
+      'userCreatedSuccessTitle': 'Cuenta de usuario creada',
+      'userCreatedSuccessSub':
+          'La cuenta para {name} ({role}) ha sido inicializada con éxito.',
+      'initialCredentialsInfo':
+          'El usuario ya puede iniciar sesión con estas credenciales.',
+      'done': 'Listo',
+      'departmentLine': 'Departamento: {dept}',
+      'createdByLine': 'Creado por: {name}',
+      'failedToSendResetEmail': 'Error al enviar correo: {error}',
+      'confirmDeleteUserTitle': 'Eliminar usuario',
+      'confirmDeleteUserBody':
+          'Esto elimina permanentemente a {name} de Firebase Authentication y borra sus registros.',
+      'cannotDeleteOwnAccount':
+          'No puede eliminar su propia cuenta de administrador.',
+      'userDeletedSuccess': '{name} fue eliminado con éxito.',
+
+      // ── Settings missing keys ─────────────────────────────────────────────────
+      'pinIsSet': 'PIN configurado',
+      'pinNotSet': 'No configurado',
+      'metersFromHq': 'metros desde la sede registrada',
+      'setPresenterPin': 'Establecer PIN de presentador',
+      'pinHelpText':
+          'Este PIN es necesario para salir del modo de pantalla completa del generador QR.',
+      'enterPinLength': 'Ingrese el PIN (4-6 dígitos)',
+      'pinLengthError': 'El PIN debe tener entre 4 y 6 dígitos',
+      '1minute': '1 minuto',
+      '5minutes': '5 minutos',
+      '15minutes': '15 minutos',
+      'never': 'Nunca',
+      'authProvider': 'Proveedor de autenticación',
+      'editProfile': 'Editar perfil',
+      'profilePicture': 'Foto de perfil',
+      'accountInfo': 'Información de la cuenta',
+      'leaveBlankPassword': 'Deje en blanco para mantener la contraseña actual',
+      'newPassword': 'Nueva contraseña',
+      'confirmNewPassword': 'Confirmar nueva contraseña',
+      'gallery': 'Galería',
+      'camera': 'Cámara',
+      'remove': 'Eliminar',
+
+      // ── Attendance Reports missing keys ───────────────────────────────────────
+      'searchByEmployeeDateDeviceStatus':
+          'Buscar por empleado, fecha, dispositivo o estado...',
+
+      // ── Location Override missing keys ────────────────────────────────────────
+      'locationOverrideTitle': 'Anulación de ubicación',
+      'locationOverrideDesc':
+          'Anula la ubicación Admin global para este empleado. Deje en blanco para usar el valor predeterminado.',
+      'clearLocation': 'Borrar',
+      'useCurrentGps': 'Usar posición GPS actual',
+      'couldNotGetGps': 'No se pudo obtener la posición GPS',
     },
   };
 

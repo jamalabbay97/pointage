@@ -204,8 +204,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     leading: const Icon(Icons.timer_outlined),
                     title: Text(ref.tr('autoLock')),
-                    subtitle:
-                        Text(userSettings?.autoLockTimeout ?? '5 minutes'),
+                    subtitle: Text(
+                      _localizedAutoLock(
+                        userSettings?.autoLockTimeout ?? '5 minutes',
+                      ),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showAutoLockPicker(context),
                   ),
@@ -399,6 +402,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  /// Maps the stored English auto-lock value to a localized display label.
+  String _localizedAutoLock(String storedValue) {
+    switch (storedValue) {
+      case '1 minute':
+        return ref.tr('1minute');
+      case '5 minutes':
+        return ref.tr('5minutes');
+      case '15 minutes':
+        return ref.tr('15minutes');
+      case 'Never':
+        return ref.tr('never');
+      default:
+        return storedValue;
+    }
   }
 
   void _showAutoLockPicker(BuildContext context) {

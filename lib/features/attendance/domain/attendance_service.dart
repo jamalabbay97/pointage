@@ -71,13 +71,11 @@ class AttendanceService {
 
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.none)) {
-      throw StateError(
-        'Internet connection is required for attendance registration.',
-      );
+      throw StateError('ERR:noInternetAttendance');
     }
 
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw StateError('GPS location service must be enabled on your device.');
+      throw StateError('ERR:gpsServiceRequired');
     }
 
     var permission = await Geolocator.checkPermission();
@@ -86,9 +84,7 @@ class AttendanceService {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw StateError(
-        'Location permission is required for attendance verification.',
-      );
+      throw StateError('ERR:locationPermissionDenied');
     }
 
     final position = await Geolocator.getCurrentPosition(
@@ -105,7 +101,7 @@ class AttendanceService {
     // Honor allowRemoteClockIn setting from admin system settings
     if (!settings.allowRemoteClockIn && distance > effectiveRadius) {
       throw StateError(
-        'You are outside the allowed office attendance perimeter (${distance.toInt()}m from HQ, allowed limit is ${effectiveRadius.toInt()}m).',
+        'ERR:notInOfficePerimeter|${distance.toInt()}|${effectiveRadius.toInt()}',
       );
     }
 
@@ -139,17 +135,13 @@ class AttendanceService {
     if (docSnap.exists) {
       final existingData = docSnap.data();
       if (existingData != null && existingData['checkoutTime'] != null) {
-        throw StateError(
-          'You have already completed your check-in and check-out for today.',
-        );
+        throw StateError('ERR:alreadyCompletedToday');
       }
 
       // Check-out rule 1: Before 10:30 AM, scan is not allowed
       final isBefore1030 = now.hour < 10 || (now.hour == 10 && now.minute < 30);
       if (isBefore1030) {
-        throw StateError(
-          'Check-out is not allowed before 10:30 AM. Employees must work at least half a day before checking out.',
-        );
+        throw StateError('ERR:checkoutNotBefore1030');
       }
 
       // Check-out rule 2: At or after 10:30 AM, record actual scan time
@@ -165,7 +157,7 @@ class AttendanceService {
       return AttendanceScanResult(
         type: AttendanceType.checkOut,
         recordTime: now,
-        message: 'Check-out successfully registered at $formattedCheckout!',
+        message: 'SUCCESS:checkOut|$formattedCheckout',
       );
     } else {
       // Check-in logic:
@@ -213,7 +205,7 @@ class AttendanceService {
       return AttendanceScanResult(
         type: AttendanceType.checkIn,
         recordTime: checkInTime,
-        message: 'Check-in successfully registered at $formattedCheckIn!',
+        message: 'SUCCESS:checkIn|$formattedCheckIn',
       );
     }
   }
