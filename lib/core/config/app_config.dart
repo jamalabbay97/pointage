@@ -13,19 +13,28 @@ class AppConfig {
   static Future<String> resolveAdminApiBaseUrl(FirebaseFirestore db) async {
     final fromEnvironment = adminApiBaseUrlFromEnvironment.trim();
     if (fromEnvironment.isNotEmpty) {
-      return fromEnvironment;
+      return _sanitizeUrl(fromEnvironment);
     }
 
     try {
       final doc = await db.collection('settings').doc('company').get();
       final fromSettings = doc.data()?['adminApiBaseUrl'];
       if (fromSettings is String && fromSettings.trim().isNotEmpty) {
-        return fromSettings.trim();
+        return _sanitizeUrl(fromSettings);
       }
     } catch (_) {
-      // Fall through to empty string.
+      // Fall through to default URL.
     }
 
-    return '';
+    return _sanitizeUrl('https://pointage-api-zrot.onrender.com');
+  }
+
+  static String _sanitizeUrl(String url) {
+    var trimmed = url.trim();
+    while (trimmed.endsWith('/')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1);
+    }
+    return trimmed;
   }
 }
+

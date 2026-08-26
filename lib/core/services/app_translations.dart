@@ -368,6 +368,23 @@ class AppTranslations {
       'enterEmailFirst': 'Please enter your email address first',
       'passwordResetEmailSent': 'Password reset email sent to {email}',
       'biometricReason': 'Please authenticate to log in automatically',
+      'enterEmailOrPhone':
+          'Enter your registered email address or phone number to recover your password.',
+      'emailOrPhoneLabel': 'Email or Phone Number',
+      'invalidEmailOrPhone':
+          'Please enter a valid email address or phone number',
+      'phoneUserNotFound': 'No user account found matching this phone number',
+      'recoverySentPhone':
+          'Password recovery instructions sent to account linked to {phone}',
+      'phoneNumber': 'Phone Number',
+      'phoneNumberHint': 'e.g. +1234567890 or 0612345678',
+      'recoverPassword': 'Recover Password',
+      'enterOtp': 'Enter the 6-digit verification code sent to {phone}',
+      'otpCode': 'Verification Code (OTP)',
+      'invalidOtp': 'Invalid or expired verification code',
+      'setNewPassword': 'Set New Password',
+      'passwordUpdatedSuccess':
+          'Password updated successfully! You can now log in with your new password.',
 
       // ── Notifications Screen ──────────────────────────────────────────────────
       'notifications': 'Notifications',
@@ -930,6 +947,25 @@ class AppTranslations {
           'E-mail de réinitialisation de mot de passe envoyé à {email}',
       'biometricReason':
           'Veuillez vous authentifier pour vous connecter automatiquement',
+      'enterEmailOrPhone':
+          'Saisissez votre adresse e-mail ou votre numéro de téléphone pour récupérer votre mot de passe.',
+      'emailOrPhoneLabel': 'E-mail ou numéro de téléphone',
+      'invalidEmailOrPhone':
+          'Veuillez saisir une adresse e-mail ou un numéro de téléphone valide',
+      'phoneUserNotFound':
+          'Aucun compte utilisateur trouvé correspondant à ce numéro de téléphone',
+      'recoverySentPhone':
+          'Instructions de récupération du mot de passe envoyées au compte associé au {phone}',
+      'phoneNumber': 'Numéro de téléphone',
+      'phoneNumberHint': 'ex. +1234567890 ou 0612345678',
+      'recoverPassword': 'Récupérer le mot de passe',
+      'enterOtp':
+          'Saisissez le code de vérification à 6 chiffres envoyé au {phone}',
+      'otpCode': 'Code de vérification (OTP)',
+      'invalidOtp': 'Code de vérification invalide ou expiré',
+      'setNewPassword': 'Définir un nouveau mot de passe',
+      'passwordUpdatedSuccess':
+          'Mot de passe mis à jour avec succès ! Vous pouvez maintenant vous connecter.',
 
       // ── Notifications Screen ──────────────────────────────────────────────────
       'notifications': 'Notifications',
@@ -1485,6 +1521,24 @@ class AppTranslations {
       'passwordResetEmailSent':
           'تم إرسال بريد إعادة تعيين كلمة المرور إلى {email}',
       'biometricReason': 'يرجى المصادقة لتسجيل الدخول تلقائياً',
+      'enterEmailOrPhone':
+          'أدخل عنوان البريد الإلكتروني أو رقم الهاتف المسجل لاستعادة كلمة المرور.',
+      'emailOrPhoneLabel': 'البريد الإلكتروني أو رقم الهاتف',
+      'invalidEmailOrPhone':
+          'يرجى إدخال عنوان بريد إلكتروني أو رقم هاتف صحيح',
+      'phoneUserNotFound':
+          'لم يتم العثور على حساب مستخدم يطابق رقم الهاتف هذا',
+      'recoverySentPhone':
+          'تم إرسال تعليمات استعادة كلمة المرور إلى الحساب المرتبط برقم {phone}',
+      'phoneNumber': 'رقم الهاتف',
+      'phoneNumberHint': 'مثال: 0612345678 أو +1234567890',
+      'recoverPassword': 'استعادة كلمة المرور',
+      'enterOtp': 'أدخل رمز التحقق المكون من 6 أرقام المرسل إلى {phone}',
+      'otpCode': 'رمز التحقق (OTP)',
+      'invalidOtp': 'رمز التحقق غير صالحة أو منتهي الصلاحية',
+      'setNewPassword': 'تعيين كلمة مرور جديدة',
+      'passwordUpdatedSuccess':
+          'تم تحديث كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
 
       // ── Notifications Screen ──────────────────────────────────────────────────
       'notifications': 'الإشعارات',

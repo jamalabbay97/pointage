@@ -522,6 +522,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     final isEdit = user != null;
     final nameController = TextEditingController(text: user?.displayName ?? '');
     final emailController = TextEditingController(text: user?.email ?? '');
+    final phoneController =
+        TextEditingController(text: user?.phoneNumber ?? '');
     final deptController = TextEditingController(
       text: user?.department ?? 'Engineering',
     );
@@ -578,6 +580,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                   decoration: InputDecoration(
                     labelText: ref.tr('emailAddress'),
                     prefixIcon: const Icon(Icons.email_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: ref.tr('phoneNumber'),
+                    hintText: ref.tr('phoneNumberHint'),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
                 ),
                 if (!isEdit) ...[
@@ -717,6 +729,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         if (isEdit) {
                           final updateData = <String, dynamic>{
                             'displayName': name,
+                            'phoneNumber': phoneController.text.trim(),
                             'department': dept.isEmpty ? 'General' : dept,
                           };
                           if (!isCurrentUser) {
@@ -796,6 +809,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             'uid': newUid,
                             'email': emailVal,
                             'displayName': name,
+                            'phoneNumber': phoneController.text.trim(),
                             'role': role,
                             'status': 'active',
                             'department': dept.isEmpty ? 'General' : dept,

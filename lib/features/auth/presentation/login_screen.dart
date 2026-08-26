@@ -1,18 +1,23 @@
 import 'dart:async';
-
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/utils/async_timeout.dart';
 import '../domain/user_sync_service.dart';
+
+enum _RecoveryStep { input, verifyOtpAndReset }
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -187,6 +192,350 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final recoverController = TextEditingController(text: email.text.trim());
+    final otpController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    _RecoveryStep currentStep = _RecoveryStep.input;
+    bool isSubmitting = false;
+    bool obscurePassword = true;
+    bool obscureConfirmPassword = true;
+    String? dialogError;
+    String? recoveryToken;
+    String inputPhone = '';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  currentStep == _RecoveryStep.verifyOtpAndReset
+                      ? Icons.lock_reset_rounded
+                      : Icons.lock_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  currentStep == _RecoveryStep.verifyOtpAndReset
+                      ? ref.tr('setNewPassword')
+                      : ref.tr('recoverPassword'),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (currentStep == _RecoveryStep.input) ...[
+                    Text(
+                      ref.tr('enterEmailOrPhone'),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: recoverController,
+                      enabled: !isSubmitting,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('emailOrPhoneLabel'),
+                        hintText: ref.tr('phoneNumberHint'),
+                        prefixIcon: const Icon(Icons.contact_mail_outlined),
+                      ),
+                    ),
+                  ] else if (currentStep ==
+                      _RecoveryStep.verifyOtpAndReset) ...[
+                    Text(
+                      ref.tr('enterOtp').replaceAll('{phone}', inputPhone),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: otpController,
+                      enabled: !isSubmitting,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('otpCode'),
+                        prefixIcon: const Icon(Icons.pin_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: obscurePassword,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('newPassword'),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setDialogState(
+                            () => obscurePassword = !obscurePassword,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirmPassword,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('confirmNewPassword'),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirmPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setDialogState(
+                            () => obscureConfirmPassword =
+                                !obscureConfirmPassword,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (dialogError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      dialogError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 13),
+                    ),
+                  ],
+                  if (isSubmitting) ...[
+                    const SizedBox(height: 16),
+                    const Center(child: CircularProgressIndicator()),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                child: Text(ref.tr('cancel')),
+              ),
+              FilledButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (currentStep == _RecoveryStep.input) {
+                          final input = recoverController.text.trim();
+                          if (input.isEmpty) {
+                            setDialogState(() {
+                              dialogError = ref.tr('invalidEmailOrPhone');
+                            });
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSubmitting = true;
+                            dialogError = null;
+                          });
+
+                          final isEmail =
+                              input.contains('@') && input.contains('.');
+
+                          if (isEmail) {
+                            try {
+                              await withTimeout(
+                                FirebaseAuth.instance.sendPasswordResetEmail(
+                                  email: input,
+                                ),
+                                duration: const Duration(seconds: 20),
+                                label: 'Password reset request timed out',
+                              );
+                              if (dialogCtx.mounted && mounted) {
+                                Navigator.pop(dialogCtx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ref
+                                          .tr('passwordResetEmailSent')
+                                          .replaceAll('{email}', input),
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (err) {
+                              setDialogState(() {
+                                isSubmitting = false;
+                                dialogError = err.toString();
+                              });
+                            }
+                          } else {
+                            inputPhone = input;
+                            try {
+                              final baseUrl =
+                                  await AppConfig.resolveAdminApiBaseUrl(
+                                FirebaseFirestore.instance,
+                              );
+                              final effectiveBaseUrl = baseUrl.isNotEmpty
+                                  ? baseUrl
+                                  : 'https://pointage-api-zrot.onrender.com';
+                              final uri = Uri.parse(
+                                '$effectiveBaseUrl/users/request-phone-otp',
+                              );
+                              final resp = await http.post(
+                                uri,
+                                headers: {'Content-Type': 'application/json'},
+                                body: jsonEncode({'phoneNumber': input}),
+                              );
+
+                              if (resp.statusCode == 200 ||
+                                  resp.statusCode == 429) {
+                                final data = jsonDecode(resp.body);
+                                if (resp.statusCode == 429) {
+                                  setDialogState(() {
+                                    isSubmitting = false;
+                                    dialogError =
+                                        data['message'] ?? 'Too many attempts';
+                                  });
+                                  return;
+                                }
+
+                                recoveryToken = data['recoveryToken'];
+                                setDialogState(() {
+                                  currentStep = _RecoveryStep.verifyOtpAndReset;
+                                  isSubmitting = false;
+                                  dialogError = null;
+                                });
+                              } else if (resp.statusCode == 404) {
+                                setDialogState(() {
+                                  isSubmitting = false;
+                                  dialogError =
+                                      'Backend recovery endpoint not found (404).\nPlease deploy the latest backend code or start local backend.';
+                                });
+                              } else {
+                                setDialogState(() {
+                                  isSubmitting = false;
+                                  dialogError =
+                                      'Backend server unavailable (${resp.statusCode}).';
+                                });
+                              }
+                            } catch (err) {
+                              setDialogState(() {
+                                isSubmitting = false;
+                                final errStr = err.toString();
+                                if (errStr.contains('Connection refused') ||
+                                    errStr.contains('SocketException')) {
+                                  dialogError =
+                                      'Unable to connect to recovery server.\nMake sure backend server is running and Admin API Base URL is set in System Settings.';
+                                } else {
+                                  dialogError =
+                                      'Unable to connect to recovery server: $err';
+                                }
+                              });
+                            }
+                          }
+                        } else if (currentStep ==
+                            _RecoveryStep.verifyOtpAndReset) {
+                          final otpCode = otpController.text.trim();
+                          final newPassword = newPasswordController.text.trim();
+                          final confirmPassword =
+                              confirmPasswordController.text.trim();
+
+                          if (otpCode.length < 6 || recoveryToken == null) {
+                            setDialogState(() {
+                              dialogError = ref.tr('invalidOtp');
+                            });
+                            return;
+                          }
+
+                          if (newPassword.length < 6) {
+                            setDialogState(() {
+                              dialogError = ref.tr('passwordMinLength');
+                            });
+                            return;
+                          }
+
+                          if (newPassword != confirmPassword) {
+                            setDialogState(() {
+                              dialogError = ref.tr('passwordsDoNotMatch');
+                            });
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSubmitting = true;
+                            dialogError = null;
+                          });
+
+                          try {
+                            final baseUrl =
+                                await AppConfig.resolveAdminApiBaseUrl(
+                              FirebaseFirestore.instance,
+                            );
+                            final effectiveBaseUrl = baseUrl.isNotEmpty
+                                ? baseUrl
+                                : 'https://pointage-api-zrot.onrender.com';
+                            final uri = Uri.parse(
+                              '$effectiveBaseUrl/users/verify-phone-otp-and-reset-password',
+                            );
+                            final resp = await http.post(
+                              uri,
+                              headers: {'Content-Type': 'application/json'},
+                              body: jsonEncode({
+                                'recoveryToken': recoveryToken,
+                                'otp': otpCode,
+                                'newPassword': newPassword,
+                              }),
+                            );
+
+                            final data = jsonDecode(resp.body);
+
+                            if (resp.statusCode == 200) {
+                              if (dialogCtx.mounted && mounted) {
+                                Navigator.pop(dialogCtx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ref.tr('passwordUpdatedSuccess'),
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } else {
+                              setDialogState(() {
+                                isSubmitting = false;
+                                dialogError =
+                                    data['message'] ?? ref.tr('invalidOtp');
+                              });
+                            }
+                          } catch (err) {
+                            setDialogState(() {
+                              isSubmitting = false;
+                              dialogError = err.toString();
+                            });
+                          }
+                        }
+                      },
+                child: Text(
+                  currentStep == _RecoveryStep.verifyOtpAndReset
+                      ? ref.tr('save')
+                      : ref.tr('apply'),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         body: Container(
@@ -285,47 +634,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Text(ref.tr('rememberMe')),
                             const Spacer(),
                             TextButton(
-                              onPressed: () async {
-                                if (email.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        ref.tr('enterEmailFirst'),
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                try {
-                                  await withTimeout(
-                                    FirebaseAuth.instance
-                                        .sendPasswordResetEmail(
-                                      email: email.text.trim(),
-                                    ),
-                                    duration: const Duration(seconds: 20),
-                                    label: 'Password reset request timed out',
-                                  );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          ref.tr('passwordResetEmailSent'),
-                                        ),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                } catch (err) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(err.toString()),
-                                        backgroundColor: Colors.redAccent,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
+                              onPressed: _showForgotPasswordDialog,
                               child: Text(ref.tr('forgotPassword')),
                             ),
                           ],

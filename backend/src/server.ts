@@ -137,6 +137,126 @@ app.delete('/users/:id', async (request, reply) => {
 
     return reply.code(204).send();
 });
+interface RecoverySession {
+    uid: string;
+    phoneNumber: string;
+    otp: string;
+    expiresAt: number;
+    attempts: number;
+}
+
+const recoverySessions = new Map<string, RecoverySession>();
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+        rateLimitMap.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+        return true;
+    }
+    if (entry.count >= 5) {
+        return false;
+    }
+    entry.count += 1;
+    return true;
+}
+
+app.post('/users/request-phone-otp', async (request, reply) => {
+    const clientIp = request.ip || 'global';
+    if (!checkRateLimit(clientIp)) {
+        return reply.code(429).send({ message: 'Too many recovery attempts. Please try again later.' });
+    }
+
+    const { phoneNumber } = z.object({ phoneNumber: z.string().min(5) }).parse(request.body);
+    const cleanPhone = phoneNumber.replace(/[\s\-()]/g, '');
+    const intlPhone = cleanPhone.startsWith('0') ? `+212${cleanPhone.slice(1)}` : cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+
+    let snapshot = await adminDb.collection('users').where('phoneNumber', '==', phoneNumber).get();
+    if (snapshot.empty && cleanPhone !== phoneNumber) {
+        snapshot = await adminDb.collection('users').where('phoneNumber', '==', cleanPhone).get();
+    }
+    if (snapshot.empty && intlPhone !== cleanPhone) {
+        snapshot = await adminDb.collection('users').where('phoneNumber', '==', intlPhone).get();
+    }
+
+    const recoveryToken = crypto.randomUUID();
+
+    if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        const uid = userDoc.id;
+        try {
+            const authUser = await adminAuth.getUser(uid);
+            if (authUser) {
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                recoverySessions.set(recoveryToken, {
+                    uid,
+                    phoneNumber,
+                    otp,
+                    expiresAt: Date.now() + 10 * 60 * 1000,
+                    attempts: 0,
+                });
+                app.log.info(`[RECOVERY OTP GENERATED] Phone: ${phoneNumber}, OTP: ${otp}, UID: ${uid}`);
+            }
+        } catch (e) {
+            app.log.warn(`Auth user lookup failed for UID ${uid}: ${e}`);
+        }
+    }
+
+    return reply.send({
+        success: true,
+        message: 'If this phone number is registered, you will receive a verification code.',
+        recoveryToken,
+    });
+});
+
+app.post('/users/verify-phone-otp-and-reset-password', async (request, reply) => {
+    const body = z.object({
+        recoveryToken: z.string().min(1),
+        otp: z.string().length(6),
+        newPassword: z.string().min(6),
+    }).parse(request.body);
+
+    const session = recoverySessions.get(body.recoveryToken);
+    if (!session) {
+        return reply.code(400).send({ message: 'Invalid or expired verification session.' });
+    }
+
+    if (Date.now() > session.expiresAt) {
+        recoverySessions.delete(body.recoveryToken);
+        return reply.code(400).send({ message: 'Verification code has expired. Please request a new code.' });
+    }
+
+    session.attempts += 1;
+    if (session.attempts > 5) {
+        recoverySessions.delete(body.recoveryToken);
+        return reply.code(400).send({ message: 'Too many failed verification attempts. Session invalidated.' });
+    }
+
+    if (session.otp !== body.otp) {
+        return reply.code(400).send({ message: 'Invalid verification code.' });
+    }
+
+    try {
+        const authUser = await adminAuth.getUser(session.uid);
+        if (!authUser) {
+            recoverySessions.delete(body.recoveryToken);
+            return reply.code(404).send({ message: 'Target user account not found.' });
+        }
+
+        await adminAuth.updateUser(session.uid, { password: body.newPassword });
+        recoverySessions.delete(body.recoveryToken);
+
+        return reply.send({
+            success: true,
+            message: 'Password updated successfully for your account!',
+        });
+    } catch (error) {
+        app.log.error(error);
+        return reply.code(500).send({ message: 'Failed to update password for account.' });
+    }
+});
+
 app.post('/qr-codes', async (_, reply) => reply.code(201).send({ id: crypto.randomUUID(), expiresAt: new Date(Date.now() + 300000).toISOString() }));
 
 app.listen({ host: '0.0.0.0', port: Number(process.env.PORT ?? 8080) });

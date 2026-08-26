@@ -18,6 +18,7 @@ class UserModel {
     this.assignedLocationRadius,
     this.locationAssignedBy,
     this.kioskPin,
+    this.phoneNumber,
   });
 
   final String uid;
@@ -27,6 +28,7 @@ class UserModel {
   final String status; // 'active', 'disabled'
   final String department;
   final String? photoUrl;
+  final String? phoneNumber;
   final DateTime? createdAt;
   final DateTime? lastLogin;
   final String? createdBy;
@@ -84,6 +86,7 @@ class UserModel {
           (json['assignedLocationRadius'] as num?)?.toDouble(),
       locationAssignedBy: _nullableString(json['locationAssignedBy']),
       kioskPin: _nullableString(json['kioskPin']),
+      phoneNumber: _nullableString(json['phoneNumber']),
     );
   }
 
@@ -95,6 +98,7 @@ class UserModel {
         'status': status,
         'department': department,
         if (photoUrl != null) 'photoUrl': photoUrl,
+        if (phoneNumber != null) 'phoneNumber': phoneNumber,
         if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
         if (lastLogin != null) 'lastLogin': lastLogin!.toIso8601String(),
         if (createdBy != null) 'createdBy': createdBy,
@@ -120,6 +124,7 @@ class UserModel {
     String? status,
     String? department,
     String? photoUrl,
+    String? phoneNumber,
     DateTime? createdAt,
     DateTime? lastLogin,
     String? createdBy,
@@ -140,6 +145,7 @@ class UserModel {
       status: status ?? this.status,
       department: department ?? this.department,
       photoUrl: photoUrl ?? this.photoUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       createdAt: createdAt ?? this.createdAt,
       lastLogin: lastLogin ?? this.lastLogin,
       createdBy: createdBy ?? this.createdBy,

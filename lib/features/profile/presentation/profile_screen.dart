@@ -49,6 +49,7 @@ class ProfileScreen extends ConsumerWidget {
               ref,
               user,
               userModel?.photoUrl ?? user?.photoURL,
+              userModel?.phoneNumber,
             ),
           ),
         ],
@@ -165,6 +166,10 @@ class ProfileScreen extends ConsumerWidget {
                             'password',
                       ),
                     ),
+                    _buildProfileRow(
+                      ref.tr('phoneNumber'),
+                      userModel?.phoneNumber ?? 'N/A',
+                    ),
                   ],
                 ),
               ),
@@ -207,9 +212,12 @@ class ProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     User? user,
     String? currentPhotoUrl,
+    String? currentPhoneNumber,
   ) {
     if (user == null) return;
 
+    final phoneController =
+        TextEditingController(text: currentPhoneNumber ?? '');
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
@@ -332,6 +340,17 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      labelText: ref.tr('phoneNumber'),
+                      hintText: ref.tr('phoneNumberHint'),
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                    ),
                   ),
                   const Divider(height: 32),
                   Align(
@@ -485,6 +504,16 @@ class ProfileScreen extends ConsumerWidget {
                               await user.updatePhotoURL(selectedPhotoUrl);
                             }
                           }
+
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .set(
+                            {
+                              'phoneNumber': phoneController.text.trim(),
+                            },
+                            SetOptions(merge: true),
+                          );
 
                           if (newPassword.isNotEmpty) {
                             await user.updatePassword(newPassword);
