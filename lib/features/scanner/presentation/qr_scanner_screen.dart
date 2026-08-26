@@ -3,22 +3,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/config/company_settings.dart';
+import '../../../core/services/app_translations.dart';
 import '../../../core/services/security_services.dart';
 import '../../attendance/domain/attendance_service.dart';
 
-class QrScannerScreen extends StatefulWidget {
+class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
 
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
+class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   bool handled = false;
   bool processing = false;
   bool locationReady = false;
@@ -78,13 +80,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         icon: const Icon(Icons.location_on),
-        title: const Text('Enable GPS to scan'),
+        title: Text(ref.tr('enableGpsToScan')),
         content: Text(
           !serviceEnabled
-              ? 'Location Services are turned off. Please enable GPS before scanning your QR code for attendance.'
+              ? ref.tr('locationServicesDisabled')
               : !permissionGranted
-                  ? 'Location permission is required before scanning your QR code for attendance.'
-                  : 'GPS must be enabled before scanning your QR code for attendance.',
+                  ? ref.tr('locationPermissionRequired')
+                  : ref.tr('locationPermissionRequired'),
         ),
         actions: [
           TextButton(
@@ -94,7 +96,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 this.context.pop();
               }
             },
-            child: const Text('Cancel'),
+            child: Text(ref.tr('cancel')),
           ),
           FilledButton.icon(
             onPressed: () async {
@@ -106,7 +108,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               if (context.mounted) context.pop();
             },
             icon: const Icon(Icons.settings),
-            label: const Text('Open settings'),
+            label: Text(ref.tr('openSettings')),
           ),
         ],
       ),
@@ -141,7 +143,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         );
       }
 
-      // 1. Fetch live CompanySettings from Firestore
       CompanySettings settings = CompanySettings.defaultSettings;
       try {
         final doc = await db.collection('settings').doc('company').get();
@@ -150,7 +151,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
       } catch (_) {}
 
-      // 2. Validate HMAC Signature if dynamic JSON QR
       if (code.trim().startsWith('{')) {
         final verifier = QrVerifier(settings.qrSecret);
         try {
@@ -165,7 +165,6 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
       }
 
-      // 3. Register Attendance
       final service = AttendanceService(db);
       final result = await service.register(
         employeeId: user.uid,
@@ -230,7 +229,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('Scan QR Code'),
+          title: Text(ref.tr('scanQrCode')),
           actions: [
             if (kIsWeb ||
                 defaultTargetPlatform == TargetPlatform.windows ||
@@ -276,11 +275,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             else
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Center(
+                child: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      'GPS is required before scanning. Enable Location Services to continue.',
+                      ref.tr('locationPermissionRequired'),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -315,16 +314,22 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               right: 24,
               child: Card(
                 color: Colors.black.withValues(alpha: 0.75),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        'Align QR Code within frame to verify',
-                        style: TextStyle(color: Colors.white, fontSize: 13),
+                        ref.tr('alignQrCodeFrame'),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 13),
                       ),
                     ],
                   ),
@@ -348,16 +353,16 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             size: 48,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'GPS Required',
-                            style: TextStyle(
+                          Text(
+                            ref.tr('gpsRequired'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Enable Location Services to unlock QR scanning and record accurate attendance.',
+                          Text(
+                            ref.tr('locationPermissionRequired'),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 18),
@@ -374,7 +379,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                   )
                                 : const Icon(Icons.my_location),
                             label: Text(
-                              checkingLocation ? 'Checking...' : 'Enable GPS',
+                              checkingLocation
+                                  ? ref.tr('loading')
+                                  : ref.tr('enableGps'),
                             ),
                           ),
                         ],
@@ -386,15 +393,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             if (processing)
               Container(
                 color: Colors.black.withValues(alpha: 0.7),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 20),
+                      const CircularProgressIndicator(color: Colors.white),
+                      const SizedBox(height: 20),
                       Text(
-                        'Verifying Geofence & Registering...',
-                        style: TextStyle(
+                        ref.tr('verifyingGeofence'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,

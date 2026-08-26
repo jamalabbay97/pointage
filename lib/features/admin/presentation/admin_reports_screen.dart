@@ -212,7 +212,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
               const SizedBox(width: 8),
               FilledButton.icon(
                 icon: const Icon(Icons.filter_list),
-                label: const Text('Filters'),
+                label: Text(ref.tr('filters')),
                 onPressed: () => _showFilterBottomSheet(visibleUsers),
               ),
               const SizedBox(width: 8),
@@ -230,16 +230,16 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               SegmentedButton<_ViewMode>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: _ViewMode.list,
-                    icon: Icon(Icons.list),
-                    label: Text('List'),
+                    icon: const Icon(Icons.list),
+                    label: Text(ref.tr('viewList')),
                   ),
                   ButtonSegment(
                     value: _ViewMode.employee,
-                    icon: Icon(Icons.person),
-                    label: Text('Employee'),
+                    icon: const Icon(Icons.person),
+                    label: Text(ref.tr('viewEmployee')),
                   ),
                 ],
                 selected: {_viewMode},
@@ -279,14 +279,20 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Filters',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  Text(
+                    ref.tr('filters'),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Employee',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Text(
+                    ref.tr('employeeLabel'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String?>(
@@ -301,9 +307,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                     ),
                     initialValue: _selectedEmployeeId,
                     items: [
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: null,
-                        child: Text('All Employees'),
+                        child: Text(ref.tr('allEmployeesOption')),
                       ),
                       ...visibleUsers.map(
                         (u) => DropdownMenuItem(
@@ -316,17 +322,21 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                         setSheetState(() => _selectedEmployeeId = val),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Status',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Text(
+                    ref.tr('statusLabel'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children:
                         ['All', 'Present', 'Late', 'Absent'].map((statusKey) {
-                      final label =
-                          statusKey == 'All' ? ref.tr('all') : statusKey;
+                      final label = statusKey == 'All'
+                          ? ref.tr('all')
+                          : ref.tr(statusKey.toLowerCase());
                       return ChoiceChip(
                         label: Text(label),
                         selected: _statusFilter == statusKey,
@@ -339,9 +349,12 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                     }).toList(),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Date Range',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Text(
+                    ref.tr('periodLabel'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -358,22 +371,22 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                             ),
                           ),
                           initialValue: _periodFilter,
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: _PeriodFilter.day,
-                              child: Text('Day'),
+                              child: Text(ref.tr('periodDay')),
                             ),
                             DropdownMenuItem(
                               value: _PeriodFilter.week,
-                              child: Text('Week'),
+                              child: Text(ref.tr('periodWeek')),
                             ),
                             DropdownMenuItem(
                               value: _PeriodFilter.month,
-                              child: Text('Month'),
+                              child: Text(ref.tr('periodMonth')),
                             ),
                             DropdownMenuItem(
                               value: _PeriodFilter.year,
-                              child: Text('Year'),
+                              child: Text(ref.tr('periodYear')),
                             ),
                           ],
                           onChanged: (val) {
@@ -419,9 +432,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                               _selectedDate = DateTime.now();
                             });
                           },
-                          child: const Text(
-                            'Reset',
-                            style: TextStyle(fontSize: 16),
+                          child: Text(
+                            ref.tr('reset'),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
@@ -438,9 +451,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                             Navigator.pop(context);
                             setState(() {});
                           },
-                          child: const Text(
-                            'Apply',
-                            style: TextStyle(fontSize: 16),
+                          child: Text(
+                            ref.tr('apply'),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
@@ -499,9 +512,9 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'TEAM OVERVIEW',
-            style: TextStyle(
+          Text(
+            ref.tr('teamOverview'),
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: Colors.grey,
@@ -510,11 +523,11 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              tile('Employees', totalEmployees, Colors.blue),
-              tile('Present', stats.presentDays, Colors.green),
-              tile('Late', stats.lateDays, Colors.orange),
+              tile(ref.tr('employees'), totalEmployees, Colors.blue),
+              tile(ref.tr('present'), stats.presentDays, Colors.green),
+              tile(ref.tr('late'), stats.lateDays, Colors.orange),
               if (range.period == _PeriodFilter.day)
-                tile('Absent', stats.absentDays, Colors.red),
+                tile(ref.tr('absent'), stats.absentDays, Colors.red),
             ],
           ),
         ],
@@ -593,14 +606,14 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
           children: [
             Icon(Icons.person_search, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
-            const Text(
-              'Select an employee to view their details',
-              style: TextStyle(fontSize: 16),
+            Text(
+              ref.tr('selectEmployeePrompt'),
+              style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: () => _showFilterBottomSheet(visibleUsers),
-              child: const Text('Select Employee'),
+              child: Text(ref.tr('selectEmployeeBtn')),
             ),
           ],
         ),

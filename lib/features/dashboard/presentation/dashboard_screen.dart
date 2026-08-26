@@ -89,7 +89,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   IconButton(
                     onPressed: () => context.push('/notifications'),
                     icon: const Icon(Icons.notifications_none_rounded),
-                    tooltip: 'Notifications',
+                    tooltip: ref.tr('notifications'),
                   ),
                   if (unread > 0)
                     Positioned(
@@ -416,7 +416,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               if (userModel?.isEmployee == true)
                 _DashboardActionCard(
                   title: ref.tr('attendanceHistory'),
-                  subtitle: ref.tr('noHistoryFound'),
+                  subtitle: ref.tr('viewPunchHistory'),
                   icon: Icons.history_rounded,
                   color: Colors.purple,
                   route: '/history',

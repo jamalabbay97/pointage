@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../auth/domain/auth_provider.dart';
+import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
+import '../../auth/domain/auth_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -38,12 +39,17 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Employee Profile'),
+        title: Text(ref.tr('userProfile')),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            tooltip: 'Edit Profile',
-            onPressed: () => _showEditProfileDialog(context, user, userModel?.photoUrl ?? user?.photoURL),
+            tooltip: ref.tr('editProfile'),
+            onPressed: () => _showEditProfileDialog(
+              context,
+              ref,
+              user,
+              userModel?.photoUrl ?? user?.photoURL,
+            ),
           ),
         ],
       ),
@@ -56,7 +62,8 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 54,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
                     backgroundImage: imageProvider,
                     child: imageProvider == null
                         ? Text(
@@ -80,7 +87,11 @@ class ProfileScreen extends ConsumerWidget {
                         color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.verified, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.verified,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -89,7 +100,9 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             Center(
               child: Text(
-                userModel?.displayName ?? user?.displayName ?? 'Employee',
+                userModel?.displayName ??
+                    user?.displayName ??
+                    ref.tr('employee'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -127,14 +140,26 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Account Information',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    Text(
+                      ref.tr('accountInfo'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const Divider(height: 24),
-                    _buildProfileRow('Account Status', (userModel?.status ?? 'active').toUpperCase()),
-                    _buildProfileRow('Department', userModel?.department ?? 'General'),
-                    _buildProfileRow('Auth Provider', user?.providerData.firstOrNull?.providerId ?? 'password'),
+                    _buildProfileRow(
+                      ref.tr('statusFilter').replaceAll(':', ''),
+                      (userModel?.status ?? 'active').toUpperCase(),
+                    ),
+                    _buildProfileRow(
+                      ref.tr('department'),
+                      userModel?.department ?? 'General',
+                    ),
+                    _buildProfileRow(
+                      ref.tr('authProvider'),
+                      user?.providerData.firstOrNull?.providerId ?? 'password',
+                    ),
                   ],
                 ),
               ),
@@ -147,7 +172,7 @@ class ProfileScreen extends ConsumerWidget {
                   await FirebaseAuth.instance.signOut();
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text('Sign Out'),
+                label: Text(ref.tr('logout')),
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.error,
                 ),
@@ -172,7 +197,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditProfileDialog(BuildContext context, User? user, String? currentPhotoUrl) {
+  void _showEditProfileDialog(
+    BuildContext context,
+    WidgetRef ref,
+    User? user,
+    String? currentPhotoUrl,
+  ) {
     if (user == null) return;
 
     final newPasswordController = TextEditingController();
@@ -193,23 +223,26 @@ class ProfileScreen extends ConsumerWidget {
           final avatarImage = getProfileImageProvider(activePhotoUrl);
 
           return AlertDialog(
-            title: const Text('Edit Profile'),
+            title: Text(ref.tr('editProfile')),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Profile Picture Section
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Profile Picture',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ref.tr('profilePicture'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   CircleAvatar(
                     radius: 46,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
                     backgroundImage: avatarImage,
                     child: avatarImage == null
                         ? Icon(
@@ -238,7 +271,8 @@ class ProfileScreen extends ConsumerWidget {
                                 );
                                 if (pickedFile != null) {
                                   final bytes = await pickedFile.readAsBytes();
-                                  final base64Image = 'data:image/png;base64,${base64Encode(bytes)}';
+                                  final base64Image =
+                                      'data:image/png;base64,${base64Encode(bytes)}';
                                   dialogSetState(() {
                                     selectedPhotoUrl = base64Image;
                                     photoRemoved = false;
@@ -246,7 +280,7 @@ class ProfileScreen extends ConsumerWidget {
                                 }
                               },
                         icon: const Icon(Icons.photo_library, size: 18),
-                        label: const Text('Gallery'),
+                        label: Text(ref.tr('gallery')),
                       ),
                       OutlinedButton.icon(
                         onPressed: isLoading
@@ -261,7 +295,8 @@ class ProfileScreen extends ConsumerWidget {
                                 );
                                 if (pickedFile != null) {
                                   final bytes = await pickedFile.readAsBytes();
-                                  final base64Image = 'data:image/png;base64,${base64Encode(bytes)}';
+                                  final base64Image =
+                                      'data:image/png;base64,${base64Encode(bytes)}';
                                   dialogSetState(() {
                                     selectedPhotoUrl = base64Image;
                                     photoRemoved = false;
@@ -269,7 +304,7 @@ class ProfileScreen extends ConsumerWidget {
                                 }
                               },
                         icon: const Icon(Icons.camera_alt, size: 18),
-                        label: const Text('Camera'),
+                        label: Text(ref.tr('camera')),
                       ),
                       if (activePhotoUrl != null)
                         OutlinedButton.icon(
@@ -281,27 +316,36 @@ class ProfileScreen extends ConsumerWidget {
                                     photoRemoved = true;
                                   });
                                 },
-                          icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                          label: const Text('Remove', style: TextStyle(color: Colors.red)),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          label: Text(
+                            ref.tr('remove'),
+                            style: const TextStyle(color: Colors.red),
+                          ),
                         ),
                     ],
                   ),
                   const Divider(height: 32),
-
-                  // Password Change Section
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Change Password',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ref.tr('changePassword'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Leave blank if you do not wish to change password',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ref.tr('leaveBlankPassword'),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -310,11 +354,17 @@ class ProfileScreen extends ConsumerWidget {
                     obscureText: obscurePassword,
                     enabled: !isLoading,
                     decoration: InputDecoration(
-                      labelText: 'New Password',
+                      labelText: ref.tr('newPassword'),
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => dialogSetState(() => obscurePassword = !obscurePassword),
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () => dialogSetState(
+                          () => obscurePassword = !obscurePassword,
+                        ),
                       ),
                     ),
                   ),
@@ -324,15 +374,21 @@ class ProfileScreen extends ConsumerWidget {
                     obscureText: obscureConfirmPassword,
                     enabled: !isLoading,
                     decoration: InputDecoration(
-                      labelText: 'Confirm New Password',
+                      labelText: ref.tr('confirmNewPassword'),
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => dialogSetState(() => obscureConfirmPassword = !obscureConfirmPassword),
+                        icon: Icon(
+                          obscureConfirmPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () => dialogSetState(
+                          () =>
+                              obscureConfirmPassword = !obscureConfirmPassword,
+                        ),
                       ),
                     ),
                   ),
-
                   if (errorMessage != null) ...[
                     const SizedBox(height: 16),
                     Container(
@@ -343,19 +399,25 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               errorMessage!,
-                              style: const TextStyle(color: Colors.red, fontSize: 12),
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-
                   if (isLoading) ...[
                     const SizedBox(height: 20),
                     const CircularProgressIndicator(),
@@ -366,22 +428,28 @@ class ProfileScreen extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(ref.tr('cancel')),
               ),
               FilledButton(
                 onPressed: isLoading
                     ? null
                     : () async {
                         final newPassword = newPasswordController.text.trim();
-                        final confirmPassword = confirmPasswordController.text.trim();
+                        final confirmPassword =
+                            confirmPasswordController.text.trim();
 
                         if (newPassword.isNotEmpty) {
                           if (newPassword.length < 6) {
-                            dialogSetState(() => errorMessage = 'Password must be at least 6 characters.');
+                            dialogSetState(
+                              () => errorMessage =
+                                  'Password must be at least 6 characters.',
+                            );
                             return;
                           }
                           if (newPassword != confirmPassword) {
-                            dialogSetState(() => errorMessage = 'Passwords do not match.');
+                            dialogSetState(
+                              () => errorMessage = 'Passwords do not match.',
+                            );
                             return;
                           }
                         }
@@ -392,14 +460,20 @@ class ProfileScreen extends ConsumerWidget {
                         });
 
                         try {
-                          // 1. Update Profile Photo in Firestore & Auth
                           if (photoRemoved) {
-                            await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .update({
                               'photoUrl': FieldValue.delete(),
                             });
                             await user.updatePhotoURL(null);
-                          } else if (selectedPhotoUrl != null && selectedPhotoUrl != currentPhotoUrl) {
-                            await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                          } else if (selectedPhotoUrl != null &&
+                              selectedPhotoUrl != currentPhotoUrl) {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .update({
                               'photoUrl': selectedPhotoUrl,
                             });
                             if (selectedPhotoUrl!.startsWith('http')) {
@@ -407,7 +481,6 @@ class ProfileScreen extends ConsumerWidget {
                             }
                           }
 
-                          // 2. Update Password if provided
                           if (newPassword.isNotEmpty) {
                             await user.updatePassword(newPassword);
                           }
@@ -415,8 +488,8 @@ class ProfileScreen extends ConsumerWidget {
                           if (context.mounted) {
                             Navigator.pop(ctx);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Profile updated successfully'),
+                              SnackBar(
+                                content: Text(ref.tr('profileUpdated')),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -428,7 +501,8 @@ class ProfileScreen extends ConsumerWidget {
                               errorMessage =
                                   'For security reasons, changing your password requires recent login. Please sign out and sign back in before updating password.';
                             } else {
-                              errorMessage = e.message ?? 'Failed to update password.';
+                              errorMessage =
+                                  e.message ?? 'Failed to update password.';
                             }
                           });
                         } catch (e) {
@@ -438,7 +512,7 @@ class ProfileScreen extends ConsumerWidget {
                           });
                         }
                       },
-                child: const Text('Save'),
+                child: Text(ref.tr('save')),
               ),
             ],
           );

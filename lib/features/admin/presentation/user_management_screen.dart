@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/services/app_translations.dart';
 import '../../../core/services/user_deletion_api.dart';
 import '../../auth/domain/auth_provider.dart';
 
@@ -44,11 +45,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('User Management'),
+        title: Text(ref.tr('userManagement')),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_alt_1),
-            tooltip: 'Add User',
+            tooltip: ref.tr('addUser'),
             onPressed: () => _showUserDialog(context),
           ),
         ],
@@ -65,7 +66,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showUserDialog(context),
         icon: const Icon(Icons.add),
-        label: const Text('Add Employee'),
+        label: Text(ref.tr('addEmployee')),
       ),
     );
   }
@@ -90,7 +91,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             children: [
               SearchBar(
                 controller: _searchController,
-                hintText: 'Search users by name or email...',
+                hintText: ref.tr('searchUsers'),
                 leading: const Icon(Icons.search),
                 trailing: _searchController.text.isNotEmpty
                     ? [
@@ -111,9 +112,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    const Text(
-                      'Role: ',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Text(
+                      ref.tr('roleLabel'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     ...[
                       'All',
@@ -124,7 +125,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       (role) => Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
-                          label: Text(role),
+                          label: Text(
+                            role == 'All'
+                                ? ref.tr('all')
+                                : (role == 'Admin'
+                                    ? ref.tr('admin')
+                                    : (role == 'Manager'
+                                        ? ref.tr('manager')
+                                        : ref.tr('employee'))),
+                          ),
                           selected: selectedRoleFilter == role,
                           onSelected: (selected) {
                             if (selected) {
@@ -135,15 +144,21 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Text(
-                      'Status: ',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Text(
+                      ref.tr('statusFilter'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     ...['All', 'Active', 'Disabled'].map(
                       (status) => Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
-                          label: Text(status),
+                          label: Text(
+                            status == 'All'
+                                ? ref.tr('all')
+                                : (status == 'Active'
+                                    ? ref.tr('active')
+                                    : ref.tr('disabled')),
+                          ),
                           selected: selectedStatusFilter == status,
                           onSelected: (selected) {
                             if (selected) {
@@ -254,7 +269,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No users found',
+                              ref.tr('noUsersFound'),
                               style: Theme.of(context)
                                   .textTheme
                                   .titleMedium
@@ -355,7 +370,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                                   .showSnackBar(
                                                 SnackBar(
                                                   content: Text(
-                                                    'User ${user.displayName} is now $newStatus',
+                                                    'User ${user.displayName} ${val ? ref.tr('userNowActive') : ref.tr('userNowDisabled')}',
                                                   ),
                                                   duration: const Duration(
                                                     seconds: 2,
@@ -390,45 +405,46 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                     }
                                   },
                                   itemBuilder: (context) => [
-                                    const PopupMenuItem(
+                                    PopupMenuItem(
                                       value: 'edit',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.edit, size: 18),
-                                          SizedBox(width: 8),
-                                          Text('Edit Details'),
+                                          const Icon(Icons.edit, size: 18),
+                                          const SizedBox(width: 8),
+                                          Text(ref.tr('editDetails')),
                                         ],
                                       ),
                                     ),
-                                    const PopupMenuItem(
+                                    PopupMenuItem(
                                       value: 'reset',
                                       child: Row(
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.lock_reset,
                                             size: 18,
                                             color: Colors.orange,
                                           ),
-                                          SizedBox(width: 8),
-                                          Text('Send Password Reset'),
+                                          const SizedBox(width: 8),
+                                          Text(ref.tr('resetPassword')),
                                         ],
                                       ),
                                     ),
                                     if (!isCurrentUser)
-                                      const PopupMenuItem(
+                                      PopupMenuItem(
                                         value: 'delete',
                                         child: Row(
                                           children: [
-                                            Icon(
+                                            const Icon(
                                               Icons.delete,
                                               color: Colors.red,
                                               size: 18,
                                             ),
-                                            SizedBox(width: 8),
+                                            const SizedBox(width: 8),
                                             Text(
-                                              'Delete User',
-                                              style:
-                                                  TextStyle(color: Colors.red),
+                                              ref.tr('deleteUser'),
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                              ),
                                             ),
                                           ],
                                         ),

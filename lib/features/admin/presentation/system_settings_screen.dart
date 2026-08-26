@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
+import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
@@ -12,7 +13,8 @@ class SystemSettingsScreen extends ConsumerStatefulWidget {
   const SystemSettingsScreen({super.key});
 
   @override
-  ConsumerState<SystemSettingsScreen> createState() => _SystemSettingsScreenState();
+  ConsumerState<SystemSettingsScreen> createState() =>
+      _SystemSettingsScreenState();
 }
 
 class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
@@ -63,16 +65,20 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       final currentUser = ref.read(currentUserModelProvider).valueOrNull;
 
       _companyController.text = settings.companyName;
-      if (currentUser != null && currentUser.isManager && currentUser.assignedLocationLat != null && currentUser.assignedLocationLng != null) {
+      if (currentUser != null &&
+          currentUser.isManager &&
+          currentUser.assignedLocationLat != null &&
+          currentUser.assignedLocationLng != null) {
         _latController.text = currentUser.assignedLocationLat.toString();
         _lngController.text = currentUser.assignedLocationLng.toString();
-        _radiusMeters = currentUser.assignedLocationRadius ?? settings.radiusMeters;
+        _radiusMeters =
+            currentUser.assignedLocationRadius ?? settings.radiusMeters;
       } else {
         _latController.text = settings.latitude.toString();
         _lngController.text = settings.longitude.toString();
         _radiusMeters = settings.radiusMeters;
       }
-      
+
       _secretController.text = settings.qrSecret;
       _adminApiController.text = settings.adminApiBaseUrl;
       _rotationInterval = settings.qrRotateIntervalSeconds;
@@ -80,7 +86,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading settings: $e')),
+          SnackBar(content: Text('${ref.tr('errorLoadingSettings')}: $e')),
         );
       }
     } finally {
@@ -94,7 +100,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       if (!locationEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location services are disabled on device')),
+            SnackBar(content: Text(ref.tr('locationServicesDisabled'))),
           );
         }
         return;
@@ -105,10 +111,11 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         permission = await Geolocator.requestPermission();
       }
 
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permission is required')),
+            SnackBar(content: Text(ref.tr('locationPermissionRequired'))),
           );
         }
         return;
@@ -123,8 +130,8 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
           _lngController.text = pos.longitude.toString();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Captured current GPS position as HQ'),
+          SnackBar(
+            content: Text(ref.tr('gpsPositionCaptured')),
             backgroundColor: Colors.green,
           ),
         );
@@ -132,7 +139,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get location: $e')),
+          SnackBar(content: Text('${ref.tr('errorLoadingSettings')}: $e')),
         );
       }
     }
@@ -147,7 +154,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
 
     if (lat == null || lng == null || companyName.isEmpty || secret.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid coordinates, company name, and secret key')),
+        SnackBar(content: Text(ref.tr('fillAllFields'))),
       );
       return;
     }
@@ -164,7 +171,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
           'locationAssignedBy': currentUser.uid,
         });
 
-        final usersSnap = await _db.collection('users').where('managerId', isEqualTo: currentUser.uid).get();
+        final usersSnap = await _db
+            .collection('users')
+            .where('managerId', isEqualTo: currentUser.uid)
+            .get();
         for (final doc in usersSnap.docs) {
           batch.update(doc.reference, {
             'assignedLocationLat': lat,
@@ -177,8 +187,8 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location assigned to your users successfully'),
+            SnackBar(
+              content: Text(ref.tr('locationAssigned')),
               backgroundColor: Colors.green,
             ),
           );
@@ -187,7 +197,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to save settings: $e'),
+              content: Text('${ref.tr('errorSavingSettings')}: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -198,8 +208,6 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       return;
     }
 
-    // Determine if the location coordinates have changed by comparing
-    // with the current saved values.
     bool locationChanged = false;
     try {
       final existing = await _db.collection('settings').doc('company').get();
@@ -207,8 +215,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         final data = existing.data()!;
         final savedLat = (data['latitude'] as num?)?.toDouble();
         final savedLng = (data['longitude'] as num?)?.toDouble();
-        locationChanged =
-            savedLat == null || savedLng == null || savedLat != lat || savedLng != lng;
+        locationChanged = savedLat == null ||
+            savedLng == null ||
+            savedLat != lat ||
+            savedLng != lng;
       } else {
         locationChanged = true;
       }
@@ -216,10 +226,8 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       locationChanged = false;
     }
 
-    // If location has changed, ask Admin how to apply it.
     if (locationChanged && mounted) {
       final choice = await _showLocationApplyDialog();
-      // null means the user dismissed the dialog — abort save.
       if (choice == null) return;
       setState(() => _saving = true);
       await _persistSettings(lat, lng, companyName, secret);
@@ -230,42 +238,39 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     }
   }
 
-  /// Shows the dialog and returns 'all' or 'without_manager'.
-  /// Returns null if the user dismissed the dialog.
   Future<String?> _showLocationApplyDialog() async {
     return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.location_on, color: Colors.redAccent),
-            SizedBox(width: 10),
-            Expanded(child: Text('Apply New Location')),
+            const Icon(Icons.location_on, color: Colors.redAccent),
+            const SizedBox(width: 10),
+            Expanded(child: Text(ref.tr('applyNewLocation'))),
           ],
         ),
-        content: const Text(
-          'The geofence location has changed. How would you like to apply it to users?',
+        content: Text(
+          ref.tr('locationChangedDesc'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancel'),
+            child: Text(ref.tr('cancel')),
           ),
           OutlinedButton(
             onPressed: () => Navigator.pop(ctx, 'without_manager'),
-            child: const Text('Only users without a Manager location'),
+            child: Text(ref.tr('onlyUsersWithoutManager')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, 'all'),
-            child: const Text('Apply to all users'),
+            child: Text(ref.tr('applyToAllUsers')),
           ),
         ],
       ),
     );
   }
 
-  /// Persists the company settings document.
   Future<void> _persistSettings(
     double lat,
     double lng,
@@ -286,8 +291,8 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       await _db.collection('settings').doc('company').set(updated.toJson());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('System Settings updated successfully'),
+          SnackBar(
+            content: Text(ref.tr('settingsSaved')),
             backgroundColor: Colors.green,
           ),
         );
@@ -296,7 +301,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save settings: $e'),
+            content: Text('${ref.tr('errorSavingSettings')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -306,9 +311,6 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     }
   }
 
-  /// Clears user-level location overrides based on [scope]:
-  ///  - 'all'            : clear every user's assigned location.
-  ///  - 'without_manager': clear only users whose location was NOT set by a manager.
   Future<void> _applyAdminLocationToUsers(
     double lat,
     double lng,
@@ -326,7 +328,6 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
             assignedBy != 'admin';
 
         if (scope == 'all' || !hasManagerLocation) {
-          // Remove user-level override so they fall back to admin settings.
           batch.update(doc.reference, {
             'assignedLocationLat': FieldValue.delete(),
             'assignedLocationLng': FieldValue.delete(),
@@ -340,7 +341,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Settings saved, but could not update user locations: $e'),
+            content: Text('${ref.tr('errorSavingSettings')}: $e'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -355,14 +356,14 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('System Settings')),
+        appBar: AppBar(title: Text(ref.tr('systemSettings'))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('System Settings'),
+        title: Text(ref.tr('systemSettings')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -372,166 +373,39 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       ),
       body: WebLayout(
         child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.business, color: Colors.blue),
-                      SizedBox(width: 10),
-                      Text(
-                        'Company Details',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _companyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Company / Location Name',
-                      prefixIcon: Icon(Icons.business_outlined),
+          padding: const EdgeInsets.all(20),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.business, color: Colors.blue),
+                        const SizedBox(width: 10),
+                        Text(
+                          ref.tr('companyDetails'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, color: Colors.redAccent),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          'Geofence & Location Limits',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _useCurrentLocation,
-                        icon: const Icon(Icons.my_location, size: 16),
-                        label: const Text('Set Current GPS'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _latController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Latitude'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _lngController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Longitude'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Geofence Radius:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Chip(
-                        label: Text('${_radiusMeters.toInt()} meters'),
-                        backgroundColor: Colors.blue.withValues(alpha: 0.1),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: _radiusMeters,
-                    min: 50,
-                    max: 5000,
-                    divisions: 99,
-                    label: '${_radiusMeters.toInt()} m',
-                    onChanged: (val) => setState(() => _radiusMeters = val),
-                  ),
-                  SwitchListTile(
-                    title: const Text('Allow Remote Clock-In'),
-                    subtitle: const Text('Bypass geofence restriction for remote work'),
-                    value: _allowRemoteClockIn,
-                    onChanged: (val) => setState(() => _allowRemoteClockIn = val),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.qr_code_2, color: Colors.purple),
-                      SizedBox(width: 10),
-                      Text(
-                        'QR & Anti-Spoofing Security',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _secretController,
-                    decoration: InputDecoration(
-                      labelText: 'HMAC Secret Key',
-                      prefixIcon: const Icon(Icons.key),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.autorenew),
-                        tooltip: 'Generate New Key',
-                        onPressed: () {
-                          setState(() {
-                            _secretController.text = 'sec_${const Uuid().v4().replaceAll('-', '')}';
-                          });
-                        },
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _companyController,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('companyName'),
+                        prefixIcon: const Icon(Icons.business_outlined),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  DropdownButtonFormField<int>(
-                    initialValue: _rotationInterval,
-                    decoration: const InputDecoration(labelText: 'QR Rotation Interval'),
-                    items: const [
-                      DropdownMenuItem(value: 5, child: Text('5 Seconds (High Security)')),
-                      DropdownMenuItem(value: 10, child: Text('10 Seconds')),
-                      DropdownMenuItem(value: 15, child: Text('15 Seconds (Recommended)')),
-                      DropdownMenuItem(value: 30, child: Text('30 Seconds')),
-                      DropdownMenuItem(value: 60, child: Text('60 Seconds')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _rotationInterval = val);
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          if (showAdminApiSettings) ...[
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -539,53 +413,226 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.api, color: Colors.orange),
-                        SizedBox(width: 10),
-                        Text(
-                          'Admin Backend API',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        const Icon(
+                          Icons.location_on_outlined,
+                          color: Colors.redAccent,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            ref.tr('geofenceLocation'),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _useCurrentLocation,
+                          icon: const Icon(Icons.my_location, size: 16),
+                          label: Text(ref.tr('setCurrentGps')),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Required for creating and deleting user accounts. '
-                      'Example: https://your-backend.example.com',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _adminApiController,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Admin API Base URL',
-                        prefixIcon: Icon(Icons.link),
-                        hintText: 'https://your-backend.example.com',
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _latController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration:
+                                InputDecoration(labelText: ref.tr('latitude')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _lngController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration:
+                                InputDecoration(labelText: ref.tr('longitude')),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          ref.tr('geofenceRadius'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Chip(
+                          label: Text(
+                            '${_radiusMeters.toInt()} ${ref.tr('radiusMeters')}',
+                          ),
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _radiusMeters,
+                      min: 50,
+                      max: 5000,
+                      divisions: 99,
+                      label: '${_radiusMeters.toInt()} m',
+                      onChanged: (val) => setState(() => _radiusMeters = val),
+                    ),
+                    SwitchListTile(
+                      title: Text(ref.tr('allowRemoteClockIn')),
+                      subtitle: Text(ref.tr('allowRemoteClockInSub')),
+                      value: _allowRemoteClockIn,
+                      onChanged: (val) =>
+                          setState(() => _allowRemoteClockIn = val),
                     ),
                   ],
                 ),
               ),
             ),
-          ],
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _saving ? null : _saveSettings,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_rounded),
-              label: Text(_saving ? 'Saving...' : 'Save Configuration'),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.qr_code_2, color: Colors.purple),
+                        const SizedBox(width: 10),
+                        Text(
+                          ref.tr('qrSecurity'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _secretController,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('hmacSecretKey'),
+                        prefixIcon: const Icon(Icons.key),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.autorenew),
+                          tooltip: ref.tr('generateNewKey'),
+                          onPressed: () {
+                            setState(() {
+                              _secretController.text =
+                                  'sec_${const Uuid().v4().replaceAll('-', '')}';
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<int>(
+                      initialValue: _rotationInterval,
+                      decoration: InputDecoration(
+                        labelText: ref.tr('qrRotationInterval'),
+                      ),
+                      items: [
+                        DropdownMenuItem(value: 5, child: Text(ref.tr('qr5s'))),
+                        DropdownMenuItem(
+                          value: 10,
+                          child: Text(ref.tr('qr10s')),
+                        ),
+                        DropdownMenuItem(
+                          value: 15,
+                          child: Text(ref.tr('qr15s')),
+                        ),
+                        DropdownMenuItem(
+                          value: 30,
+                          child: Text(ref.tr('qr30s')),
+                        ),
+                        DropdownMenuItem(
+                          value: 60,
+                          child: Text(ref.tr('qr60s')),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _rotationInterval = val);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            if (showAdminApiSettings) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.api, color: Colors.orange),
+                          const SizedBox(width: 10),
+                          Text(
+                            ref.tr('adminBackendApi'),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        ref.tr('adminApiDesc'),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _adminApiController,
+                        keyboardType: TextInputType.url,
+                        decoration: InputDecoration(
+                          labelText: ref.tr('adminApiBaseUrl'),
+                          prefixIcon: const Icon(Icons.link),
+                          hintText: 'https://your-backend.example.com',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _saveSettings,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_rounded),
+                label: Text(
+                  _saving ? ref.tr('saving') : ref.tr('saveConfiguration'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
