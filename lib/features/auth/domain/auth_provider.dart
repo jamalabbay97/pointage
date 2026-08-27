@@ -23,7 +23,7 @@ final currentUserModelProvider = StreamProvider<UserModel?>((ref) {
         uid: authUser.uid,
         email: authUser.email ?? '',
         displayName: authUser.displayName ?? (authUser.email?.split('@').first ?? 'User'),
-        role: authUser.email?.contains('admin') == true ? 'admin' : 'employee',
+        role: 'employee',
         status: 'active',
         department: 'General',
       );

@@ -174,6 +174,7 @@ class RouterNotifier extends ChangeNotifier {
 
   RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, __) => notifyListeners());
+    _ref.listen(currentUserModelProvider, (_, __) => notifyListeners());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
@@ -193,6 +194,14 @@ class RouterNotifier extends ChangeNotifier {
     }
 
     if (isLoggingIn || isSplash) return '/dashboard';
+
+    if (location.startsWith('/admin')) {
+      final userModel = _ref.read(currentUserModelProvider).valueOrNull;
+      if (userModel != null && !userModel.isAdminOrManager) {
+        return '/dashboard';
+      }
+    }
+
     return null;
   }
 }

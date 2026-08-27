@@ -269,9 +269,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         appBar: AppBar(
           title: Text(ref.tr('scanQrCode')),
           actions: [
-            if (kIsWeb ||
-                defaultTargetPlatform == TargetPlatform.windows ||
-                defaultTargetPlatform == TargetPlatform.macOS)
+            if (kDebugMode &&
+                (kIsWeb ||
+                    defaultTargetPlatform == TargetPlatform.windows ||
+                    defaultTargetPlatform == TargetPlatform.macOS))
               IconButton(
                 icon: const Icon(Icons.bug_report),
                 tooltip: 'Simulate QR Scan (Desktop/Web Test)',
