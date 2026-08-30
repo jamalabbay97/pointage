@@ -17,6 +17,7 @@ import 'features/admin/presentation/role_management_screen.dart';
 import 'features/admin/presentation/qr_generator_screen.dart';
 import 'features/admin/presentation/system_settings_screen.dart';
 import 'features/admin/presentation/admin_reports_screen.dart';
+import 'features/admin/presentation/google_sheets_attendance_screen.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/history/presentation/history_screen.dart';
@@ -270,6 +271,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/reports',
         builder: (_, __) => const AdminReportsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/google-sheets',
+        builder: (_, __) => const GoogleSheetsAttendanceScreen(),
       ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),

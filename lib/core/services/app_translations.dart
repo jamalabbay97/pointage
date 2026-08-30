@@ -574,6 +574,27 @@ class AppTranslations {
       'clearLocation': 'Clear',
       'useCurrentGps': 'Use Current GPS Position',
       'couldNotGetGps': 'Could not get GPS location',
+      // Google Sheets Attendance
+      'googleSheetsAttendance': 'Google Sheets Attendance',
+      'googleSheetsAttendanceSub':
+          'Record and view employee attendance in Google Sheets format',
+      'googleSheetsTitle': 'Google Sheets Attendance Matrix',
+      'selectMonth': 'Select Month',
+      'markPresent': 'Mark Present',
+      'markAbsent': 'Mark Absent',
+      'clearAttendance': 'Clear Record',
+      'exportGoogleSheets': 'Export to Google Sheets (.xlsx)',
+      'noManagersFound': 'No managers found in system',
+      'noEmployeesForManager': 'No employees assigned to this manager',
+      'attendanceUpdated': 'Attendance updated for {name} on {date}',
+      'generalTab': 'General / Unassigned',
+      'cannotRecordFutureDate': 'Cannot record attendance for a future date',
+      'selectMonthYear': 'Select Month & Year',
+      'checkInTime': 'Check-In Time',
+      'attendanceTimes': 'Attendance Times',
+      'setTimes': 'Set Times',
+      'noTimeSet': 'Not set',
+      'timesOptional': 'Times are optional. Leave blank to skip.',
     },
     'fr': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1160,6 +1181,29 @@ class AppTranslations {
       'clearLocation': 'Effacer',
       'useCurrentGps': 'Utiliser la position GPS actuelle',
       'couldNotGetGps': 'Impossible d\'obtenir la position GPS',
+      // Google Sheets Attendance
+      'googleSheetsAttendance': 'Feuille de présence Google Sheets',
+      'googleSheetsAttendanceSub':
+          'Enregistrer et consulter la présence au format Google Sheets',
+      'googleSheetsTitle': 'Matrice de présence Google Sheets',
+      'selectMonth': 'Sélectionner le mois',
+      'markPresent': 'Marquer présent',
+      'markAbsent': 'Marquer absent',
+      'clearAttendance': 'Effacer l\'enregistrement',
+      'exportGoogleSheets': 'Exporter vers Google Sheets (.xlsx)',
+      'noManagersFound': 'Aucun manager trouvé dans le système',
+      'noEmployeesForManager': 'Aucun employé assigné à ce manager',
+      'attendanceUpdated': 'Présence mise à jour pour {name} le {date}',
+      'generalTab': 'Général / Non assigné',
+      'cannotRecordFutureDate':
+          'Impossible d\'enregistrer la présence pour une date future',
+      'selectMonthYear': 'Sélectionner le mois et l\'année',
+      'checkInTime': 'Heure d\'arrivée',
+      'attendanceTimes': 'Horaires de présence',
+      'setTimes': 'Définir les horaires',
+      'noTimeSet': 'Non défini',
+      'timesOptional':
+          'Les horaires sont facultatifs. Laissez vide pour ignorer.',
     },
     'ar': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1524,10 +1568,8 @@ class AppTranslations {
       'enterEmailOrPhone':
           'أدخل عنوان البريد الإلكتروني أو رقم الهاتف المسجل لاستعادة كلمة المرور.',
       'emailOrPhoneLabel': 'البريد الإلكتروني أو رقم الهاتف',
-      'invalidEmailOrPhone':
-          'يرجى إدخال عنوان بريد إلكتروني أو رقم هاتف صحيح',
-      'phoneUserNotFound':
-          'لم يتم العثور على حساب مستخدم يطابق رقم الهاتف هذا',
+      'invalidEmailOrPhone': 'يرجى إدخال عنوان بريد إلكتروني أو رقم هاتف صحيح',
+      'phoneUserNotFound': 'لم يتم العثور على حساب مستخدم يطابق رقم الهاتف هذا',
       'recoverySentPhone':
           'تم إرسال تعليمات استعادة كلمة المرور إلى الحساب المرتبط برقم {phone}',
       'phoneNumber': 'رقم الهاتف',
@@ -1722,6 +1764,26 @@ class AppTranslations {
       'clearLocation': 'مسح',
       'useCurrentGps': 'استخدام موقع GPS الحالي',
       'couldNotGetGps': 'تعذّر الحصول على موقع GPS',
+      // Google Sheets Attendance
+      'googleSheetsAttendance': 'جدول حضور جوجل شيت',
+      'googleSheetsAttendanceSub': 'تسجيل وعرض حضور الموظفين بأسلوب جدول جوجل',
+      'googleSheetsTitle': 'جدول الحضور بأسلوب جوجل شيت',
+      'selectMonth': 'اختر الشهر',
+      'markPresent': 'تعيين حاضر',
+      'markAbsent': 'تعيين غائب',
+      'clearAttendance': 'إلغاء التسجيل',
+      'exportGoogleSheets': 'تصدير إلى جوجل شيت (.xlsx)',
+      'noManagersFound': 'لم يتم العثور على مدراء في النظام',
+      'noEmployeesForManager': 'لا يوجد موظفون مضافون لهذا المدير',
+      'attendanceUpdated': 'تم تحديث حضور {name} بتاريخ {date}',
+      'generalTab': 'عام / غير معين',
+      'cannotRecordFutureDate': 'لا يمكن تسجيل الحضور لتاريخ في المستقبل',
+      'selectMonthYear': 'اختر الشهر والسنة',
+      'checkInTime': 'وقت الدخول',
+      'attendanceTimes': 'أوقات الحضور',
+      'setTimes': 'تحديد الأوقات',
+      'noTimeSet': 'غير محدد',
+      'timesOptional': 'الأوقات اختيارية. اتركها فارغة للتخطي.',
     },
     'es': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -2286,6 +2348,29 @@ class AppTranslations {
       'clearLocation': 'Borrar',
       'useCurrentGps': 'Usar posición GPS actual',
       'couldNotGetGps': 'No se pudo obtener la posición GPS',
+      // Google Sheets Attendance
+      'googleSheetsAttendance': 'Asistencia Google Sheets',
+      'googleSheetsAttendanceSub':
+          'Registrar y ver asistencia de empleados en formato Google Sheets',
+      'googleSheetsTitle': 'Matriz de Asistencia Google Sheets',
+      'selectMonth': 'Seleccionar mes',
+      'markPresent': 'Marcar presente',
+      'markAbsent': 'Marcar ausente',
+      'clearAttendance': 'Borrar registro',
+      'exportGoogleSheets': 'Exportar a Google Sheets (.xlsx)',
+      'noManagersFound': 'No se encontraron gerentes en el sistema',
+      'noEmployeesForManager': 'Sin empleados asignados a este gerente',
+      'attendanceUpdated': 'Asistencia actualizada para {name} el {date}',
+      'generalTab': 'General / Sin asignar',
+      'cannotRecordFutureDate':
+          'No se puede registrar asistencia para una fecha futura',
+      'selectMonthYear': 'Seleccionar mes y año',
+      'checkInTime': 'Hora de entrada',
+      'attendanceTimes': 'Horarios de asistencia',
+      'setTimes': 'Establecer horarios',
+      'noTimeSet': 'No establecido',
+      'timesOptional':
+          'Los horarios son opcionales. Déjelos en blanco para omitir.',
     },
   };
 

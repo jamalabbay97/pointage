@@ -143,6 +143,13 @@ class AdminScreen extends ConsumerWidget {
                     color: Colors.deepPurple,
                     onTap: () => context.push('/admin/notifications'),
                   ),
+                  _AdminCard(
+                    title: ref.tr('googleSheetsAttendance'),
+                    subtitle: ref.tr('googleSheetsAttendanceSub'),
+                    icon: Icons.table_chart_rounded,
+                    color: Colors.lightGreen.shade700,
+                    onTap: () => context.push('/admin/google-sheets'),
+                  ),
                 ],
               ),
             ],

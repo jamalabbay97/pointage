@@ -440,7 +440,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 color: Colors.teal,
                 route: '/settings',
               ),
-              if (isAdminOrManager)
+              if (isAdminOrManager) ...[
+                _DashboardActionCard(
+                  title: ref.tr('googleSheetsAttendance'),
+                  subtitle: ref.tr('googleSheetsAttendanceSub'),
+                  icon: Icons.table_chart_rounded,
+                  color: Colors.green.shade700,
+                  route: '/admin/google-sheets',
+                ),
                 _DashboardActionCard(
                   title: ref.tr('adminPortal'),
                   subtitle: ref.tr('reportsAnalytics'),
@@ -448,6 +455,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   color: Colors.amber.shade800,
                   route: '/admin',
                 ),
+              ],
             ],
           ),
         ),
