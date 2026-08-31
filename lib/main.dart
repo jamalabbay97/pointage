@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,10 +67,20 @@ class _BootstrapAppState extends State<BootstrapApp> {
         duration: const Duration(seconds: 30),
         label: 'Firebase initialization timed out',
       );
-      FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-      );
+      try {
+        if (!kIsWeb) {
+          FirebaseFirestore.instance.settings = const Settings(
+            persistenceEnabled: true,
+            cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+          );
+        } else {
+          FirebaseFirestore.instance.settings = const Settings(
+            cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+          );
+        }
+      } catch (e) {
+        debugPrint('Firestore settings initialization warning: $e');
+      }
       _savedTheme = await withTimeout(
         loadSavedTheme(),
         duration: const Duration(seconds: 8),

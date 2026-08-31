@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
 import '../../../core/widgets/mobile_app_download_dialog.dart';
@@ -61,9 +62,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final userModel = ref.watch(currentUserModelProvider).valueOrNull;
+    final userModelAsync = ref.watch(currentUserModelProvider);
+    final userModel = userModelAsync.valueOrNull ??
+        (user != null
+            ? UserModel(
+                uid: user.uid,
+                email: user.email ?? '',
+                displayName: user.displayName ??
+                    (user.email?.split('@').first ?? 'Employee'),
+                role: 'employee',
+                status: 'active',
+                department: 'General',
+              )
+            : null);
     _checkFirstLoginWizard(userModel);
-    final isAdminOrManager = ref.watch(isAdminOrManagerProvider);
+    final isAdminOrManager = userModel?.isAdminOrManager ?? false;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final todayDocId = '${user?.uid}-${now.toIso8601String().substring(0, 10)}';
