@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/utils/async_timeout.dart';
+import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../domain/user_sync_service.dart';
 
 enum _RecoveryStep { input, verifyOtpAndReset }
@@ -51,11 +52,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _checkBiometrics() async {
     if (kIsWeb) return;
     try {
+      final savedEmail = await _storage.read(key: 'email');
+      if (savedEmail != null && email.text.isEmpty) {
+        email.text = savedEmail;
+      }
+
       final canAuthenticate =
           await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
       if (!canAuthenticate) return;
 
-      final savedEmail = await _storage.read(key: 'email');
       final savedPassword = await _storage.read(key: 'password');
 
       if (savedEmail != null && savedPassword != null) {
@@ -579,7 +584,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          'Chez Le Pointage',
+                          'Pointage',
                           style: Theme.of(context)
                               .textTheme
                               .headlineSmall
@@ -664,6 +669,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   : ref.tr('secureLogin'),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              MobileAppDownloadDialog.show(context),
+                          icon:
+                              const Icon(Icons.phone_android_rounded, size: 18),
+                          label: Text(ref.tr('downloadMobileApp')),
                         ),
                       ],
                     ),

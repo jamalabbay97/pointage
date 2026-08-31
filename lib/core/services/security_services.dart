@@ -19,7 +19,7 @@ class BiometricGate {
   final LocalAuthentication _auth = LocalAuthentication();
   Future<bool> unlock() async {
     if (kIsWeb) return false;
-    return _auth.authenticate(localizedReason: 'Unlock Chez Le Pointage securely');
+    return _auth.authenticate(localizedReason: 'Unlock Pointage securely');
   }
 }
 

@@ -379,9 +379,32 @@ class _HistoryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final status = (record['status'] as String? ?? 'present').toLowerCase();
     final isLate = status == 'late';
-    final color = isLate ? Colors.orange : Colors.green;
+    final isAbsent = status == 'absent';
+
+    final Color color;
+    final IconData icon;
+    if (isAbsent) {
+      color = Colors.redAccent;
+      icon = Icons.cancel_outlined;
+    } else if (isLate) {
+      color = Colors.orange;
+      icon = Icons.access_time_filled;
+    } else {
+      color = Colors.green;
+      icon = Icons.check_circle_outline;
+    }
+
     final time = _HistoryScreenState.formatTime(record['time']);
     final checkout = _HistoryScreenState.formatTime(record['checkoutTime']);
+
+    final String subtitleText;
+    if (isAbsent) {
+      subtitleText =
+          '${ref.tr('status')}: ${ref.tr('absent')}\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Google Sheets Entry'}';
+    } else {
+      subtitleText =
+          '${ref.tr('attendanceTime')}: $time\n${ref.tr('checkOutTime')}: $checkout\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Mobile Device'}';
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -389,7 +412,7 @@ class _HistoryCard extends ConsumerWidget {
         leading: CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.15),
           child: Icon(
-            isLate ? Icons.access_time_filled : Icons.check_circle_outline,
+            icon,
             color: color,
           ),
         ),
@@ -397,13 +420,18 @@ class _HistoryCard extends ConsumerWidget {
           record['date']?.toString() ?? ref.tr('date'),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: Text(
-          '${ref.tr('attendanceTime')}: $time\n${ref.tr('checkOutTime')}: $checkout\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Mobile Device'}',
-        ),
+        subtitle: Text(subtitleText),
         isThreeLine: true,
         trailing: Chip(
-          label: Text(ref.tr(status).toUpperCase()),
+          label: Text(
+            ref.tr(status).toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           backgroundColor: color.withValues(alpha: 0.15),
+          side: BorderSide.none,
         ),
       ),
     );
@@ -434,7 +462,12 @@ class _AttendanceSummary {
     String scheduleType = 'standard',
   }) {
     final workingDays = _countWorkingDays(selectedMonth, scheduleType);
-    final checkIns = records.length;
+    final presentRecords = records.where((r) {
+      final s = (r['status'] as String? ?? 'present').trim().toLowerCase();
+      return s != 'absent' && s != 'day_off' && s != 'leave' && s != 'holiday';
+    }).toList();
+
+    final checkIns = presentRecords.length;
     final lateArrivals = records
         .where(
           (record) =>

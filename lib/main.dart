@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -18,6 +19,7 @@ import 'features/admin/presentation/qr_generator_screen.dart';
 import 'features/admin/presentation/system_settings_screen.dart';
 import 'features/admin/presentation/admin_reports_screen.dart';
 import 'features/admin/presentation/google_sheets_attendance_screen.dart';
+import 'features/admin/presentation/mobile_app_management_screen.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/history/presentation/history_screen.dart';
@@ -63,6 +65,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
         ),
         duration: const Duration(seconds: 30),
         label: 'Firebase initialization timed out',
+      );
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
       _savedTheme = await withTimeout(
         loadSavedTheme(),
@@ -276,6 +282,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/admin/google-sheets',
         builder: (_, __) => const GoogleSheetsAttendanceScreen(),
       ),
+      GoRoute(
+        path: '/admin/mobile-app',
+        builder: (_, __) => const MobileAppManagementScreen(),
+      ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(
@@ -299,7 +309,7 @@ class ChezLePointageApp extends ConsumerWidget {
     final currentLang = ref.watch(languageProvider);
 
     return MaterialApp.router(
-      title: 'Chez Le Pointage',
+      title: 'Pointage',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
 
@@ -306,6 +307,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Card(
               child: Column(
                 children: [
+                  ListTile(
+                    leading: const Icon(Icons.phone_android),
+                    title: Text(ref.tr('downloadMobileApp')),
+                    subtitle: Text(ref.tr('mobileAppDownloadSub')),
+                    trailing: const Icon(Icons.qr_code_2, size: 22),
+                    onTap: () => MobileAppDownloadDialog.show(context),
+                  ),
+                  const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.apps),
                     title: Text(ref.tr('appVersion')),

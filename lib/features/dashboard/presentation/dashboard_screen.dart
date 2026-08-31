@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
+import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -277,17 +278,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             builder: (context, snapshot) {
                               final data = snapshot.data?.data()
                                   as Map<String, dynamic>?;
-                              final hasCheckedIn =
-                                  snapshot.data?.exists ?? false;
+                              final exists = snapshot.data?.exists ?? false;
+                              final status = (data?['status'] as String? ?? '').toLowerCase();
+                              final isAbsent = exists && status == 'absent';
                               final hasCheckedOut = data != null &&
                                   data.containsKey('checkoutTime') &&
                                   data['checkoutTime'] != null;
+                              final hasCheckedIn = exists && !isAbsent;
 
                               String statusText;
                               Color statusColor;
                               IconData statusIcon;
 
-                              if (hasCheckedOut) {
+                              if (isAbsent) {
+                                statusText = ref.tr('absentToday');
+                                statusColor = Colors.red.shade600;
+                                statusIcon = Icons.cancel_rounded;
+                              } else if (hasCheckedOut) {
                                 statusText = ref.tr('checkedOutToday');
                                 statusColor = Colors.blue.shade600;
                                 statusIcon = Icons.done_all_rounded;
@@ -427,6 +434,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   route: '/history',
                 ),
               _DashboardActionCard(
+                title: ref.tr('downloadMobileApp'),
+                subtitle: ref.tr('mobileAppDownloadSub'),
+                icon: Icons.phone_android_rounded,
+                color: Colors.indigo,
+                onTap: () => MobileAppDownloadDialog.show(context),
+              ),
+              _DashboardActionCard(
                 title: ref.tr('userProfile'),
                 subtitle: ref.tr('manageProfile'),
                 icon: Icons.person_outline_rounded,
@@ -470,21 +484,29 @@ class _DashboardActionCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.color,
-    required this.route,
+    this.route,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
-  final String route;
+  final String? route;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        onTap: () => context.push(route),
+        onTap: () {
+          if (onTap != null) {
+            onTap!();
+          } else if (route != null) {
+            context.push(route!);
+          }
+        },
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(

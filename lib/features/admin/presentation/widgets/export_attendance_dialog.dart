@@ -411,7 +411,7 @@ class _ExportAttendanceDialogState
                           '${ref.tr('attendanceRate')}: ${_previewReport!.attendanceRate.toStringAsFixed(1)}%',
                         ),
                         Text(
-                          '${ref.tr('totalLateMinutes')}: ${_previewReport!.totalLateMinutes}',
+                          '${ref.tr('totalLateHours')}: ${(_previewReport!.totalLateMinutes / 60.0).toStringAsFixed(1)}',
                         ),
                         Text(
                           '${ref.tr('totalWorkedHours')}: ${_previewReport!.totalWorkedHours.toStringAsFixed(1)}',

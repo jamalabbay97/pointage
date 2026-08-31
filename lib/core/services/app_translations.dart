@@ -33,6 +33,7 @@ class AppTranslations {
       'employee': 'Employee',
       'checkedInToday': 'Checked In Today',
       'checkedOutToday': 'Checked Out Today',
+      'absentToday': 'Marked Absent Today',
       'notCheckedIn': 'Not Checked In',
       'scanQrCode': 'Scan QR Code',
       'registerGps': 'Register attendance with GPS verification',
@@ -137,6 +138,7 @@ class AppTranslations {
       'attendanceRecords': 'Attendance Records',
       'attendanceRate': 'Attendance Rate',
       'totalLateMinutes': 'Total Late Minutes',
+      'totalLateHours': 'Total Late Hours',
       'totalWorkedHours': 'Total Worked Hours',
       'exportExcelLabel': 'Export Excel',
       'exportPdfLabel': 'Export PDF',
@@ -346,7 +348,7 @@ class AppTranslations {
       'autoLock15Min': '15 minutes',
       'autoLockNever': 'Never',
       'termsContent':
-          'Chez Le Pointage is an enterprise attendance verification system. By using this application, you agree to allow geolocation verification during attendance clock-in events to confirm presence within designated office parameters.',
+          'Pointage is an enterprise attendance verification system. By using this application, you agree to allow geolocation verification during attendance clock-in events to confirm presence within designated office parameters.',
       'privacyContent':
           'Your location data is only accessed during active QR scanning and attendance registration events. Geolocation is used strictly for distance verification against official office coordinates and is stored securely in compliance with privacy regulations.',
 
@@ -595,6 +597,25 @@ class AppTranslations {
       'setTimes': 'Set Times',
       'noTimeSet': 'Not set',
       'timesOptional': 'Times are optional. Leave blank to skip.',
+
+      // ── Mobile App Download ──────────────────────────────────────────
+      'mobileAppManagement': 'Mobile Application Management',
+      'mobileAppManagementDesc':
+          'Configure Android/iOS mobile application download link, version details, and availability.',
+      'downloadMobileApp': 'Download Mobile App',
+      'mobileAppDownloadSub':
+          'Scan QR code or download APK to install on your smartphone',
+      'mobileAppUrl': 'App Download / APK URL',
+      'mobileAppUrlHint': 'e.g. https://example.com/pointage.apk',
+      'mobileAppVersion': 'Application Version',
+      'mobileAppNotes': 'Release Notes / Description',
+      'mobileAppEnabled': 'Enable Mobile App Download',
+      'scanToDownloadApp': 'Scan with smartphone camera to download app',
+      'downloadApkBtn': 'Download APK Package',
+      'mobileAppNotConfigured':
+          'Mobile application download is not configured yet.',
+      'deleteMobileApp': 'Delete / Clear App Link',
+      'confirmDeleteMobileApp': 'Mobile app download link cleared',
     },
     'fr': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -624,6 +645,7 @@ class AppTranslations {
       'employee': 'Employé',
       'checkedInToday': "Pointé aujourd'hui",
       'checkedOutToday': 'Départ enregistré',
+      'absentToday': "Marqué absent aujourd'hui",
       'notCheckedIn': 'Non pointé',
       'scanQrCode': 'Scanner le code QR',
       'registerGps': 'Enregistrer la présence avec vérification GPS',
@@ -728,6 +750,7 @@ class AppTranslations {
       'attendanceRecords': 'Enregistrements de présence',
       'attendanceRate': 'Taux de présence',
       'totalLateMinutes': 'Total des minutes de retard',
+      'totalLateHours': 'Total des heures de retard',
       'totalWorkedHours': 'Total des heures travaillées',
       'exportExcelLabel': 'Exporter Excel',
       'exportPdfLabel': 'Exporter PDF',
@@ -944,7 +967,7 @@ class AppTranslations {
       'autoLock15Min': '15 minutes',
       'autoLockNever': 'Jamais',
       'termsContent':
-          'Chez Le Pointage est un système de vérification de présence d\'entreprise. En utilisant cette application, vous acceptez de permettre la vérification de géolocalisation lors des événements de pointage pour confirmer la présence dans les paramètres de bureau désignés.',
+          'Pointage est un système de vérification de présence d\'entreprise. En utilisant cette application, vous acceptez de permettre la vérification de géolocalisation lors des événements de pointage pour confirmer la présence dans les paramètres de bureau désignés.',
       'privacyContent':
           'Vos données de localisation ne sont accessibles que lors des événements actifs de scan QR et d\'enregistrement de présence. La géolocalisation est utilisée uniquement pour la vérification de distance par rapport aux coordonnées officielles du bureau et est stockée en toute sécurité conformément aux réglementations sur la confidentialité.',
 
@@ -1204,6 +1227,26 @@ class AppTranslations {
       'noTimeSet': 'Non défini',
       'timesOptional':
           'Les horaires sont facultatifs. Laissez vide pour ignorer.',
+
+      // ── Mobile App Download ──────────────────────────────────────────
+      'mobileAppManagement': 'Gestion de l\'application mobile',
+      'mobileAppManagementDesc':
+          'Configurez l\'URL de téléchargement et les détails de la version de l\'application mobile.',
+      'downloadMobileApp': 'Télécharger l\'App Mobile',
+      'mobileAppDownloadSub':
+          'Scannez le QR code ou téléchargez l\'APK pour votre smartphone',
+      'mobileAppUrl': 'URL de téléchargement / Fichier APK',
+      'mobileAppUrlHint': 'ex: https://example.com/pointage.apk',
+      'mobileAppVersion': 'Version de l\'application',
+      'mobileAppNotes': 'Notes de version / Description',
+      'mobileAppEnabled': 'Activer le téléchargement de l\'app mobile',
+      'scanToDownloadApp':
+          'Scannez avec la caméra de votre smartphone pour télécharger',
+      'downloadApkBtn': 'Télécharger le fichier APK',
+      'mobileAppNotConfigured':
+          'Le téléchargement de l\'application mobile n\'est pas encore configuré.',
+      'deleteMobileApp': 'Supprimer le lien de l\'app',
+      'confirmDeleteMobileApp': 'Lien de l\'app mobile supprimé',
     },
     'ar': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1233,6 +1276,7 @@ class AppTranslations {
       'employee': 'موظف',
       'checkedInToday': 'تم تسجيل الحضور اليوم',
       'checkedOutToday': 'تم تسجيل الانصراف اليوم',
+      'absentToday': 'تم تعيينه غائباً اليوم',
       'notCheckedIn': 'لم يتم التسجيل اليوم',
       'scanQrCode': 'مسح رمز QR',
       'registerGps': 'تسجيل الحضور عبر التحقق من الموقع GPS',
@@ -1335,6 +1379,7 @@ class AppTranslations {
       'attendanceRecords': 'سجلات الحضور',
       'attendanceRate': 'نسبة الحضور',
       'totalLateMinutes': 'إجمالي دقائق التأخر',
+      'totalLateHours': 'إجمالي ساعات التأخر',
       'totalWorkedHours': 'إجمالي ساعات العمل',
       'exportExcelLabel': 'تصدير Excel',
       'exportPdfLabel': 'تصدير PDF',
@@ -1542,7 +1587,7 @@ class AppTranslations {
       'autoLock15Min': '15 دقيقة',
       'autoLockNever': 'أبداً',
       'termsContent':
-          'Chez Le Pointage هو نظام التحقق من حضور المؤسسات. باستخدام هذا التطبيق، فإنك توافق على السماح بالتحقق من الموقع الجغرافي أثناء أحداث تسجيل الحضور لتأكيد الحضور ضمن معاملات المكتب المحددة.',
+          'Pointage هو نظام التحقق من حضور المؤسسات. باستخدام هذا التطبيق، فإنك توافق على السماح بالتحقق من الموقع الجغرافي أثناء أحداث تسجيل الحضور لتأكيد الحضور ضمن معاملات المكتب المحددة.',
       'privacyContent':
           'يتم الوصول إلى بيانات موقعك فقط أثناء أحداث مسح QR النشطة وتسجيل الحضور. يُستخدم الموقع الجغرافي حصرياً للتحقق من المسافة مقارنةً بإحداثيات المكتب الرسمية ويتم تخزينه بأمان وفقاً للوائح الخصوصية.',
 
@@ -1784,6 +1829,24 @@ class AppTranslations {
       'setTimes': 'تحديد الأوقات',
       'noTimeSet': 'غير محدد',
       'timesOptional': 'الأوقات اختيارية. اتركها فارغة للتخطي.',
+
+      // ── Mobile App Download ──────────────────────────────────────────
+      'mobileAppManagement': 'إدارة تطبيق الهاتف المحمول',
+      'mobileAppManagementDesc':
+          'إعداد رابط تنزيل تطبيق الهاتف وتفاصيل الإصدار.',
+      'downloadMobileApp': 'تنزيل تطبيق الهاتف المحمول',
+      'mobileAppDownloadSub':
+          'امسح رمز الاستجابة السريعة أو قم بتنزيل ملف APK لتثبيته على هاتفك',
+      'mobileAppUrl': 'رابط تنزيل التطبيق / ملف APK',
+      'mobileAppUrlHint': 'مثال: https://example.com/pointage.apk',
+      'mobileAppVersion': 'إصدار التطبيق',
+      'mobileAppNotes': 'ملاحظات الإصدار / الوصف',
+      'mobileAppEnabled': 'تمكين تنزيل تطبيق الهاتف',
+      'scanToDownloadApp': 'امسح بكاميرا الهاتف لتنزيل التطبيق',
+      'downloadApkBtn': 'تنزيل حزمة APK',
+      'mobileAppNotConfigured': 'رابط تنزيل تطبيق الهاتف غير مهيأ بعد.',
+      'deleteMobileApp': 'حذف رابط التطبيق',
+      'confirmDeleteMobileApp': 'تم إزالة رابط تنزيل التطبيق',
     },
     'es': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1813,6 +1876,7 @@ class AppTranslations {
       'employee': 'Empleado',
       'checkedInToday': 'Registrado Hoy',
       'checkedOutToday': 'Salida registrada hoy',
+      'absentToday': 'Marcado ausente hoy',
       'notCheckedIn': 'Sin Registrar',
       'scanQrCode': 'Escanear Código QR',
       'registerGps': 'Registrar asistencia con verificación GPS',
@@ -1917,6 +1981,7 @@ class AppTranslations {
       'attendanceRecords': 'Registros de Asistencia',
       'attendanceRate': 'Tasa de Asistencia',
       'totalLateMinutes': 'Total Minutos de Retraso',
+      'totalLateHours': 'Total Horas de Retraso',
       'totalWorkedHours': 'Total Horas Trabajadas',
       'exportExcelLabel': 'Exportar Excel',
       'exportPdfLabel': 'Exportar PDF',
@@ -2131,7 +2196,7 @@ class AppTranslations {
       'autoLock15Min': '15 minutos',
       'autoLockNever': 'Nunca',
       'termsContent':
-          'Chez Le Pointage es un sistema de verificación de asistencia empresarial. Al usar esta aplicación, acepta permitir la verificación de geolocalización durante los eventos de registro de asistencia para confirmar la presencia dentro de los parámetros de oficina designados.',
+          'Pointage es un sistema de verificación de asistencia empresarial. Al usar esta aplicación, acepta permitir la verificación de geolocalización durante los eventos de registro de asistencia para confirmar la presencia dentro de los parámetros de oficina designados.',
       'privacyContent':
           'Sus datos de ubicación solo se acceden durante eventos activos de escaneo QR y registro de asistencia. La geolocalización se usa exclusivamente para la verificación de distancia contra las coordenadas oficiales de la oficina y se almacena de forma segura en cumplimiento con las regulaciones de privacidad.',
 
@@ -2371,6 +2436,26 @@ class AppTranslations {
       'noTimeSet': 'No establecido',
       'timesOptional':
           'Los horarios son opcionales. Déjelos en blanco para omitir.',
+
+      // ── Mobile App Download ──────────────────────────────────────────
+      'mobileAppManagement': 'Gestión de la Aplicación Móvil',
+      'mobileAppManagementDesc':
+          'Configure la URL de descarga y los detalles de versión de la app móvil.',
+      'downloadMobileApp': 'Descargar App Móvil',
+      'mobileAppDownloadSub':
+          'Escanee el código QR o descargue el APK para su smartphone',
+      'mobileAppUrl': 'URL de descarga / Archivo APK',
+      'mobileAppUrlHint': 'ej: https://example.com/pointage.apk',
+      'mobileAppVersion': 'Versión de la Aplicación',
+      'mobileAppNotes': 'Notas de la Versión / Descripción',
+      'mobileAppEnabled': 'Habilitar descarga de la app móvil',
+      'scanToDownloadApp':
+          'Escanee con la cámara de su teléfono para descargar',
+      'downloadApkBtn': 'Descargar paquete APK',
+      'mobileAppNotConfigured':
+          'La descarga de la aplicación móvil aún no está configurada.',
+      'deleteMobileApp': 'Eliminar enlace de la app',
+      'confirmDeleteMobileApp': 'Enlace de la app móvil eliminado',
     },
   };
 

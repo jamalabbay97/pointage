@@ -150,6 +150,14 @@ class AdminScreen extends ConsumerWidget {
                     color: Colors.lightGreen.shade700,
                     onTap: () => context.push('/admin/google-sheets'),
                   ),
+                    if (isAdmin)
+                    _AdminCard(
+                      title: ref.tr('mobileAppManagement'),
+                      subtitle: ref.tr('mobileAppManagementDesc'),
+                      icon: Icons.phone_android_rounded,
+                      color: Colors.cyan.shade700,
+                      onTap: () => context.push('/admin/mobile-app'),
+                    ),
                 ],
               ),
             ],

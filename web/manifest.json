@@ -1,6 +1,6 @@
 {
-    "name": "chez_le_pointage",
-    "short_name": "chez_le_pointage",
+    "name": "Pointage",
+    "short_name": "Pointage",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

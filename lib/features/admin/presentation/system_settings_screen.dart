@@ -27,10 +27,14 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
   late TextEditingController _lngController;
   late TextEditingController _secretController;
   late TextEditingController _adminApiController;
+  late TextEditingController _mobileAppUrlController;
+  late TextEditingController _mobileAppVersionController;
+  late TextEditingController _mobileAppNotesController;
 
   double _radiusMeters = 500;
   int _rotationInterval = 15;
   bool _allowRemoteClockIn = false;
+  bool _mobileAppEnabled = true;
 
   @override
   void initState() {
@@ -40,6 +44,9 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     _lngController = TextEditingController();
     _secretController = TextEditingController();
     _adminApiController = TextEditingController();
+    _mobileAppUrlController = TextEditingController();
+    _mobileAppVersionController = TextEditingController();
+    _mobileAppNotesController = TextEditingController();
     _loadSettings();
   }
 
@@ -50,6 +57,9 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
     _lngController.dispose();
     _secretController.dispose();
     _adminApiController.dispose();
+    _mobileAppUrlController.dispose();
+    _mobileAppVersionController.dispose();
+    _mobileAppNotesController.dispose();
     super.dispose();
   }
 
@@ -83,6 +93,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
       _adminApiController.text = settings.adminApiBaseUrl;
       _rotationInterval = settings.qrRotateIntervalSeconds;
       _allowRemoteClockIn = settings.allowRemoteClockIn;
+      _mobileAppUrlController.text = settings.mobileAppUrl;
+      _mobileAppVersionController.text = settings.mobileAppVersion;
+      _mobileAppNotesController.text = settings.mobileAppNotes;
+      _mobileAppEnabled = settings.mobileAppEnabled;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,6 +301,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         companyName: companyName,
         allowRemoteClockIn: _allowRemoteClockIn,
         adminApiBaseUrl: _adminApiController.text.trim(),
+        mobileAppUrl: _mobileAppUrlController.text.trim(),
+        mobileAppVersion: _mobileAppVersionController.text.trim(),
+        mobileAppNotes: _mobileAppNotesController.text.trim(),
+        mobileAppEnabled: _mobileAppEnabled,
       );
       await _db.collection('settings').doc('company').set(updated.toJson());
       if (mounted) {

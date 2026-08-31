@@ -2,6 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('sanity', () {
-    expect('Chez Le Pointage', contains('Pointage'));
+    expect('Pointage', contains('Pointage'));
   });
 }
