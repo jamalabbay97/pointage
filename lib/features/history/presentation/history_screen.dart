@@ -296,33 +296,50 @@ class _SummaryDashboard extends ConsumerWidget {
                 '${summary.attendancePercentage}${ref.tr('attendanceRateLabel')}',
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
+              Column(
                 children: [
-                  _StatTile(
-                    icon: Icons.calendar_month,
-                    label: ref.tr('workingDays'),
-                    value: '${summary.workingDays}',
-                    color: Colors.blue,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.calendar_month,
+                          label: ref.tr('workingDays'),
+                          value: '${summary.workingDays}',
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.login,
+                          label: ref.tr('checkIns'),
+                          value: '${summary.checkIns}',
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
                   ),
-                  _StatTile(
-                    icon: Icons.login,
-                    label: ref.tr('checkIns'),
-                    value: '${summary.checkIns}',
-                    color: Colors.green,
-                  ),
-                  _StatTile(
-                    icon: Icons.person_off,
-                    label: ref.tr('absences'),
-                    value: '${summary.absences}',
-                    color: Colors.red,
-                  ),
-                  _StatTile(
-                    icon: Icons.schedule,
-                    label: ref.tr('lateArrivals'),
-                    value: '${summary.lateArrivals}',
-                    color: Colors.orange,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.person_off,
+                          label: ref.tr('absences'),
+                          value: '${summary.absences}',
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _StatTile(
+                          icon: Icons.schedule,
+                          label: ref.tr('lateArrivals'),
+                          value: '${summary.lateArrivals}',
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -347,7 +364,6 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 150,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
@@ -364,7 +380,11 @@ class _StatTile extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            Text(label),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       );

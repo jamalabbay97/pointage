@@ -113,22 +113,35 @@ class ExcelExportService {
   ) {
     final sheet = excel[AppTranslations.text(langCode, 'xlsSheetEmployees')];
 
-    sheet.appendRow([
-      TextCellValue(AppTranslations.text(langCode, 'xlsColDepartment')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColEmployeeId')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColEmployeeName')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColSchedule')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColExpectedDays')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColPresent')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColLate')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColAbsent')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColLeave')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColHolidays')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColIncomplete')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColLateHours')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColWorkedHours')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColAttendanceRate')),
-    ]);
+    final headerStyle = CellStyle(
+      backgroundColorHex: ExcelColor.fromHexString('#1B5E20'),
+      fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+      bold: true,
+    );
+
+    final headers = [
+      AppTranslations.text(langCode, 'xlsColDepartment'),
+      AppTranslations.text(langCode, 'xlsColEmployeeId'),
+      AppTranslations.text(langCode, 'xlsColEmployeeName'),
+      AppTranslations.text(langCode, 'xlsColSchedule'),
+      AppTranslations.text(langCode, 'xlsColExpectedDays'),
+      AppTranslations.text(langCode, 'xlsColPresent'),
+      AppTranslations.text(langCode, 'xlsColLate'),
+      AppTranslations.text(langCode, 'xlsColAbsent'),
+      AppTranslations.text(langCode, 'xlsColLeave'),
+      AppTranslations.text(langCode, 'xlsColHolidays'),
+      AppTranslations.text(langCode, 'xlsColIncomplete'),
+      AppTranslations.text(langCode, 'xlsColLateHours'),
+      AppTranslations.text(langCode, 'xlsColWorkedHours'),
+      AppTranslations.text(langCode, 'xlsColAttendanceRate'),
+    ];
+
+    sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
+
+    for (int col = 0; col < headers.length; col++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      cell.cellStyle = headerStyle;
+    }
 
     for (var emp in report.employeeSummaries) {
       sheet.appendRow([
@@ -157,26 +170,58 @@ class ExcelExportService {
   ) {
     final sheet = excel[AppTranslations.text(langCode, 'xlsSheetDetailed')];
 
-    sheet.appendRow([
-      TextCellValue(AppTranslations.text(langCode, 'xlsColDate')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColEmployeeId')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColEmployee')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColDepartment')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColSchedule')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColExpectedToWork')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColCheckIn')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColCheckOut')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColStatus')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColLateHrsShort')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColWorkHours')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColDevice')),
-      TextCellValue(AppTranslations.text(langCode, 'xlsColNotes')),
-    ]);
+    final headerStyle = CellStyle(
+      backgroundColorHex: ExcelColor.fromHexString('#1B5E20'),
+      fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+      bold: true,
+    );
+
+    final presentStyle = CellStyle(
+      backgroundColorHex: ExcelColor.fromHexString('#C8E6C9'),
+      fontColorHex: ExcelColor.fromHexString('#1B5E20'),
+    );
+
+    final absentStyle = CellStyle(
+      backgroundColorHex: ExcelColor.fromHexString('#FFCDD2'),
+      fontColorHex: ExcelColor.fromHexString('#B71C1C'),
+    );
+
+    final lateStyle = CellStyle(
+      backgroundColorHex: ExcelColor.fromHexString('#FFE0B2'),
+      fontColorHex: ExcelColor.fromHexString('#E65100'),
+    );
+
+    final headers = [
+      AppTranslations.text(langCode, 'xlsColDate'),
+      AppTranslations.text(langCode, 'xlsColEmployeeId'),
+      AppTranslations.text(langCode, 'xlsColEmployee'),
+      AppTranslations.text(langCode, 'xlsColDepartment'),
+      AppTranslations.text(langCode, 'xlsColSchedule'),
+      AppTranslations.text(langCode, 'xlsColExpectedToWork'),
+      AppTranslations.text(langCode, 'xlsColCheckIn'),
+      AppTranslations.text(langCode, 'xlsColCheckOut'),
+      AppTranslations.text(langCode, 'xlsColStatus'),
+      AppTranslations.text(langCode, 'xlsColLateHrsShort'),
+      AppTranslations.text(langCode, 'xlsColWorkHours'),
+      AppTranslations.text(langCode, 'xlsColDevice'),
+      AppTranslations.text(langCode, 'xlsColNotes'),
+    ];
+
+    sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
+
+    for (int col = 0; col < headers.length; col++) {
+      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      cell.cellStyle = headerStyle;
+    }
 
     final dateFormat = DateFormat('yyyy-MM-dd');
     final timeFormat = DateFormat('HH:mm:ss');
 
+    int rowIndex = 1;
     for (var record in report.detailedRecords) {
+      final statusLower = record.status.toLowerCase();
+      final isAbsent = statusLower == 'absent';
+      
       sheet.appendRow([
         TextCellValue(dateFormat.format(record.date)),
         TextCellValue(record.employeeId),
@@ -189,19 +234,31 @@ class ExcelExportService {
               : AppTranslations.text(langCode, 'no'),
         ),
         TextCellValue(
-          record.checkIn != null ? timeFormat.format(record.checkIn!) : '—',
+          !isAbsent && record.checkIn != null ? timeFormat.format(record.checkIn!) : '—',
         ),
         TextCellValue(
-          record.checkOut != null ? timeFormat.format(record.checkOut!) : '—',
+          !isAbsent && record.checkOut != null ? timeFormat.format(record.checkOut!) : '—',
         ),
         TextCellValue(
-          AppTranslations.text(langCode, record.status.toLowerCase()),
+          AppTranslations.text(langCode, statusLower),
         ),
         DoubleCellValue(record.lateMinutes / 60.0),
         DoubleCellValue(record.workHours),
         TextCellValue(record.device),
         TextCellValue(record.notes),
       ]);
+
+      // Apply cell styling to status cell (column index 8)
+      final statusCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex));
+      if (statusLower == 'present') {
+        statusCell.cellStyle = presentStyle;
+      } else if (statusLower == 'absent') {
+        statusCell.cellStyle = absentStyle;
+      } else if (statusLower == 'late') {
+        statusCell.cellStyle = lateStyle;
+      }
+
+      rowIndex++;
     }
   }
 }

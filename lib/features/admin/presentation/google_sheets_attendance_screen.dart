@@ -621,7 +621,7 @@ class _GoogleSheetsAttendanceScreenState
           'employeeId': employee.uid,
           'employeeName': employee.displayName,
           'date': dateStr,
-          'time': checkInDt.toIso8601String(),
+          'time': status == 'absent' ? null : checkInDt.toIso8601String(),
           'checkoutTime':
               status == 'absent' ? null : checkOutDt?.toIso8601String(),
           'status': status,

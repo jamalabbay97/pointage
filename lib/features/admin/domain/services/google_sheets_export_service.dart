@@ -54,6 +54,30 @@ class GoogleSheetsExportService {
       createdSheetNames.add(uniqueSheetName);
       final sheet = excel[uniqueSheetName];
 
+      // Create reusable styles
+      final headerStyle = CellStyle(
+        backgroundColorHex: ExcelColor.fromHexString('#1B5E20'), // Dark Emerald Green
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        bold: true,
+      );
+
+      final presentStyle = CellStyle(
+        backgroundColorHex: ExcelColor.fromHexString('#C8E6C9'), // Light Green
+        fontColorHex: ExcelColor.fromHexString('#1B5E20'), // Dark Green Text
+      );
+
+      final absentStyle = CellStyle(
+        backgroundColorHex: ExcelColor.fromHexString('#FFCDD2'), // Light Red
+        fontColorHex: ExcelColor.fromHexString('#B71C1C'), // Dark Red Text
+      );
+
+      final lateStyle = CellStyle(
+        backgroundColorHex: ExcelColor.fromHexString('#FFE0B2'), // Light Orange
+        fontColorHex: ExcelColor.fromHexString('#E65100'), // Dark Orange Text
+      );
+
+      final defaultStyle = CellStyle();
+
       // Row 1: Header Row
       final headers = <CellValue>[
         TextCellValue('Employee ID'),
@@ -67,7 +91,14 @@ class GoogleSheetsExportService {
       }
       sheet.appendRow(headers);
 
+      // Format Header Cells
+      for (int col = 0; col < headers.length; col++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+        cell.cellStyle = headerStyle;
+      }
+
       // Rows for each employee
+      int rowIndex = 1;
       for (final emp in group.employees) {
         final row = <CellValue>[
           TextCellValue(emp.uid),
@@ -100,6 +131,31 @@ class GoogleSheetsExportService {
         }
 
         sheet.appendRow(row);
+
+        // Apply cell styling to attendance status columns
+        for (int day = 1; day <= daysInMonth; day++) {
+          final colIndex = 2 + day; // 0: ID, 1: Name, 2: Dept, 3+: Days
+          final date = DateTime(month.year, month.month, day);
+          final cellDate = DateTime(date.year, date.month, date.day);
+          final dateKey = '${emp.uid}-${dateFormat.format(date)}';
+          final status = attendanceRecords[dateKey]?.toLowerCase();
+          final isFuture = cellDate.isAfter(today);
+
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: rowIndex));
+          if (status == 'present') {
+            cell.cellStyle = presentStyle;
+          } else if (status == 'absent') {
+            cell.cellStyle = absentStyle;
+          } else if (status == 'late') {
+            cell.cellStyle = lateStyle;
+          } else if (!isFuture) {
+            cell.cellStyle = absentStyle;
+          } else {
+            cell.cellStyle = defaultStyle;
+          }
+        }
+
+        rowIndex++;
       }
     }
 

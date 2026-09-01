@@ -178,10 +178,10 @@ class ReportDataService {
           final status =
               (record['status']?.toString() ?? 'present').toLowerCase();
 
-          DateTime? checkIn = record['time'] != null
+          DateTime? checkIn = (status != 'absent' && record['time'] != null)
               ? DateTime.tryParse(record['time'].toString())
               : null;
-          DateTime? checkOut = record['checkoutTime'] != null
+          DateTime? checkOut = (status != 'absent' && record['checkoutTime'] != null)
               ? DateTime.tryParse(record['checkoutTime'].toString())
               : null;
 

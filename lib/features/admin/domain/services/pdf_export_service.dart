@@ -294,8 +294,12 @@ class PdfExportService {
                 r.expectedToWork
                     ? AppTranslations.text(langCode, 'yes')
                     : AppTranslations.text(langCode, 'no'),
-                r.checkIn != null ? timeFormat.format(r.checkIn!) : '-',
-                r.checkOut != null ? timeFormat.format(r.checkOut!) : '-',
+                r.status.toLowerCase() != 'absent' && r.checkIn != null
+                    ? timeFormat.format(r.checkIn!)
+                    : '-',
+                r.status.toLowerCase() != 'absent' && r.checkOut != null
+                    ? timeFormat.format(r.checkOut!)
+                    : '-',
                 AppTranslations.text(langCode, r.status.toLowerCase())
                     .toUpperCase(),
                 (r.lateMinutes / 60).toStringAsFixed(1),

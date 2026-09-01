@@ -281,9 +281,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     }
 
                     return ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        top: 8,
+                        bottom: 80,
                       ),
                       itemCount: users.length,
                       itemBuilder: (context, index) {
@@ -291,166 +293,265 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         final isActive = user.isActive;
                         final isCurrentUser = user.uid == currentUid;
 
+                        final managerId = user.managerId ?? user.createdBy;
+                        final rawManagerName = managerId == null
+                            ? null
+                            : managersById[managerId] ?? 'ID: $managerId';
+                        final managerLine = rawManagerName == null
+                            ? null
+                            : ref
+                                .tr('createdByLine')
+                                .replaceAll('{name}', rawManagerName);
+
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: _getRoleColor(user.role)
-                                  .withValues(alpha: 0.15),
-                              child: Icon(
-                                _getRoleIcon(user.role),
-                                color: _getRoleColor(user.role),
-                              ),
-                            ),
-                            title: Row(
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    user.displayName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      decoration: isActive
-                                          ? null
-                                          : TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _getRoleColor(user.role)
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _getRoleColor(user.role),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    ref.trRole(user.role).toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: _getRoleColor(user.role),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            subtitle: Text(
-                              _userSubtitle(user, managersById),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            isThreeLine: true,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Switch(
-                                  value: isActive,
-                                  activeThumbColor: Colors.green,
-                                  onChanged: isCurrentUser
-                                      ? null
-                                      : (val) async {
-                                          final newStatus =
-                                              val ? 'active' : 'disabled';
-                                          try {
-                                            await _db
-                                                .collection('users')
-                                                .doc(user.uid)
-                                                .update({
-                                              'status': newStatus,
-                                            });
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'User ${user.displayName} ${val ? ref.tr('userNowActive') : ref.tr('userNowDisabled')}',
-                                                  ),
-                                                  duration: const Duration(
-                                                    seconds: 2,
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    _userFacingErrorMessage(e),
-                                                  ),
-                                                  backgroundColor:
-                                                      Colors.redAccent,
-                                                ),
-                                              );
-                                            }
-                                          }
-                                        },
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (val) {
-                                    if (val == 'edit') {
-                                      _showUserDialog(context, user: user);
-                                    } else if (val == 'reset') {
-                                      _sendPasswordResetEmail(context, user);
-                                    } else if (val == 'delete') {
-                                      _confirmDeleteUser(context, user);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.edit, size: 18),
-                                          const SizedBox(width: 8),
-                                          Text(ref.tr('editDetails')),
-                                        ],
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: _getRoleColor(user.role)
+                                          .withValues(alpha: 0.15),
+                                      child: Icon(
+                                        _getRoleIcon(user.role),
+                                        color: _getRoleColor(user.role),
+                                        size: 20,
                                       ),
                                     ),
-                                    PopupMenuItem(
-                                      value: 'reset',
-                                      child: Row(
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          const Icon(
-                                            Icons.lock_reset,
-                                            size: 18,
-                                            color: Colors.orange,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(ref.tr('resetPassword')),
-                                        ],
-                                      ),
-                                    ),
-                                    if (!isCurrentUser)
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                              size: 18,
+                                          Text(
+                                            user.displayName,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              decoration: isActive
+                                                  ? null
+                                                  : TextDecoration.lineThrough,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              ref.tr('deleteUser'),
-                                              style: const TextStyle(
-                                                color: Colors.red,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _getRoleColor(user.role)
+                                                  .withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: _getRoleColor(user.role),
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                            child: Text(
+                                              ref
+                                                  .trRole(user.role)
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: _getRoleColor(user.role),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                    ),
+                                    Switch(
+                                      value: isActive,
+                                      activeThumbColor: Colors.green,
+                                      onChanged: isCurrentUser
+                                          ? null
+                                          : (val) async {
+                                              final newStatus =
+                                                  val ? 'active' : 'disabled';
+                                              try {
+                                                await _db
+                                                    .collection('users')
+                                                    .doc(user.uid)
+                                                    .update({
+                                                  'status': newStatus,
+                                                });
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'User ${user.displayName} ${val ? ref.tr('userNowActive') : ref.tr('userNowDisabled')}',
+                                                      ),
+                                                      duration: const Duration(
+                                                        seconds: 2,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        _userFacingErrorMessage(
+                                                          e,
+                                                        ),
+                                                      ),
+                                                      backgroundColor:
+                                                          Colors.redAccent,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                    ),
+                                    PopupMenuButton<String>(
+                                      onSelected: (val) {
+                                        if (val == 'edit') {
+                                          _showUserDialog(context, user: user);
+                                        } else if (val == 'reset') {
+                                          _sendPasswordResetEmail(
+                                            context,
+                                            user,
+                                          );
+                                        } else if (val == 'delete') {
+                                          _confirmDeleteUser(context, user);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.edit, size: 18),
+                                              const SizedBox(width: 8),
+                                              Text(ref.tr('editDetails')),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'reset',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.lock_reset,
+                                                size: 18,
+                                                color: Colors.orange,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(ref.tr('resetPassword')),
+                                            ],
+                                          ),
+                                        ),
+                                        if (!isCurrentUser)
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.delete,
+                                                  color: Colors.red,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  ref.tr('deleteUser'),
+                                                  style: const TextStyle(
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ],
                                 ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Divider(height: 1, thickness: 0.5),
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.email_outlined,
+                                      size: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        user.email,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.business_outlined,
+                                      size: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        ref
+                                            .tr('departmentLine')
+                                            .replaceAll('{dept}', user.department),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (managerLine != null &&
+                                    managerLine.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person_outline,
+                                        size: 14,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          managerLine,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -475,17 +576,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     }
 
     return _db.collection('users').snapshots();
-  }
-
-  String _userSubtitle(UserModel user, Map<String, String> managersById) {
-    final managerId = user.managerId ?? user.createdBy;
-    final managerName =
-        managerId == null ? null : managersById[managerId] ?? 'ID: $managerId';
-    final managerLine = managerName == null
-        ? ''
-        : '\n${ref.tr('createdByLine').replaceAll('{name}', managerName)}';
-
-    return '${user.email}\n${ref.tr('departmentLine').replaceAll('{dept}', user.department)}$managerLine';
   }
 
   Color _getRoleColor(String role) {

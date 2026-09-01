@@ -292,7 +292,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               final data = snapshot.data?.data()
                                   as Map<String, dynamic>?;
                               final exists = snapshot.data?.exists ?? false;
-                              final status = (data?['status'] as String? ?? '').toLowerCase();
+                              final status = (data?['status'] as String? ?? '')
+                                  .toLowerCase();
                               final isAbsent = exists && status == 'absent';
                               final hasCheckedOut = data != null &&
                                   data.containsKey('checkoutTime') &&
@@ -438,6 +439,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
 
+              if (isAdminOrManager)
+                _DashboardActionCard(
+                  title: ref.tr('adminPortal'),
+                  subtitle: ref.tr('reportsAnalytics'),
+                  icon: Icons.admin_panel_settings_outlined,
+                  color: Colors.amber.shade800,
+                  route: '/admin',
+                ),
+              if (isAdminOrManager)
+                _DashboardActionCard(
+                  title: ref.tr('googleSheetsAttendance'),
+                  subtitle: ref.tr('googleSheetsAttendanceSub'),
+                  icon: Icons.table_chart_rounded,
+                  color: Colors.green.shade700,
+                  route: '/admin/google-sheets',
+                ),
               if (userModel?.isEmployee == true)
                 _DashboardActionCard(
                   title: ref.tr('attendanceHistory'),
@@ -446,13 +463,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   color: Colors.purple,
                   route: '/history',
                 ),
-              _DashboardActionCard(
-                title: ref.tr('downloadMobileApp'),
-                subtitle: ref.tr('mobileAppDownloadSub'),
-                icon: Icons.phone_android_rounded,
-                color: Colors.indigo,
-                onTap: () => MobileAppDownloadDialog.show(context),
-              ),
               _DashboardActionCard(
                 title: ref.tr('userProfile'),
                 subtitle: ref.tr('manageProfile'),
@@ -467,22 +477,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 color: Colors.teal,
                 route: '/settings',
               ),
-              if (isAdminOrManager) ...[
-                _DashboardActionCard(
-                  title: ref.tr('googleSheetsAttendance'),
-                  subtitle: ref.tr('googleSheetsAttendanceSub'),
-                  icon: Icons.table_chart_rounded,
-                  color: Colors.green.shade700,
-                  route: '/admin/google-sheets',
-                ),
-                _DashboardActionCard(
-                  title: ref.tr('adminPortal'),
-                  subtitle: ref.tr('reportsAnalytics'),
-                  icon: Icons.admin_panel_settings_outlined,
-                  color: Colors.amber.shade800,
-                  route: '/admin',
-                ),
-              ],
+              _DashboardActionCard(
+                title: ref.tr('downloadMobileApp'),
+                subtitle: ref.tr('mobileAppDownloadSub'),
+                icon: Icons.phone_android_rounded,
+                color: Colors.indigo,
+                onTap: () => MobileAppDownloadDialog.show(context),
+              ),
             ],
           ),
         ),
