@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/language_provider.dart';
+import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -61,82 +62,113 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
     }
 
-    final content = StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('attendance')
-          .where('employeeId', isEqualTo: authUser.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('${ref.tr('errorLoadingHistory')}: ${snapshot.error}'),
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    final content = FutureBuilder<List<Map<String, dynamic>>>(
+      future: ref.watch(offlineSyncServiceProvider).getPendingRecords(),
+      builder: (context, pendingSnap) {
+        final pendingRecords = pendingSnap.data ?? [];
 
-        final records = snapshot.data?.docs
-                .map((doc) => doc.data() as Map<String, dynamic>)
-                .toList() ??
-            [];
-        records.sort((a, b) {
-          final aDate = '${a['date'] ?? ''} ${a['time'] ?? ''}';
-          final bDate = '${b['date'] ?? ''} ${b['time'] ?? ''}';
-          return bDate.compareTo(aDate);
-        });
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('attendance')
+              .where('employeeId', isEqualTo: authUser.uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError && pendingRecords.isEmpty) {
+              return Center(
+                child:
+                    Text('${ref.tr('errorLoadingHistory')}: ${snapshot.error}'),
+              );
+            }
 
-        final monthRecords = records.where(_isInSelectedMonth).toList();
-        final scheduleType = currentUser?.scheduleType ?? 'standard';
-        final summary = _AttendanceSummary.fromRecords(
-          selectedMonth: _selectedMonth,
-          records: monthRecords,
-          scheduleType: scheduleType,
-        );
+            final firestoreRecords = snapshot.data?.docs
+                    .map((doc) => doc.data() as Map<String, dynamic>)
+                    .toList() ??
+                [];
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _MonthFilterCard(
-              key: const ValueKey('history-month-filter'),
-              selectedMonth: _selectedMonth,
-              onPreviousMonth: () => setState(
-                () => _selectedMonth = DateTime(
-                  _selectedMonth.year,
-                  _selectedMonth.month - 1,
-                ),
-              ),
-              onNextMonth: () => setState(
-                () => _selectedMonth = DateTime(
-                  _selectedMonth.year,
-                  _selectedMonth.month + 1,
-                ),
-              ),
-              onSearchChanged: (value) => _searchQueryNotifier.value = value,
-            ),
-            const SizedBox(height: 12),
-            _SummaryDashboard(summary: summary),
-            const SizedBox(height: 16),
-            ValueListenableBuilder<String>(
-              valueListenable: _searchQueryNotifier,
-              builder: (context, searchQuery, _) {
-                final filteredRecords = monthRecords
-                    .where((record) => _matchesSearch(record, searchQuery))
-                    .toList();
-                if (filteredRecords.isEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Center(child: Text(ref.tr('noHistoryFound'))),
-                  );
+            // Merge pending records, avoiding duplicates
+            final Map<String, Map<String, dynamic>> mergedMap = {};
+            for (final r in firestoreRecords) {
+              final id = r['id'] ?? '${r['employeeId']}-${r['date']}';
+              mergedMap[id] = Map<String, dynamic>.from(r);
+            }
+
+            for (final p in pendingRecords) {
+              final id =
+                  p['id'] ?? p['docId'] ?? '${p['employeeId']}-${p['date']}';
+              if (!mergedMap.containsKey(id)) {
+                final copy = Map<String, dynamic>.from(p);
+                copy['isPendingSync'] = true;
+                mergedMap[id] = copy;
+              } else {
+                if (p.containsKey('checkoutTime') &&
+                    p['checkoutTime'] != null) {
+                  mergedMap[id]!['checkoutTime'] = p['checkoutTime'];
+                  mergedMap[id]!['isPendingSync'] = true;
                 }
-                return Column(
-                  children: filteredRecords
-                      .map((record) => _HistoryCard(record: record))
-                      .toList(),
-                );
-              },
-            ),
-          ],
+              }
+            }
+
+            final records = mergedMap.values.toList();
+            records.sort((a, b) {
+              final aDate = '${a['date'] ?? ''} ${a['time'] ?? ''}';
+              final bDate = '${b['date'] ?? ''} ${b['time'] ?? ''}';
+              return bDate.compareTo(aDate);
+            });
+
+            final monthRecords = records.where(_isInSelectedMonth).toList();
+            final scheduleType = currentUser?.scheduleType ?? 'standard';
+            final summary = _AttendanceSummary.fromRecords(
+              selectedMonth: _selectedMonth,
+              records: monthRecords,
+              scheduleType: scheduleType,
+            );
+
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _MonthFilterCard(
+                  key: const ValueKey('history-month-filter'),
+                  selectedMonth: _selectedMonth,
+                  onPreviousMonth: () => setState(
+                    () => _selectedMonth = DateTime(
+                      _selectedMonth.year,
+                      _selectedMonth.month - 1,
+                    ),
+                  ),
+                  onNextMonth: () => setState(
+                    () => _selectedMonth = DateTime(
+                      _selectedMonth.year,
+                      _selectedMonth.month + 1,
+                    ),
+                  ),
+                  onSearchChanged: (value) =>
+                      _searchQueryNotifier.value = value,
+                ),
+                const SizedBox(height: 12),
+                _SummaryDashboard(summary: summary),
+                const SizedBox(height: 16),
+                ValueListenableBuilder<String>(
+                  valueListenable: _searchQueryNotifier,
+                  builder: (context, searchQuery, _) {
+                    final filteredRecords = monthRecords
+                        .where((record) => _matchesSearch(record, searchQuery))
+                        .toList();
+                    if (filteredRecords.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
+                        child: Center(child: Text(ref.tr('noHistoryFound'))),
+                      );
+                    }
+                    return Column(
+                      children: filteredRecords
+                          .map((record) => _HistoryCard(record: record))
+                          .toList(),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -442,16 +474,49 @@ class _HistoryCard extends ConsumerWidget {
         ),
         subtitle: Text(subtitleText),
         isThreeLine: true,
-        trailing: Chip(
-          label: Text(
-            ref.tr(status).toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text(
+                ref.tr(status).toUpperCase(),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+              backgroundColor: color.withValues(alpha: 0.15),
+              side: BorderSide.none,
             ),
-          ),
-          backgroundColor: color.withValues(alpha: 0.15),
-          side: BorderSide.none,
+            if (record['isPendingSync'] == true) ...[
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade900,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off, size: 10, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      ref.tr('pendingSyncLabel'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

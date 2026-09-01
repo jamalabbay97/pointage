@@ -10,6 +10,7 @@ import '../../../core/services/language_provider.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../../../core/widgets/web_layout.dart';
+import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 
 import '../../profile/presentation/profile_screen.dart';
@@ -283,6 +284,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     value: userSettings?.autoSyncOffline ?? true,
                     onChanged: (val) {
                       ref.read(userSettingsProvider.notifier).updateSync(val);
+                    },
+                  ),
+                  const Divider(height: 1),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final pendingCountAsync =
+                          ref.watch(pendingSyncCountProvider);
+                      final pendingCount = pendingCountAsync.valueOrNull ?? 0;
+                      return ListTile(
+                        leading: const Icon(Icons.sync_rounded),
+                        title: Text(ref.tr('syncNow')),
+                        subtitle: Text(
+                          pendingCount > 0
+                              ? '$pendingCount ${ref.tr('offlinePendingRecords')}'
+                              : ref.tr('noPendingRecords'),
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () async {
+                          final synced = await ref
+                              .read(offlineSyncServiceProvider)
+                              .syncPendingRecords();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  synced > 0
+                                      ? ref
+                                          .tr('syncSuccessMsg')
+                                          .replaceAll('{count}', '$synced')
+                                      : ref.tr('noNetworkToSync'),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      );
                     },
                   ),
                   const Divider(height: 1),

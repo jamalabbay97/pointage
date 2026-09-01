@@ -56,7 +56,8 @@ class GoogleSheetsExportService {
 
       // Create reusable styles
       final headerStyle = CellStyle(
-        backgroundColorHex: ExcelColor.fromHexString('#1B5E20'), // Dark Emerald Green
+        backgroundColorHex:
+            ExcelColor.fromHexString('#1B5E20'), // Dark Emerald Green
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
         bold: true,
       );
@@ -93,7 +94,8 @@ class GoogleSheetsExportService {
 
       // Format Header Cells
       for (int col = 0; col < headers.length; col++) {
-        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+        final cell = sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
         cell.cellStyle = headerStyle;
       }
 
@@ -141,7 +143,12 @@ class GoogleSheetsExportService {
           final status = attendanceRecords[dateKey]?.toLowerCase();
           final isFuture = cellDate.isAfter(today);
 
-          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: rowIndex));
+          final cell = sheet.cell(
+            CellIndex.indexByColumnRow(
+              columnIndex: colIndex,
+              rowIndex: rowIndex,
+            ),
+          );
           if (status == 'present') {
             cell.cellStyle = presentStyle;
           } else if (status == 'absent') {

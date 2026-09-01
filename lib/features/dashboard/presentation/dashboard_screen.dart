@@ -12,6 +12,7 @@ import '../../../core/services/language_provider.dart';
 import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
+import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../notifications/data/notification_provider.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -84,6 +85,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       userModel?.photoUrl ?? user?.photoURL,
     );
 
+    final pendingCountAsync = ref.watch(pendingSyncCountProvider);
+    final pendingCount = pendingCountAsync.valueOrNull ?? 0;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(ref.tr('dashboard')),
@@ -152,10 +156,82 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             setState(() => now = DateTime.now());
+            await ref.read(offlineSyncServiceProvider).syncPendingRecords();
           },
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              // Pending Sync Alert Card
+              if (pendingCount > 0) ...[
+                Card(
+                  color: Colors.amber.shade900,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_upload_outlined,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ref.tr('offlinePendingSyncTitle'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                '$pendingCount ${ref.tr('offlinePendingRecords')}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton.tonal(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onPressed: () async {
+                            final synced = await ref
+                                .read(offlineSyncServiceProvider)
+                                .syncPendingRecords();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    synced > 0
+                                        ? ref
+                                            .tr('syncSuccessMsg')
+                                            .replaceAll('{count}', '$synced')
+                                        : ref.tr('noNetworkToSync'),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(ref.tr('syncNow')),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // Welcome Header Card
               Container(
                 padding: const EdgeInsets.all(24),
@@ -283,72 +359,104 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ],
                         ),
                         if (userModel?.isEmployee == true)
-                          StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('attendance')
-                                .doc(todayDocId)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              final data = snapshot.data?.data()
-                                  as Map<String, dynamic>?;
-                              final exists = snapshot.data?.exists ?? false;
-                              final status = (data?['status'] as String? ?? '')
-                                  .toLowerCase();
-                              final isAbsent = exists && status == 'absent';
-                              final hasCheckedOut = data != null &&
-                                  data.containsKey('checkoutTime') &&
-                                  data['checkoutTime'] != null;
-                              final hasCheckedIn = exists && !isAbsent;
+                          FutureBuilder<List<Map<String, dynamic>>>(
+                            future: ref
+                                .watch(offlineSyncServiceProvider)
+                                .getPendingRecords(),
+                            builder: (context, pendingSnap) {
+                              final pendingRecords = pendingSnap.data ?? [];
+                              final todayStr =
+                                  now.toIso8601String().substring(0, 10);
+                              final localPendingToday =
+                                  pendingRecords.firstWhere(
+                                (r) =>
+                                    r['docId'] == todayDocId ||
+                                    (r['employeeId'] == user?.uid &&
+                                        r['date'] == todayStr),
+                                orElse: () => <String, dynamic>{},
+                              );
 
-                              String statusText;
-                              Color statusColor;
-                              IconData statusIcon;
+                              return StreamBuilder<DocumentSnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('attendance')
+                                    .doc(todayDocId)
+                                    .snapshots(),
+                                builder: (context, snapshot) {
+                                  final data = snapshot.data?.data()
+                                      as Map<String, dynamic>?;
+                                  final exists = snapshot.data?.exists ?? false;
+                                  final status =
+                                      (data?['status'] as String? ?? '')
+                                          .toLowerCase();
+                                  final isAbsent = exists && status == 'absent';
+                                  final hasCheckedOutDoc = data != null &&
+                                      data.containsKey('checkoutTime') &&
+                                      data['checkoutTime'] != null;
+                                  final hasCheckedInDoc = exists && !isAbsent;
 
-                              if (isAbsent) {
-                                statusText = ref.tr('absentToday');
-                                statusColor = Colors.red.shade600;
-                                statusIcon = Icons.cancel_rounded;
-                              } else if (hasCheckedOut) {
-                                statusText = ref.tr('checkedOutToday');
-                                statusColor = Colors.blue.shade600;
-                                statusIcon = Icons.done_all_rounded;
-                              } else if (hasCheckedIn) {
-                                statusText = ref.tr('checkedInToday');
-                                statusColor = Colors.green.shade600;
-                                statusIcon = Icons.check_circle_rounded;
-                              } else {
-                                statusText = ref.tr('notCheckedIn');
-                                statusColor = Colors.orange.shade700;
-                                statusIcon = Icons.pending_rounded;
-                              }
+                                  final hasLocalCheckIn =
+                                      localPendingToday.isNotEmpty;
+                                  final hasLocalCheckOut = localPendingToday
+                                          .containsKey('checkoutTime') &&
+                                      localPendingToday['checkoutTime'] != null;
 
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      statusIcon,
-                                      color: Colors.white,
-                                      size: 18,
+                                  String statusText;
+                                  Color statusColor;
+                                  IconData statusIcon;
+
+                                  if (isAbsent) {
+                                    statusText = ref.tr('absentToday');
+                                    statusColor = Colors.red.shade600;
+                                    statusIcon = Icons.cancel_rounded;
+                                  } else if (hasCheckedOutDoc ||
+                                      hasLocalCheckOut) {
+                                    statusText = hasLocalCheckOut
+                                        ? '${ref.tr('checkedOutToday')} (${ref.tr('offlineLabel')})'
+                                        : ref.tr('checkedOutToday');
+                                    statusColor = Colors.blue.shade600;
+                                    statusIcon = Icons.done_all_rounded;
+                                  } else if (hasCheckedInDoc ||
+                                      hasLocalCheckIn) {
+                                    statusText = hasLocalCheckIn
+                                        ? '${ref.tr('checkedInToday')} (${ref.tr('offlineLabel')})'
+                                        : ref.tr('checkedInToday');
+                                    statusColor = Colors.green.shade600;
+                                    statusIcon = Icons.check_circle_rounded;
+                                  } else {
+                                    statusText = ref.tr('notCheckedIn');
+                                    statusColor = Colors.orange.shade700;
+                                    statusIcon = Icons.pending_rounded;
+                                  }
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      statusText,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
-                                  ],
-                                ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          statusIcon,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          statusText,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),

@@ -503,6 +503,19 @@ class AppTranslations {
           'Check-out is not allowed before 10:30 AM. Please work at least half a day before checking out.',
       'checkInSuccess': 'Check-in registered successfully at {time}!',
       'checkOutSuccess': 'Check-out registered successfully at {time}!',
+      'checkInOfflineSuccess':
+          'Check-in recorded offline at {time}! Will sync automatically when online.',
+      'checkOutOfflineSuccess':
+          'Check-out recorded offline at {time}! Will sync automatically when online.',
+      'offlinePendingSyncTitle': 'Offline Attendance Pending Sync',
+      'offlinePendingRecords': 'record(s) waiting to upload',
+      'syncNow': 'Sync Now',
+      'syncSuccessMsg': 'Synced {count} record(s) successfully!',
+      'noNetworkToSync':
+          'Cannot sync: Device is offline or server unavailable.',
+      'noPendingRecords': 'All offline records are synced',
+      'offlineLabel': 'Offline',
+      'pendingSyncLabel': 'Pending Sync',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'View your punch-in/out history',
@@ -1128,6 +1141,19 @@ class AppTranslations {
           "La sortie n'est pas autorisée avant 10h30. Vous devez travailler au moins une demi-journée avant de pointer la sortie.",
       'checkInSuccess': 'Pointage d\'entrée enregistré avec succès à {time}!',
       'checkOutSuccess': 'Pointage de sortie enregistré avec succès à {time}!',
+      'checkInOfflineSuccess':
+          'Pointage d\'entrée enregistré hors ligne à {time}! Synchro automatique en ligne.',
+      'checkOutOfflineSuccess':
+          'Pointage de sortie enregistré hors ligne à {time}! Synchro automatique en ligne.',
+      'offlinePendingSyncTitle':
+          'Pointages hors ligne en attente de synchronisation',
+      'offlinePendingRecords': 'pointage(s) en attente de téléversement',
+      'syncNow': 'Synchroniser',
+      'syncSuccessMsg': '{count} pointage(s) synchronisé(s) avec succès !',
+      'noNetworkToSync': 'Impossible de synchroniser : appareil hors ligne.',
+      'noPendingRecords': 'Tous les pointages sont synchronisés',
+      'offlineLabel': 'Hors ligne',
+      'pendingSyncLabel': 'En attente',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'Voir l\'historique de vos pointages',

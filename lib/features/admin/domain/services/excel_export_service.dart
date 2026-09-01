@@ -139,7 +139,8 @@ class ExcelExportService {
     sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
     for (int col = 0; col < headers.length; col++) {
-      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      final cell =
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
       cell.cellStyle = headerStyle;
     }
 
@@ -210,7 +211,8 @@ class ExcelExportService {
     sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
     for (int col = 0; col < headers.length; col++) {
-      final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
+      final cell =
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0));
       cell.cellStyle = headerStyle;
     }
 
@@ -221,7 +223,7 @@ class ExcelExportService {
     for (var record in report.detailedRecords) {
       final statusLower = record.status.toLowerCase();
       final isAbsent = statusLower == 'absent';
-      
+
       sheet.appendRow([
         TextCellValue(dateFormat.format(record.date)),
         TextCellValue(record.employeeId),
@@ -234,10 +236,14 @@ class ExcelExportService {
               : AppTranslations.text(langCode, 'no'),
         ),
         TextCellValue(
-          !isAbsent && record.checkIn != null ? timeFormat.format(record.checkIn!) : '—',
+          !isAbsent && record.checkIn != null
+              ? timeFormat.format(record.checkIn!)
+              : '—',
         ),
         TextCellValue(
-          !isAbsent && record.checkOut != null ? timeFormat.format(record.checkOut!) : '—',
+          !isAbsent && record.checkOut != null
+              ? timeFormat.format(record.checkOut!)
+              : '—',
         ),
         TextCellValue(
           AppTranslations.text(langCode, statusLower),
@@ -249,7 +255,8 @@ class ExcelExportService {
       ]);
 
       // Apply cell styling to status cell (column index 8)
-      final statusCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex));
+      final statusCell = sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex));
       if (statusLower == 'present') {
         statusCell.cellStyle = presentStyle;
       } else if (statusLower == 'absent') {

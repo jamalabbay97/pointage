@@ -181,9 +181,10 @@ class ReportDataService {
           DateTime? checkIn = (status != 'absent' && record['time'] != null)
               ? DateTime.tryParse(record['time'].toString())
               : null;
-          DateTime? checkOut = (status != 'absent' && record['checkoutTime'] != null)
-              ? DateTime.tryParse(record['checkoutTime'].toString())
-              : null;
+          DateTime? checkOut =
+              (status != 'absent' && record['checkoutTime'] != null)
+                  ? DateTime.tryParse(record['checkoutTime'].toString())
+                  : null;
 
           int lateMins = 0;
           if (status == 'late' && checkIn != null) {

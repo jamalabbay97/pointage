@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:battery_plus/battery_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -10,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/models/attendance_record.dart';
+import 'offline_sync_service.dart';
 
 enum AttendanceType { checkIn, checkOut }
 
@@ -26,8 +29,11 @@ class AttendanceScanResult {
 }
 
 class AttendanceService {
-  AttendanceService(this._db);
+  AttendanceService(this._db, {OfflineSyncService? syncService})
+      : _syncService = syncService ?? OfflineSyncService();
+
   final FirebaseFirestore _db;
+  final OfflineSyncService _syncService;
 
   Future<AttendanceScanResult> register({
     required String employeeId,
@@ -37,41 +43,55 @@ class AttendanceService {
     final now = DateTime.now();
     final today = now.toIso8601String().substring(0, 10);
     final docId = '$employeeId-$today';
-    final doc = _db.collection('attendance').doc(docId);
-    final docSnap = await doc.get();
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOffline = connectivityResult.contains(ConnectivityResult.none);
+
+    DocumentSnapshot<Map<String, dynamic>>? docSnap;
+    if (!isOffline) {
+      try {
+        docSnap = await _db.collection('attendance').doc(docId).get();
+      } catch (_) {
+        // Fall back to offline check
+      }
+    }
+
+    // Check local pending records to determine if checked in/out today
+    final pendingRecords = await _syncService.getPendingRecords();
+    final localPending = pendingRecords.firstWhere(
+      (r) =>
+          r['docId'] == docId ||
+          (r['employeeId'] == employeeId && r['date'] == today),
+      orElse: () => <String, dynamic>{},
+    );
+
+    final bool hasDocSnap = docSnap != null && docSnap.exists;
+    final bool hasLocalPending = localPending.isNotEmpty;
+    final bool existsToday = hasDocSnap || hasLocalPending;
 
     // ── Location Priority Resolution ─────────────────────────────────────────
-    // Fetch the employee's Firestore profile to check for a manager-assigned
-    // location override. Priority: manager location → admin (company) location.
     double effectiveLat = settings.latitude;
     double effectiveLng = settings.longitude;
     double effectiveRadius = settings.radiusMeters;
 
-    try {
-      final userDoc = await _db.collection('users').doc(employeeId).get();
-      if (userDoc.exists && userDoc.data() != null) {
-        final userData = userDoc.data()!;
-        final assignedLat =
-            (userData['assignedLocationLat'] as num?)?.toDouble();
-        final assignedLng =
-            (userData['assignedLocationLng'] as num?)?.toDouble();
-        final assignedRadius =
-            (userData['assignedLocationRadius'] as num?)?.toDouble();
-        // Only use the override when both lat and lng are present
-        if (assignedLat != null && assignedLng != null) {
-          effectiveLat = assignedLat;
-          effectiveLng = assignedLng;
-          if (assignedRadius != null) effectiveRadius = assignedRadius;
+    if (!isOffline) {
+      try {
+        final userDoc = await _db.collection('users').doc(employeeId).get();
+        if (userDoc.exists && userDoc.data() != null) {
+          final userData = userDoc.data()!;
+          final assignedLat =
+              (userData['assignedLocationLat'] as num?)?.toDouble();
+          final assignedLng =
+              (userData['assignedLocationLng'] as num?)?.toDouble();
+          final assignedRadius =
+              (userData['assignedLocationRadius'] as num?)?.toDouble();
+          if (assignedLat != null && assignedLng != null) {
+            effectiveLat = assignedLat;
+            effectiveLng = assignedLng;
+            if (assignedRadius != null) effectiveRadius = assignedRadius;
+          }
         }
-      }
-    } catch (_) {
-      // If we cannot read the override, fall back to global settings silently.
-    }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      throw StateError('ERR:noInternetAttendance');
+      } catch (_) {}
     }
 
     if (!await Geolocator.isLocationServiceEnabled()) {
@@ -98,7 +118,6 @@ class AttendanceService {
       effectiveLng,
     );
 
-    // Honor allowRemoteClockIn setting from admin system settings
     if (!settings.allowRemoteClockIn && distance > effectiveRadius) {
       throw StateError(
         'ERR:notInOfficePerimeter|${distance.toInt()}|${effectiveRadius.toInt()}',
@@ -132,9 +151,13 @@ class AttendanceService {
       battery = 100;
     }
 
-    if (docSnap.exists) {
-      final existingData = docSnap.data();
-      if (existingData != null && existingData['checkoutTime'] != null) {
+    final docData = docSnap?.data();
+    final hasCheckoutInDoc = docData != null && docData['checkoutTime'] != null;
+    final hasCheckoutInPending = localPending.containsKey('checkoutTime') &&
+        localPending['checkoutTime'] != null;
+
+    if (existsToday) {
+      if (hasCheckoutInDoc || hasCheckoutInPending) {
         throw StateError('ERR:alreadyCompletedToday');
       }
 
@@ -144,36 +167,90 @@ class AttendanceService {
         throw StateError('ERR:checkoutNotBefore1030');
       }
 
-      // Check-out rule 2: At or after 10:30 AM, record actual scan time
-      await doc.update({
-        'checkoutTime': now.toIso8601String(),
-        'checkoutLatitude': position.latitude,
-        'checkoutLongitude': position.longitude,
-        'checkoutDeviceModel': model,
-        'checkoutBatteryLevel': battery,
-      });
-
       final formattedCheckout = DateFormat('hh:mm a').format(now);
-      return AttendanceScanResult(
-        type: AttendanceType.checkOut,
-        recordTime: now,
-        message: 'SUCCESS:checkOut|$formattedCheckout',
-      );
+
+      if (isOffline) {
+        final updatedLocal = await _syncService.updatePendingCheckout(
+          employeeId: employeeId,
+          todayDateStr: today,
+          checkoutTimeStr: now.toIso8601String(),
+          latitude: position.latitude,
+          longitude: position.longitude,
+          deviceModel: model,
+          batteryLevel: battery,
+        );
+
+        if (!updatedLocal) {
+          // If no local check-in record exists yet, create a pending checkout entry
+          await _syncService.savePendingRecord({
+            'id': const Uuid().v4(),
+            'docId': docId,
+            'employeeId': employeeId,
+            'employeeName': employeeName,
+            'date': today,
+            'checkoutTime': now.toIso8601String(),
+            'checkoutLatitude': position.latitude,
+            'checkoutLongitude': position.longitude,
+            'checkoutDeviceModel': model,
+            'checkoutBatteryLevel': battery,
+            'isCheckoutOnly': true,
+            'isPendingSync': true,
+          });
+        }
+
+        return AttendanceScanResult(
+          type: AttendanceType.checkOut,
+          recordTime: now,
+          message: 'SUCCESS:checkOutOffline|$formattedCheckout',
+        );
+      } else {
+        try {
+          await _db.collection('attendance').doc(docId).update({
+            'checkoutTime': now.toIso8601String(),
+            'checkoutLatitude': position.latitude,
+            'checkoutLongitude': position.longitude,
+            'checkoutDeviceModel': model,
+            'checkoutBatteryLevel': battery,
+          });
+
+          // Trigger sync for any other pending records
+          unawaited(_syncService.syncPendingRecords());
+
+          return AttendanceScanResult(
+            type: AttendanceType.checkOut,
+            recordTime: now,
+            message: 'SUCCESS:checkOut|$formattedCheckout',
+          );
+        } catch (_) {
+          // Fallback to offline checkout if network write fails
+          await _syncService.updatePendingCheckout(
+            employeeId: employeeId,
+            todayDateStr: today,
+            checkoutTimeStr: now.toIso8601String(),
+            latitude: position.latitude,
+            longitude: position.longitude,
+            deviceModel: model,
+            batteryLevel: battery,
+          );
+
+          return AttendanceScanResult(
+            type: AttendanceType.checkOut,
+            recordTime: now,
+            message: 'SUCCESS:checkOutOffline|$formattedCheckout',
+          );
+        }
+      }
     } else {
-      // Check-in logic:
-      // Rule 1: Between 7:00 AM and 8:14 AM -> record as 7:00 AM (on time)
-      // Rule 2: At 8:15 AM or later -> record actual scan time (late)
+      // Check-in logic
       DateTime checkInTime;
       String status = 'present';
 
-      // On-time window: 7:00 AM up to (but not including) 8:15 AM
       final isOnTime = (now.hour == 7) || (now.hour == 8 && now.minute < 15);
 
       if (isOnTime) {
         checkInTime = DateTime(now.year, now.month, now.day, 7, 00);
         status = 'present';
       } else if (now.hour >= 8) {
-        // 8:15 AM or later
         checkInTime = now;
         status = 'late';
       } else {
@@ -181,51 +258,78 @@ class AttendanceService {
         status = 'present';
       }
 
-      await doc.set(
-        AttendanceRecord(
-          id: const Uuid().v4(),
-          employeeId: employeeId,
-          employeeName: employeeName,
-          date: now,
-          time: checkInTime,
-          checkoutTime: null,
-          status: status,
-          latitude: position.latitude,
-          longitude: position.longitude,
-          locationAccuracy: position.accuracy,
-          deviceModel: model,
-          operatingSystem: kIsWeb ? 'Web' : Platform.operatingSystem,
-          batteryLevel: battery,
-          internetStatus: 'online',
-          deviceId: const Uuid().v5(Namespace.url.value, model),
-        ).toJson(),
-      );
+      final recordId = const Uuid().v4();
+      final recordMap = AttendanceRecord(
+        id: recordId,
+        employeeId: employeeId,
+        employeeName: employeeName,
+        date: now,
+        time: checkInTime,
+        checkoutTime: null,
+        status: status,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        locationAccuracy: position.accuracy,
+        deviceModel: model,
+        operatingSystem: kIsWeb ? 'Web' : Platform.operatingSystem,
+        batteryLevel: battery,
+        internetStatus: isOffline ? 'offline' : 'online',
+        deviceId: const Uuid().v5(Namespace.url.value, model),
+      ).toJson();
 
-      if (status == 'late') {
-        try {
-          final formattedScanTime = DateFormat('hh:mm a').format(now);
-          await _db.collection('notifications').add({
-            'title': 'Late Attendance Registered',
-            'body':
-                '$employeeName registered attendance late at $formattedScanTime (Designated time: 08:15 AM).',
-            'type': 'admin',
-            'senderId': employeeId,
-            'senderName': employeeName,
-            'createdAt': FieldValue.serverTimestamp(),
-            'readBy': <String>[],
-            'deletedBy': <String>[],
-          });
-        } catch (_) {
-          // Silent fallback if notification fails
-        }
-      }
+      recordMap['docId'] = docId;
+      recordMap['isPendingSync'] = isOffline;
 
       final formattedCheckIn = DateFormat('hh:mm a').format(checkInTime);
-      return AttendanceScanResult(
-        type: AttendanceType.checkIn,
-        recordTime: checkInTime,
-        message: 'SUCCESS:checkIn|$formattedCheckIn',
-      );
+
+      if (isOffline) {
+        await _syncService.savePendingRecord(recordMap);
+        return AttendanceScanResult(
+          type: AttendanceType.checkIn,
+          recordTime: checkInTime,
+          message: 'SUCCESS:checkInOffline|$formattedCheckIn',
+        );
+      } else {
+        try {
+          await _db.collection('attendance').doc(docId).set(recordMap);
+
+          if (status == 'late') {
+            try {
+              final formattedScanTime = DateFormat('hh:mm a').format(now);
+              await _db.collection('notifications').add({
+                'title': 'Late Attendance Registered',
+                'body':
+                    '$employeeName registered attendance late at $formattedScanTime (Designated time: 08:15 AM).',
+                'type': 'admin',
+                'senderId': employeeId,
+                'senderName': employeeName,
+                'createdAt': FieldValue.serverTimestamp(),
+                'readBy': <String>[],
+                'deletedBy': <String>[],
+              });
+            } catch (_) {}
+          }
+
+          // Trigger background sync for any previous pending items
+          unawaited(_syncService.syncPendingRecords());
+
+          return AttendanceScanResult(
+            type: AttendanceType.checkIn,
+            recordTime: checkInTime,
+            message: 'SUCCESS:checkIn|$formattedCheckIn',
+          );
+        } catch (_) {
+          // Fallback to offline saving
+          recordMap['isPendingSync'] = true;
+          await _syncService.savePendingRecord(recordMap);
+
+          return AttendanceScanResult(
+            type: AttendanceType.checkIn,
+            recordTime: checkInTime,
+            message: 'SUCCESS:checkInOffline|$formattedCheckIn',
+          );
+        }
+      }
     }
   }
 }

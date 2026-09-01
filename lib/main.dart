@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -201,11 +202,12 @@ class RouterNotifier extends ChangeNotifier {
     final isSplash = location == '/';
     final isLoggingIn = location == '/login';
 
-    if (authState.isLoading) {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final isAuth = (authState.valueOrNull ?? firebaseUser) != null;
+
+    if (authState.isLoading && firebaseUser == null) {
       return isSplash ? null : '/';
     }
-
-    final isAuth = authState.valueOrNull != null;
 
     if (!isAuth) {
       return isLoggingIn ? null : '/login';

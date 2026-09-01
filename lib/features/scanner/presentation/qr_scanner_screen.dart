@@ -12,6 +12,7 @@ import '../../../core/config/company_settings.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/security_services.dart';
 import '../../attendance/domain/attendance_service.dart';
+import '../../auth/domain/auth_provider.dart';
 
 class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
@@ -130,8 +131,17 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       if (user == null) throw StateError('ERR:notAuthenticated');
 
       final db = FirebaseFirestore.instance;
-      final userDoc = await db.collection('users').doc(user.uid).get();
-      final userData = userDoc.data();
+      Map<String, dynamic>? userData;
+      try {
+        final userDoc = await db.collection('users').doc(user.uid).get();
+        userData = userDoc.data();
+      } catch (_) {
+        final cachedModel = ref.read(currentUserModelProvider).valueOrNull;
+        if (cachedModel != null) {
+          userData = cachedModel.toJson();
+        }
+      }
+
       final userRole =
           (userData?['role'] as String? ?? '').trim().toLowerCase();
       final accountOwnerName = _accountOwnerName(userData, user);
@@ -173,16 +183,21 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       );
 
       if (mounted) {
+        final isOfflineMsg = result.message.contains('Offline');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                Icon(
+                  isOfflineMsg ? Icons.cloud_off_rounded : Icons.check_circle,
+                  color: Colors.white,
+                ),
                 const SizedBox(width: 10),
                 Expanded(child: Text(_localizeMessage(result.message))),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor:
+                isOfflineMsg ? Colors.orange.shade800 : Colors.green,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -232,8 +247,6 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           return '${ref.tr('notInOfficePerimeter')} (${dist}m, max ${radius}m)';
         default:
           final localized = ref.tr(key);
-          // If the key was resolved (not returned as-is), use it;
-          // otherwise fall through to the raw message.
           return localized != key ? localized : raw;
       }
     }
@@ -246,6 +259,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       }
       if (type == 'checkOut') {
         return ref.tr('checkOutSuccess').replaceAll('{time}', time);
+      }
+      if (type == 'checkInOffline') {
+        return ref.tr('checkInOfflineSuccess').replaceAll('{time}', time);
+      }
+      if (type == 'checkOutOffline') {
+        return ref.tr('checkOutOfflineSuccess').replaceAll('{time}', time);
       }
     }
     return raw;

@@ -516,9 +516,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        ref
-                                            .tr('departmentLine')
-                                            .replaceAll('{dept}', user.department),
+                                        ref.tr('departmentLine').replaceAll(
+                                              '{dept}',
+                                              user.department,
+                                            ),
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey.shade400,
