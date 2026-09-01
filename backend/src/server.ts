@@ -218,7 +218,7 @@ app.post('/users/verify-phone-otp-and-reset-password', async (request, reply) =>
     const body = z.object({
         recoveryToken: z.string().min(1),
         otp: z.string().length(6),
-        newPassword: z.string().min(6),
+        newPassword: z.string().min(6).regex(/^\d+$/, 'Password must contain numbers only'),
     }).parse(request.body);
 
     const session = recoverySessions.get(body.recoveryToken);

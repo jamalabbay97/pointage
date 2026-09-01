@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/models/attendance_record.dart';
+import '../../../core/services/device_id_service.dart';
 import 'offline_sync_service.dart';
 
 enum AttendanceType { checkIn, checkOut }
@@ -124,6 +125,35 @@ class AttendanceService {
       );
     }
 
+    final currentDeviceId = await DeviceIdService.getDeviceId();
+
+    if (!isOffline) {
+      try {
+        final userRef = _db.collection('users').doc(employeeId);
+        final userDoc = await userRef.get();
+        if (userDoc.exists && userDoc.data() != null) {
+          final userData = userDoc.data()!;
+          final boundDeviceId = userData['boundDeviceId'] as String?;
+          if (boundDeviceId == null || boundDeviceId.isEmpty) {
+            // First time registration: permanently link deviceId to account
+            await userRef.set(
+              {
+                'boundDeviceId': currentDeviceId,
+              },
+              SetOptions(merge: true),
+            );
+          } else if (boundDeviceId != currentDeviceId) {
+            // Block attendance from a different phone
+            throw StateError('ERR:deviceMismatch');
+          }
+        }
+      } catch (e) {
+        if (e.toString().contains('ERR:deviceMismatch')) {
+          rethrow;
+        }
+      }
+    }
+
     final device = DeviceInfoPlugin();
     String model = 'Mobile Device';
     try {
@@ -193,6 +223,7 @@ class AttendanceService {
             'checkoutLongitude': position.longitude,
             'checkoutDeviceModel': model,
             'checkoutBatteryLevel': battery,
+            'deviceId': currentDeviceId,
             'isCheckoutOnly': true,
             'isPendingSync': true,
           });
@@ -211,6 +242,7 @@ class AttendanceService {
             'checkoutLongitude': position.longitude,
             'checkoutDeviceModel': model,
             'checkoutBatteryLevel': battery,
+            'deviceId': currentDeviceId,
           });
 
           // Trigger sync for any other pending records
@@ -274,7 +306,7 @@ class AttendanceService {
         operatingSystem: kIsWeb ? 'Web' : Platform.operatingSystem,
         batteryLevel: battery,
         internetStatus: isOffline ? 'offline' : 'online',
-        deviceId: const Uuid().v5(Namespace.url.value, model),
+        deviceId: currentDeviceId,
       ).toJson();
 
       recordMap['docId'] = docId;

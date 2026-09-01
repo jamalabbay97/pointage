@@ -602,10 +602,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   String _generatePassword() {
-    const chars =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#\$%^&.-_?*';
+    const chars = '0123456789';
     final rnd = Random.secure();
-    return List.generate(10, (index) => chars[rnd.nextInt(chars.length)])
+    return List.generate(8, (index) => chars[rnd.nextInt(chars.length)])
         .join();
   }
 
@@ -796,14 +795,23 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         return;
                       }
 
-                      if (!isEdit &&
-                          (passwordVal.isEmpty || passwordVal.length < 6)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ref.tr('passwordMinLength')),
-                          ),
-                        );
-                        return;
+                      if (!isEdit) {
+                        if (passwordVal.isEmpty || passwordVal.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ref.tr('passwordMinLength')),
+                            ),
+                          );
+                          return;
+                        }
+                        if (!RegExp(r'^\d+$').hasMatch(passwordVal)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ref.tr('passwordNumericOnly')),
+                            ),
+                          );
+                          return;
+                        }
                       }
 
                       setDialogState(() => isSaving = true);

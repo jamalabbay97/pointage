@@ -78,7 +78,8 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && 
           request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '') &&
           request.resource.data.get('createdBy', resource.data.get('createdBy', '')) == resource.data.get('createdBy', '') &&
-          request.resource.data.get('managerId', resource.data.get('managerId', '')) == resource.data.get('managerId', '')) || 
+          request.resource.data.get('managerId', resource.data.get('managerId', '')) == resource.data.get('managerId', '') &&
+          (!resource.data.keys().hasAll(['boundDeviceId']) || request.resource.data.get('boundDeviceId', '') == resource.data.get('boundDeviceId', ''))) || 
         isAdmin() ||
         (isManager() && resource != null && 
           (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&

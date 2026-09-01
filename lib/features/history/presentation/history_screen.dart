@@ -449,13 +449,18 @@ class _HistoryCard extends ConsumerWidget {
     final time = _HistoryScreenState.formatTime(record['time']);
     final checkout = _HistoryScreenState.formatTime(record['checkoutTime']);
 
+    final String deviceIdText = record['deviceId'] != null &&
+            record['deviceId'].toString().isNotEmpty
+        ? ' (${record['deviceId']})'
+        : '';
+
     final String subtitleText;
     if (isAbsent) {
       subtitleText =
-          '${ref.tr('status')}: ${ref.tr('absent')}\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Google Sheets Entry'}';
+          '${ref.tr('status')}: ${ref.tr('absent')}\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Google Sheets Entry'}$deviceIdText';
     } else {
       subtitleText =
-          '${ref.tr('attendanceTime')}: $time\n${ref.tr('checkOutTime')}: $checkout\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Mobile Device'}';
+          '${ref.tr('attendanceTime')}: $time\n${ref.tr('checkOutTime')}: $checkout\n${ref.tr('device')}: ${record['deviceModel'] ?? 'Mobile Device'}$deviceIdText';
     }
 
     return Card(

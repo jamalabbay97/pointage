@@ -95,6 +95,9 @@ class AppTranslations {
       'time': 'Time',
       'status': 'Status',
       'noAttendanceRecord': 'No attendance record',
+      'passwordNumericOnly': 'Password must contain numbers only',
+      'deviceMismatch':
+          'This account is bound to another phone. Attendance blocked.',
 
       // ── Work Schedule Wizard ──────────────────────────────────────────────────
       'setupWorkSchedule': 'Work Schedule Setup Wizard',

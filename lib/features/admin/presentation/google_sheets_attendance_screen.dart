@@ -615,7 +615,37 @@ class _GoogleSheetsAttendanceScreenState
         : null;
 
     try {
-      await _db.collection('attendance').doc(docId).set(
+      final docRef = _db.collection('attendance').doc(docId);
+      final docSnap = await docRef.get();
+      String effectiveDeviceId = 'sheets-admin-entry';
+      String effectiveDeviceModel = 'Google Sheets Entry';
+
+      if (docSnap.exists && docSnap.data() != null) {
+        final data = docSnap.data()!;
+        if (data['deviceId'] != null &&
+            data['deviceId'].toString().isNotEmpty &&
+            data['deviceId'] != 'sheets-admin-entry') {
+          effectiveDeviceId = data['deviceId'].toString();
+        }
+        if (data['deviceModel'] != null &&
+            data['deviceModel'].toString().isNotEmpty) {
+          effectiveDeviceModel = data['deviceModel'].toString();
+        }
+      }
+
+      if (effectiveDeviceId == 'sheets-admin-entry') {
+        try {
+          final userDoc = await _db.collection('users').doc(employee.uid).get();
+          if (userDoc.exists && userDoc.data() != null) {
+            final boundId = userDoc.data()!['boundDeviceId'] as String?;
+            if (boundId != null && boundId.isNotEmpty) {
+              effectiveDeviceId = boundId;
+            }
+          }
+        } catch (_) {}
+      }
+
+      await docRef.set(
         {
           'id': docId,
           'employeeId': employee.uid,
@@ -628,11 +658,11 @@ class _GoogleSheetsAttendanceScreenState
           'latitude': 0.0,
           'longitude': 0.0,
           'locationAccuracy': 0.0,
-          'deviceModel': 'Google Sheets Entry',
+          'deviceModel': effectiveDeviceModel,
           'operatingSystem': kIsWeb ? 'Web' : Platform.operatingSystem,
           'batteryLevel': 100,
           'internetStatus': 'online',
-          'deviceId': 'sheets-admin-entry',
+          'deviceId': effectiveDeviceId,
         },
         SetOptions(merge: true),
       );

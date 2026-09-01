@@ -1358,7 +1358,10 @@ class _HistoryRow {
       attendanceTime: time(record['time']),
       checkoutTime: time(record['checkoutTime']),
       status: (record['status'] as String? ?? 'present').toLowerCase(),
-      device: record['deviceModel'] as String? ?? 'Mobile Device',
+      device: record['deviceId'] != null &&
+              record['deviceId'].toString().isNotEmpty
+          ? '${record['deviceModel'] ?? 'Mobile Device'} (${record['deviceId']})'
+          : (record['deviceModel'] as String? ?? 'Mobile Device'),
       battery: record['batteryLevel'] ?? 0,
     );
   }

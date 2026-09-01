@@ -463,6 +463,12 @@ class ProfileScreen extends ConsumerWidget {
                             confirmPasswordController.text.trim();
 
                         if (newPassword.isNotEmpty) {
+                          if (!RegExp(r'^\d+$').hasMatch(newPassword)) {
+                            dialogSetState(
+                              () => errorMessage = ref.tr('passwordNumericOnly'),
+                            );
+                            return;
+                          }
                           if (newPassword.length < 6) {
                             dialogSetState(
                               () => errorMessage = ref.tr('passwordMinLength'),

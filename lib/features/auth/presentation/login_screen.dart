@@ -470,6 +470,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             return;
                           }
 
+                          if (!RegExp(r'^\d+$').hasMatch(newPassword)) {
+                            setDialogState(() {
+                              dialogError = ref.tr('passwordNumericOnly');
+                            });
+                            return;
+                          }
+
                           if (newPassword != confirmPassword) {
                             setDialogState(() {
                               dialogError = ref.tr('passwordsDoNotMatch');
