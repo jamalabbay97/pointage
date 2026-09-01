@@ -51,6 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _checkBiometrics() async {
     if (kIsWeb) return;
+    if (FirebaseAuth.instance.currentUser != null) return;
     try {
       final savedEmail = await _storage.read(key: 'email');
       if (savedEmail != null && email.text.isEmpty) {

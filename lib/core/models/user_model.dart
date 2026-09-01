@@ -19,6 +19,7 @@ class UserModel {
     this.locationAssignedBy,
     this.kioskPin,
     this.phoneNumber,
+    this.boundDeviceId,
   });
 
   final String uid;
@@ -47,6 +48,9 @@ class UserModel {
 
   /// Optional PIN set by the manager/admin to exit presenter mode
   final String? kioskPin;
+
+  /// Unique Device ID permanently bound to this worker account for attendance.
+  final String? boundDeviceId;
 
   /// Returns true if this user has a custom location that was assigned by a manager.
   bool get hasManagerLocation =>
@@ -87,6 +91,7 @@ class UserModel {
       locationAssignedBy: _nullableString(json['locationAssignedBy']),
       kioskPin: _nullableString(json['kioskPin']),
       phoneNumber: _nullableString(json['phoneNumber']),
+      boundDeviceId: _nullableString(json['boundDeviceId']),
     );
   }
 
@@ -114,6 +119,7 @@ class UserModel {
         if (locationAssignedBy != null)
           'locationAssignedBy': locationAssignedBy,
         if (kioskPin != null) 'kioskPin': kioskPin,
+        if (boundDeviceId != null) 'boundDeviceId': boundDeviceId,
       };
 
   UserModel copyWith({
@@ -136,6 +142,7 @@ class UserModel {
     Object? assignedLocationRadius = _sentinel,
     Object? locationAssignedBy = _sentinel,
     Object? kioskPin = _sentinel,
+    Object? boundDeviceId = _sentinel,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -165,6 +172,9 @@ class UserModel {
           ? this.locationAssignedBy
           : locationAssignedBy as String?,
       kioskPin: kioskPin == _sentinel ? this.kioskPin : kioskPin as String?,
+      boundDeviceId: boundDeviceId == _sentinel
+          ? this.boundDeviceId
+          : boundDeviceId as String?,
     );
   }
 

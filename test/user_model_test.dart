@@ -71,20 +71,19 @@ void main() {
       expect(user.department, equals('General'));
     });
 
-    test('Serializes to JSON correctly', () {
-      const user = UserModel(
-        uid: 'u1',
-        email: 'test@example.com',
-        displayName: 'Test User',
-        role: 'manager',
-        department: 'HR',
-      );
+    test('Serializes and deserializes boundDeviceId correctly', () {
+      final json = {
+        'email': 'worker@pointage.com',
+        'displayName': 'Worker One',
+        'role': 'employee',
+        'boundDeviceId': 'DEVICEdu-ABC-123',
+      };
 
-      final json = user.toJson();
+      final user = UserModel.fromJson(json, 'worker_1');
+      expect(user.boundDeviceId, equals('DEVICEdu-ABC-123'));
 
-      expect(json['uid'], equals('u1'));
-      expect(json['role'], equals('manager'));
-      expect(json['department'], equals('HR'));
+      final map = user.toJson();
+      expect(map['boundDeviceId'], equals('DEVICEdu-ABC-123'));
     });
   });
 }

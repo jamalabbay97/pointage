@@ -190,6 +190,25 @@ class OfflineSyncService {
             }
           }
 
+          // Auto-bind device ID to worker profile if not already set
+          final recordDeviceId = record['deviceId'] as String?;
+          if (recordDeviceId != null && recordDeviceId.isNotEmpty) {
+            try {
+              final userRef = db.collection('users').doc(employeeId);
+              final userSnap = await userRef.get();
+              if (userSnap.exists && userSnap.data() != null) {
+                final boundDeviceId =
+                    userSnap.data()!['boundDeviceId'] as String?;
+                if (boundDeviceId == null || boundDeviceId.isEmpty) {
+                  await userRef.set(
+                    {'boundDeviceId': recordDeviceId},
+                    SetOptions(merge: true),
+                  );
+                }
+              }
+            } catch (_) {}
+          }
+
           if (record['status'] == 'late') {
             try {
               final employeeName = record['employeeName'] ?? 'Employee';

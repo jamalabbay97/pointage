@@ -98,6 +98,16 @@ class AppTranslations {
       'passwordNumericOnly': 'Password must contain numbers only',
       'deviceMismatch':
           'This account is bound to another phone. Attendance blocked.',
+      'linkedDeviceId': 'Linked Phone / Device ID',
+      'noDeviceLinked':
+          'No device linked (will auto-register on next check-in)',
+      'unlinkDevice': 'Unlink Device ID',
+      'clearDevice': 'Clear Device ID',
+      'confirmUnlinkDevice':
+          'Are you sure you want to unlink the registered device for {name}?',
+      'deviceUnlinked':
+          'Device ID unlinked for {name}. Next attendance will auto-register.',
+      'deviceIdUpdated': 'Device ID updated for {name}.',
 
       // ── Work Schedule Wizard ──────────────────────────────────────────────────
       'setupWorkSchedule': 'Work Schedule Setup Wizard',

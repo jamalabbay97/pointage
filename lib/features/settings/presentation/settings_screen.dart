@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -637,6 +638,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
+              const storage = FlutterSecureStorage();
+              await storage.delete(key: 'email');
+              await storage.delete(key: 'password');
               await FirebaseAuth.instance.signOut();
             },
             child: Text(ref.tr('signOut')),

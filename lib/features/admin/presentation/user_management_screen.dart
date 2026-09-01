@@ -217,7 +217,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     };
                     if (currentUser?.isManager == true) {
                       users = users
-                          .where((u) => u.createdBy == currentUid)
+                          .where((u) => u.createdBy == currentUid || u.managerId == currentUid)
                           .toList();
                     }
 
@@ -428,6 +428,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                             context,
                                             user,
                                           );
+                                        } else if (val == 'unlink_device') {
+                                          _unlinkDevice(user);
                                         } else if (val == 'delete') {
                                           _confirmDeleteUser(context, user);
                                         }
@@ -457,6 +459,27 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                             ],
                                           ),
                                         ),
+                                        if (user.boundDeviceId != null &&
+                                            user.boundDeviceId!.isNotEmpty)
+                                          PopupMenuItem(
+                                            value: 'unlink_device',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.phonelink_erase,
+                                                  size: 18,
+                                                  color: Colors.orange,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  ref.tr('unlinkDevice'),
+                                                  style: const TextStyle(
+                                                    color: Colors.orange,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         if (!isCurrentUser)
                                           PopupMenuItem(
                                             value: 'delete',
@@ -553,6 +576,40 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                     ],
                                   ),
                                 ],
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      user.boundDeviceId != null &&
+                                              user.boundDeviceId!.isNotEmpty
+                                          ? Icons.phone_android
+                                          : Icons.phonelink_erase,
+                                      size: 14,
+                                      color: user.boundDeviceId != null &&
+                                              user.boundDeviceId!.isNotEmpty
+                                          ? Colors.green.shade400
+                                          : Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        user.boundDeviceId != null &&
+                                                user.boundDeviceId!.isNotEmpty
+                                            ? 'Device ID: ${user.boundDeviceId}'
+                                            : ref.tr('noDeviceLinked'),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: user.boundDeviceId != null &&
+                                                  user.boundDeviceId!
+                                                      .isNotEmpty
+                                              ? Colors.green.shade300
+                                              : Colors.grey.shade400,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -567,16 +624,59 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   Stream<QuerySnapshot> _usersStream(UserModel? currentUser) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-
-    if (currentUser?.isManager == true && currentUid != null) {
-      return _db
-          .collection('users')
-          .where('createdBy', isEqualTo: currentUid)
-          .snapshots();
-    }
-
     return _db.collection('users').snapshots();
+  }
+
+  Future<void> _unlinkDevice(UserModel user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ref.tr('unlinkDevice')),
+        content: Text(
+          ref.tr('confirmUnlinkDevice').replaceAll('{name}', user.displayName),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(ref.tr('cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.orange.shade800,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(ref.tr('unlinkDevice')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _db.collection('users').doc(user.uid).update({
+          'boundDeviceId': FieldValue.delete(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                ref.tr('deviceUnlinked').replaceAll('{name}', user.displayName),
+              ),
+              backgroundColor: Colors.orange.shade800,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error unlinking device: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   Color _getRoleColor(String role) {
@@ -618,6 +718,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       text: user?.department ?? 'Engineering',
     );
     final passwordController = TextEditingController();
+    final boundDeviceIdController = TextEditingController(
+      text: user?.boundDeviceId ?? '',
+    );
 
     // Location controllers (manager override)
     final locationLatController = TextEditingController(
@@ -757,6 +860,42 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           if (val != null) setDialogState(() => role = val);
                         },
                 ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: boundDeviceIdController,
+                  decoration: InputDecoration(
+                    labelText: ref.tr('linkedDeviceId'),
+                    hintText: ref.tr('noDeviceLinked'),
+                    prefixIcon: const Icon(Icons.phone_android),
+                    suffixIcon: boundDeviceIdController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.orange),
+                            tooltip: ref.tr('unlinkDevice'),
+                            onPressed: () {
+                              setDialogState(() {
+                                boundDeviceIdController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    boundDeviceIdController.text.trim().isEmpty
+                        ? ref.tr('noDeviceLinked')
+                        : 'Worker is bound to this device for attendance.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: boundDeviceIdController.text.trim().isEmpty
+                          ? Colors.orange.shade700
+                          : Colors.green.shade700,
+                    ),
+                  ),
+                ),
                 // ── Manager Location Override Section ──────────────────────
                 if (isEdit && currentUser?.isManager == true)
                   ..._buildLocationOverrideFields(
@@ -875,6 +1014,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           }
                           // ───────────────────────────────────────────────
 
+                          if (boundDeviceIdController.text.trim().isEmpty) {
+                            updateData['boundDeviceId'] = FieldValue.delete();
+                          } else {
+                            updateData['boundDeviceId'] =
+                                boundDeviceIdController.text.trim();
+                          }
+
                           await _db
                               .collection('users')
                               .doc(user.uid)
@@ -903,8 +1049,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           final managerSchedule =
                               currentUser?.scheduleType ?? 'standard';
 
-                          // Save user document in Firestore using the generated Auth UID
-                          await _db.collection('users').doc(newUid).set({
+                          final newUserData = <String, dynamic>{
                             'uid': newUid,
                             'email': emailVal,
                             'displayName': name,
@@ -919,7 +1064,18 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             'scheduleType':
                                 isNewManager ? 'standard' : managerSchedule,
                             'isFirstLogin': isNewManager,
-                          });
+                          };
+
+                          if (boundDeviceIdController.text.trim().isNotEmpty) {
+                            newUserData['boundDeviceId'] =
+                                boundDeviceIdController.text.trim();
+                          }
+
+                          // Save user document in Firestore using the generated Auth UID
+                          await _db
+                              .collection('users')
+                              .doc(newUid)
+                              .set(newUserData);
 
                           if (dialogCtx.mounted) {
                             Navigator.pop(dialogCtx);

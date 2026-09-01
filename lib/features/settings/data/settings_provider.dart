@@ -53,7 +53,7 @@ class UserSettings {
       pushNotifications: json['pushNotifications'] as bool? ?? true,
       dailyReminders: json['dailyReminders'] as bool? ?? true,
       autoSyncOffline: json['autoSyncOffline'] as bool? ?? true,
-      autoLockTimeout: json['autoLockTimeout'] as String? ?? '5 minutes',
+      autoLockTimeout: json['autoLockTimeout'] as String? ?? 'Never',
     );
   }
 }
@@ -115,7 +115,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
       pushNotifications: push == null ? true : push == 'true',
       dailyReminders: daily == null ? true : daily == 'true',
       autoSyncOffline: sync == null ? true : sync == 'true',
-      autoLockTimeout: lock ?? '5 minutes',
+      autoLockTimeout: lock ?? 'Never',
     );
   }
 

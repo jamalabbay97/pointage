@@ -236,8 +236,17 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   /// a localized string for the current language. Falls back to the raw
   /// message if the code is not recognized.
   String _localizeMessage(String raw) {
-    if (raw.startsWith('ERR:')) {
-      final parts = raw.substring(4).split('|');
+    final clean = raw
+        .replaceAll('Bad state: ', '')
+        .replaceAll('Exception: ', '')
+        .replaceAll('StateError: ', '')
+        .replaceAll('Error: ', '')
+        .trim();
+
+    if (clean.contains('ERR:')) {
+      final errIndex = clean.indexOf('ERR:');
+      final errString = clean.substring(errIndex);
+      final parts = errString.substring(4).split('|');
       final key = parts[0];
       switch (key) {
         case 'notInOfficePerimeter':
@@ -245,13 +254,17 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           final dist = parts.length > 1 ? parts[1] : '?';
           final radius = parts.length > 2 ? parts[2] : '?';
           return '${ref.tr('notInOfficePerimeter')} (${dist}m, max ${radius}m)';
+        case 'deviceMismatch':
+          return ref.tr('deviceMismatch');
         default:
           final localized = ref.tr(key);
-          return localized != key ? localized : raw;
+          return localized != key ? localized : errString;
       }
     }
-    if (raw.startsWith('SUCCESS:')) {
-      final parts = raw.substring(8).split('|');
+    if (clean.contains('SUCCESS:')) {
+      final successIndex = clean.indexOf('SUCCESS:');
+      final successString = clean.substring(successIndex);
+      final parts = successString.substring(8).split('|');
       final type = parts[0];
       final time = parts.length > 1 ? parts[1] : '';
       if (type == 'checkIn') {
@@ -267,7 +280,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         return ref.tr('checkOutOfflineSuccess').replaceAll('{time}', time);
       }
     }
-    return raw;
+    return clean;
   }
 
   String _accountOwnerName(Map<String, dynamic>? userData, User user) {

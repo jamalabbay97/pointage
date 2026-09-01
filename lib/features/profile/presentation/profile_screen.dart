@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/app_translations.dart';
@@ -170,6 +171,10 @@ class ProfileScreen extends ConsumerWidget {
                       ref.tr('phoneNumber'),
                       userModel?.phoneNumber ?? 'N/A',
                     ),
+                    _buildProfileRow(
+                      ref.tr('linkedDeviceId'),
+                      userModel?.boundDeviceId ?? ref.tr('noDeviceLinked'),
+                    ),
                   ],
                 ),
               ),
@@ -179,6 +184,9 @@ class ProfileScreen extends ConsumerWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () async {
+                  const storage = FlutterSecureStorage();
+                  await storage.delete(key: 'email');
+                  await storage.delete(key: 'password');
                   await FirebaseAuth.instance.signOut();
                 },
                 icon: const Icon(Icons.logout),
@@ -465,7 +473,8 @@ class ProfileScreen extends ConsumerWidget {
                         if (newPassword.isNotEmpty) {
                           if (!RegExp(r'^\d+$').hasMatch(newPassword)) {
                             dialogSetState(
-                              () => errorMessage = ref.tr('passwordNumericOnly'),
+                              () =>
+                                  errorMessage = ref.tr('passwordNumericOnly'),
                             );
                             return;
                           }

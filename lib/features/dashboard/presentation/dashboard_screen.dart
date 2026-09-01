@@ -334,30 +334,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              DateFormat.yMMMMEEEEd(
-                                ref.watch(languageProvider).code,
-                              ).format(now),
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                DateFormat.yMMMMEEEEd(
+                                  ref.watch(languageProvider).code,
+                                ).format(now),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              DateFormat.Hms().format(now),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
+                              const SizedBox(height: 4),
+                              Text(
+                                DateFormat.Hms().format(now),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         if (userModel?.isEmployee == true)
                           FutureBuilder<List<Map<String, dynamic>>>(
                             future: ref
@@ -430,27 +434,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                                   return Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
+                                      horizontal: 10,
+                                      vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
                                       color: statusColor,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           statusIcon,
                                           color: Colors.white,
-                                          size: 18,
+                                          size: 16,
                                         ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          statusText,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                        const SizedBox(width: 5),
+                                        Flexible(
+                                          child: Text(
+                                            statusText,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
                                         ),
                                       ],
