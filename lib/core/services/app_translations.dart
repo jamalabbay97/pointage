@@ -61,6 +61,9 @@ class AppTranslations {
       'pushNotifSub': 'Receive announcements and status updates',
       'dailyReminder': 'Daily Check-in Reminder',
       'dailyReminderSub': 'Notify 15 minutes before shift start time',
+      'forgotClockInTitle': 'Clock-In Reminder',
+      'forgotClockInBody':
+          "You haven't clocked in today! Please open the app and record your attendance.",
       'appPrefsSync': 'App Preferences & Sync',
       'autoSync': 'Auto-Sync Offline Scans',
       'autoSyncSub':
@@ -99,6 +102,7 @@ class AppTranslations {
       'deviceMismatch':
           'This account is bound to another phone. Attendance blocked.',
       'linkedDeviceId': 'Linked Phone / Device ID',
+      'unrestrictedDevice': 'Unrestricted (Any Device)',
       'noDeviceLinked':
           'No device linked (will auto-register on next check-in)',
       'unlinkDevice': 'Unlink Device ID',
@@ -645,6 +649,9 @@ class AppTranslations {
     },
     'fr': {
       // ── Titles & General ─────────────────────────────────────────────────────
+      'linkedDeviceId': 'ID de l\'appareil lié',
+      'noDeviceLinked': 'Aucun appareil lié',
+      'unrestrictedDevice': 'Non restreint (Tout appareil)',
       'dashboard': 'Tableau de bord',
       'attendanceHistory': 'Historique de présence',
       'reportsAnalytics': 'Rapports & Analyses de présence',
@@ -699,6 +706,9 @@ class AppTranslations {
       'pushNotifSub': 'Recevoir des annonces et mises à jour',
       'dailyReminder': 'Rappel quotidien de pointage',
       'dailyReminderSub': 'Notifier 15 minutes avant le début de garde',
+      'forgotClockInTitle': 'Rappel de pointage',
+      'forgotClockInBody':
+          "Vous n'avez pas encore pointé aujourd'hui ! Veuillez enregistrer votre présence.",
       'appPrefsSync': "Préférences d'application & Synchro",
       'autoSync': 'Synchronisation automatique hors ligne',
       'autoSyncSub': 'Téléverser automatiquement les pointages en ligne',
@@ -1289,6 +1299,9 @@ class AppTranslations {
     },
     'ar': {
       // ── Titles & General ─────────────────────────────────────────────────────
+      'linkedDeviceId': 'معرف الجهاز المرتبط',
+      'noDeviceLinked': 'لا يوجد جهاز مرتبط',
+      'unrestrictedDevice': 'غير مقيد (أي جهاز)',
       'dashboard': 'لوحة التحكم',
       'attendanceHistory': 'سجل الحضور',
       'reportsAnalytics': 'تقارير وتحليلات الحضور',
@@ -1343,6 +1356,9 @@ class AppTranslations {
       'pushNotifSub': 'تلقي التنبيهات والإعلانات الرسمية',
       'dailyReminder': 'تذكير الحضور اليومي',
       'dailyReminderSub': 'التنبيه قبل 15 دقيقة من بداية الدوام',
+      'forgotClockInTitle': 'تذكير تسجيل الحضور',
+      'forgotClockInBody':
+          'لم تقم بتسجيل الحضور اليوم! يرجى فتح التطبيق وتسجيل الحضور.',
       'appPrefsSync': 'التزامن والتفضيلات',
       'autoSync': 'مزامنة السجلات دون اتصال تلقائياً',
       'autoSyncSub': 'رفع السجلات المعلقة عند توفر الإنترنت',
@@ -1943,6 +1959,9 @@ class AppTranslations {
       'pushNotifSub': 'Recibir anuncios y actualizaciones',
       'dailyReminder': 'Recordatorio Diario de Asistencia',
       'dailyReminderSub': 'Notificar 15 minutos antes del turno',
+      'forgotClockInTitle': 'Recordatorio de Fichaje',
+      'forgotClockInBody':
+          '¡No has fichado hoy! Por favor abre la aplicación y registra tu asistencia.',
       'appPrefsSync': 'Preferencias de App y Sincronización',
       'autoSync': 'Sincronización Automática Offline',
       'autoSyncSub': 'Subir registros pendientes al conectarse',
@@ -2566,6 +2585,13 @@ extension AppTranslationsRef on WidgetRef {
   String trAuthProvider(String providerId) {
     final lang = watch(languageProvider);
     return AppTranslations.authProviderLabel(lang.code, providerId);
+  }
+}
+
+extension AppTranslationsProviderRef on Ref {
+  String tr(String key) {
+    final lang = read(languageProvider);
+    return AppTranslations.text(lang.code, key);
   }
 }
 

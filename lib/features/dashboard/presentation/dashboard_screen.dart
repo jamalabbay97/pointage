@@ -12,6 +12,7 @@ import '../../../core/services/language_provider.dart';
 import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
+import '../../attendance/domain/clock_in_reminder_service.dart';
 import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../notifications/data/notification_provider.dart';
@@ -430,6 +431,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     statusText = ref.tr('notCheckedIn');
                                     statusColor = Colors.orange.shade700;
                                     statusIcon = Icons.pending_rounded;
+
+                                    if (user != null) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                        if (mounted) {
+                                          ref
+                                              .read(
+                                                clockInReminderServiceProvider,
+                                              )
+                                              .checkAndNotifyIfNeeded(
+                                                user: user,
+                                                context: context,
+                                                isNotCheckedIn: true,
+                                              );
+                                        }
+                                      });
+                                    }
                                   }
 
                                   return Container(

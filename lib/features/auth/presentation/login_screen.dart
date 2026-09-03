@@ -155,6 +155,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           return;
         }
 
+        if (syncResult == UserSyncResult.unauthorizedDevice) {
+          await FirebaseAuth.instance.signOut();
+          if (!mounted) return;
+          await _showErrorDialog(
+            ref.tr('deviceNotAuthorizedTitle'),
+            ref.tr('deviceNotAuthorizedDesc'),
+          );
+          return;
+        }
+
+        if (syncResult == UserSyncResult.credentialMissing) {
+          await FirebaseAuth.instance.signOut();
+          if (!mounted) return;
+          await _showErrorDialog(
+            ref.tr('credentialMissingTitle'),
+            ref.tr('credentialMissingDesc'),
+          );
+          return;
+        }
+
         if (syncResult == UserSyncResult.failed && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -196,6 +216,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  Future<void> _showErrorDialog(String title, String message) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.block, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ref.tr('ok')),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showForgotPasswordDialog() async {

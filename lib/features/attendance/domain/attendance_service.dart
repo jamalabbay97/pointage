@@ -74,6 +74,7 @@ class AttendanceService {
     double effectiveLat = settings.latitude;
     double effectiveLng = settings.longitude;
     double effectiveRadius = settings.radiusMeters;
+    bool effectiveAllowRemoteClockIn = settings.allowRemoteClockIn;
 
     if (!isOffline) {
       try {
@@ -90,6 +91,11 @@ class AttendanceService {
             effectiveLat = assignedLat;
             effectiveLng = assignedLng;
             if (assignedRadius != null) effectiveRadius = assignedRadius;
+          }
+          final assignedAllowRemoteClockIn =
+              userData['assignedAllowRemoteClockIn'] as bool?;
+          if (assignedAllowRemoteClockIn != null) {
+            effectiveAllowRemoteClockIn = assignedAllowRemoteClockIn;
           }
         }
       } catch (_) {}
@@ -119,13 +125,16 @@ class AttendanceService {
       effectiveLng,
     );
 
-    if (!settings.allowRemoteClockIn && distance > effectiveRadius) {
+    if (!effectiveAllowRemoteClockIn && distance > effectiveRadius) {
       throw StateError(
         'ERR:notInOfficePerimeter|${distance.toInt()}|${effectiveRadius.toInt()}',
       );
     }
 
-    final currentDeviceId = await DeviceIdService.getDeviceId();
+    final currentDeviceId =
+        await DeviceIdentityService.getDeviceIdHash(employeeId);
+    final fingerprintHash =
+        await DeviceIdentityService.getDeviceFingerprintHash();
 
     if (!isOffline) {
       try {
@@ -133,18 +142,47 @@ class AttendanceService {
         final userDoc = await userRef.get();
         if (userDoc.exists && userDoc.data() != null) {
           final userData = userDoc.data()!;
-          final boundDeviceId = userData['boundDeviceId'] as String?;
-          if (boundDeviceId == null || boundDeviceId.isEmpty) {
-            // First time registration: permanently link deviceId to account
-            await userRef.set(
-              {
-                'boundDeviceId': currentDeviceId,
-              },
-              SetOptions(merge: true),
-            );
-          } else if (boundDeviceId != currentDeviceId) {
-            // Block attendance from a different phone
-            throw StateError('ERR:deviceMismatch');
+          final role =
+              (userData['role'] as String? ?? 'employee').trim().toLowerCase();
+
+          if (role != 'admin' && role != 'manager') {
+            final activeDeviceIdHash =
+                userData['activeDeviceIdHash'] as String?;
+            if (activeDeviceIdHash == null || activeDeviceIdHash.isEmpty) {
+              // First time registration: permanently link deviceId and fingerprint to account
+              await userRef.set(
+                {
+                  'activeDeviceIdHash': currentDeviceId,
+                  'activeDeviceFingerprint': fingerprintHash,
+                  'deviceBinding': {
+                    'deviceIdHash': currentDeviceId,
+                    'fingerprintHash': fingerprintHash,
+                    'status': 'active',
+                    'registeredAt': FieldValue.serverTimestamp(),
+                  },
+                },
+                SetOptions(merge: true),
+              );
+            } else if (activeDeviceIdHash != currentDeviceId) {
+              // Check fingerprint fallback
+              final activeDeviceFingerprint =
+                  userData['activeDeviceFingerprint'] as String?;
+
+              if (activeDeviceFingerprint != null &&
+                  activeDeviceFingerprint.isNotEmpty &&
+                  activeDeviceFingerprint == fingerprintHash) {
+                // Fingerprint matches! Auto-repair activeDeviceIdHash
+                await userRef.update({
+                  'activeDeviceIdHash': currentDeviceId,
+                  'deviceBinding.deviceIdHash': currentDeviceId,
+                  'deviceBinding.lastVerifiedAt': FieldValue.serverTimestamp(),
+                  'isAutoRepair': true,
+                });
+              } else {
+                // Block attendance from a different phone
+                throw StateError('ERR:deviceMismatch');
+              }
+            }
           }
         }
       } catch (e) {

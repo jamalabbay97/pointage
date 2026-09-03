@@ -79,7 +79,10 @@ service cloud.firestore {
           request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '') &&
           request.resource.data.get('createdBy', resource.data.get('createdBy', '')) == resource.data.get('createdBy', '') &&
           request.resource.data.get('managerId', resource.data.get('managerId', '')) == resource.data.get('managerId', '') &&
-          (!resource.data.keys().hasAll(['boundDeviceId']) || request.resource.data.get('boundDeviceId', '') == resource.data.get('boundDeviceId', ''))) || 
+          (!resource.data.keys().hasAll(['boundDeviceId']) || resource.data.get('boundDeviceId', '') == '' || request.resource.data.get('boundDeviceId', '') == resource.data.get('boundDeviceId', '') || request.resource.data.get('isAutoRepair', false) == true) &&
+          (!resource.data.keys().hasAll(['activeDeviceIdHash']) || resource.data.get('activeDeviceIdHash', '') == '' || request.resource.data.get('activeDeviceIdHash', '') == resource.data.get('activeDeviceIdHash', '') || request.resource.data.get('isAutoRepair', false) == true) &&
+          (!resource.data.keys().hasAll(['deviceBinding']) || resource.data.get('deviceBinding', null) == null || request.resource.data.get('deviceBinding', null) == resource.data.get('deviceBinding', null) || request.resource.data.get('isAutoRepair', false) == true)) || 
+
         isAdmin() ||
         (isManager() && resource != null && 
           (resource.data.get('createdBy', '') == request.auth.uid || resource.data.get('managerId', '') == request.auth.uid) &&

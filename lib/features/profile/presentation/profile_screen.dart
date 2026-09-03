@@ -171,10 +171,16 @@ class ProfileScreen extends ConsumerWidget {
                       ref.tr('phoneNumber'),
                       userModel?.phoneNumber ?? 'N/A',
                     ),
-                    _buildProfileRow(
-                      ref.tr('linkedDeviceId'),
-                      userModel?.boundDeviceId ?? ref.tr('noDeviceLinked'),
-                    ),
+                    if (userModel?.isAdminOrManager == true)
+                      _buildProfileRow(
+                        ref.tr('linkedDeviceId'),
+                        ref.tr('unrestrictedDevice'),
+                      )
+                    else
+                      _buildProfileRow(
+                        ref.tr('linkedDeviceId'),
+                        userModel?.boundDeviceId ?? ref.tr('noDeviceLinked'),
+                      ),
                   ],
                 ),
               ),

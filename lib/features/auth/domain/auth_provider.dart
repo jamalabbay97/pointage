@@ -6,12 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/models/user_model.dart';
+import '../../../core/services/device_authorization_service.dart';
 
 const _authStorage = FlutterSecureStorage();
 const _userProfileStorageKey = 'cached_user_model_v1';
 
 final authStateProvider = StreamProvider<User?>((ref) {
   return FirebaseAuth.instance.authStateChanges();
+});
+
+final deviceAuthStatusProvider = FutureProvider<DeviceAuthResult?>((ref) async {
+  final authUser = ref.watch(authStateProvider).valueOrNull;
+  if (authUser == null) return null;
+  return await DeviceAuthorizationService.verifyOrRegisterDevice(authUser);
 });
 
 final currentUserModelProvider = StreamProvider<UserModel?>((ref) {

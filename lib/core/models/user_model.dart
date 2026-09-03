@@ -20,6 +20,12 @@ class UserModel {
     this.kioskPin,
     this.phoneNumber,
     this.boundDeviceId,
+    this.activeDeviceIdHash,
+    this.deviceBinding,
+    this.assignedQrSecret,
+    this.assignedQrRotateIntervalSeconds,
+    this.assignedAllowRemoteClockIn,
+    this.assignedCompanyName,
   });
 
   final String uid;
@@ -46,11 +52,22 @@ class UserModel {
   /// UID of the manager who assigned this location, or 'admin' if set by admin.
   final String? locationAssignedBy;
 
+  final String? assignedQrSecret;
+  final int? assignedQrRotateIntervalSeconds;
+  final bool? assignedAllowRemoteClockIn;
+  final String? assignedCompanyName;
+
   /// Optional PIN set by the manager/admin to exit presenter mode
   final String? kioskPin;
 
   /// Unique Device ID permanently bound to this worker account for attendance.
   final String? boundDeviceId;
+
+  /// Cryptographic hash of the device credential for authorization.
+  final String? activeDeviceIdHash;
+
+  /// Metadata about the bound device (status, platform, etc.).
+  final Map<String, dynamic>? deviceBinding;
 
   /// Returns true if this user has a custom location that was assigned by a manager.
   bool get hasManagerLocation =>
@@ -92,6 +109,13 @@ class UserModel {
       kioskPin: _nullableString(json['kioskPin']),
       phoneNumber: _nullableString(json['phoneNumber']),
       boundDeviceId: _nullableString(json['boundDeviceId']),
+      activeDeviceIdHash: _nullableString(json['activeDeviceIdHash']),
+      deviceBinding: json['deviceBinding'] as Map<String, dynamic>?,
+      assignedQrSecret: _nullableString(json['assignedQrSecret']),
+      assignedQrRotateIntervalSeconds:
+          json['assignedQrRotateIntervalSeconds'] as int?,
+      assignedAllowRemoteClockIn: json['assignedAllowRemoteClockIn'] as bool?,
+      assignedCompanyName: _nullableString(json['assignedCompanyName']),
     );
   }
 
@@ -120,6 +144,16 @@ class UserModel {
           'locationAssignedBy': locationAssignedBy,
         if (kioskPin != null) 'kioskPin': kioskPin,
         if (boundDeviceId != null) 'boundDeviceId': boundDeviceId,
+        if (activeDeviceIdHash != null)
+          'activeDeviceIdHash': activeDeviceIdHash,
+        if (deviceBinding != null) 'deviceBinding': deviceBinding,
+        if (assignedQrSecret != null) 'assignedQrSecret': assignedQrSecret,
+        if (assignedQrRotateIntervalSeconds != null)
+          'assignedQrRotateIntervalSeconds': assignedQrRotateIntervalSeconds,
+        if (assignedAllowRemoteClockIn != null)
+          'assignedAllowRemoteClockIn': assignedAllowRemoteClockIn,
+        if (assignedCompanyName != null)
+          'assignedCompanyName': assignedCompanyName,
       };
 
   UserModel copyWith({
@@ -143,6 +177,12 @@ class UserModel {
     Object? locationAssignedBy = _sentinel,
     Object? kioskPin = _sentinel,
     Object? boundDeviceId = _sentinel,
+    Object? activeDeviceIdHash = _sentinel,
+    Object? deviceBinding = _sentinel,
+    Object? assignedQrSecret = _sentinel,
+    Object? assignedQrRotateIntervalSeconds = _sentinel,
+    Object? assignedAllowRemoteClockIn = _sentinel,
+    Object? assignedCompanyName = _sentinel,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -175,6 +215,25 @@ class UserModel {
       boundDeviceId: boundDeviceId == _sentinel
           ? this.boundDeviceId
           : boundDeviceId as String?,
+      activeDeviceIdHash: activeDeviceIdHash == _sentinel
+          ? this.activeDeviceIdHash
+          : activeDeviceIdHash as String?,
+      deviceBinding: deviceBinding == _sentinel
+          ? this.deviceBinding
+          : deviceBinding as Map<String, dynamic>?,
+      assignedQrSecret: assignedQrSecret == _sentinel
+          ? this.assignedQrSecret
+          : assignedQrSecret as String?,
+      assignedQrRotateIntervalSeconds:
+          assignedQrRotateIntervalSeconds == _sentinel
+              ? this.assignedQrRotateIntervalSeconds
+              : assignedQrRotateIntervalSeconds as int?,
+      assignedAllowRemoteClockIn: assignedAllowRemoteClockIn == _sentinel
+          ? this.assignedAllowRemoteClockIn
+          : assignedAllowRemoteClockIn as bool?,
+      assignedCompanyName: assignedCompanyName == _sentinel
+          ? this.assignedCompanyName
+          : assignedCompanyName as String?,
     );
   }
 

@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../core/services/device_authorization_service.dart';
 import '../../../core/utils/async_timeout.dart';
 
 enum UserSyncResult {
   success,
   disabled,
+  unauthorizedDevice,
+  credentialMissing,
   failed,
 }
 
@@ -46,6 +49,19 @@ Future<UserSyncResult> syncUserAfterLogin(User user) async {
       return UserSyncResult.disabled;
     }
 
+    // 2. Perform Device Authorization Check
+    final deviceAuthResult =
+        await DeviceAuthorizationService.verifyOrRegisterDevice(user);
+
+    if (deviceAuthResult == DeviceAuthResult.unauthorized) {
+      return UserSyncResult.unauthorizedDevice;
+    } else if (deviceAuthResult == DeviceAuthResult.credentialMissing) {
+      return UserSyncResult.credentialMissing;
+    } else if (deviceAuthResult == DeviceAuthResult.error) {
+      return UserSyncResult.failed;
+    }
+
+    // 3. Update last login timestamp if authorized
     await withTimeout(
       userDocRef.update({
         'lastLogin': DateTime.now().toIso8601String(),

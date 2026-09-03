@@ -74,25 +74,34 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
 
       final currentUser = ref.read(currentUserModelProvider).valueOrNull;
 
-      _companyController.text = settings.companyName;
-      if (currentUser != null &&
-          currentUser.isManager &&
-          currentUser.assignedLocationLat != null &&
-          currentUser.assignedLocationLng != null) {
-        _latController.text = currentUser.assignedLocationLat.toString();
-        _lngController.text = currentUser.assignedLocationLng.toString();
+      if (currentUser != null && currentUser.isManager) {
+        _companyController.text =
+            currentUser.assignedCompanyName ?? settings.companyName;
+        _latController.text = currentUser.assignedLocationLat?.toString() ??
+            settings.latitude.toString();
+        _lngController.text = currentUser.assignedLocationLng?.toString() ??
+            settings.longitude.toString();
         _radiusMeters =
             currentUser.assignedLocationRadius ?? settings.radiusMeters;
+
+        _secretController.text =
+            currentUser.assignedQrSecret ?? settings.qrSecret;
+        _rotationInterval = currentUser.assignedQrRotateIntervalSeconds ??
+            settings.qrRotateIntervalSeconds;
+        _allowRemoteClockIn = currentUser.assignedAllowRemoteClockIn ??
+            settings.allowRemoteClockIn;
       } else {
+        _companyController.text = settings.companyName;
         _latController.text = settings.latitude.toString();
         _lngController.text = settings.longitude.toString();
         _radiusMeters = settings.radiusMeters;
+
+        _secretController.text = settings.qrSecret;
+        _rotationInterval = settings.qrRotateIntervalSeconds;
+        _allowRemoteClockIn = settings.allowRemoteClockIn;
       }
 
-      _secretController.text = settings.qrSecret;
       _adminApiController.text = settings.adminApiBaseUrl;
-      _rotationInterval = settings.qrRotateIntervalSeconds;
-      _allowRemoteClockIn = settings.allowRemoteClockIn;
       _mobileAppUrlController.text = settings.mobileAppUrl;
       _mobileAppVersionController.text = settings.mobileAppVersion;
       _mobileAppNotesController.text = settings.mobileAppNotes;
@@ -183,6 +192,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
           'assignedLocationLng': lng,
           'assignedLocationRadius': _radiusMeters,
           'locationAssignedBy': currentUser.uid,
+          'assignedQrSecret': secret,
+          'assignedQrRotateIntervalSeconds': _rotationInterval,
+          'assignedAllowRemoteClockIn': _allowRemoteClockIn,
+          'assignedCompanyName': companyName,
         });
 
         final usersSnap = await _db
@@ -195,6 +208,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
             'assignedLocationLng': lng,
             'assignedLocationRadius': _radiusMeters,
             'locationAssignedBy': currentUser.uid,
+            'assignedQrSecret': secret,
+            'assignedQrRotateIntervalSeconds': _rotationInterval,
+            'assignedAllowRemoteClockIn': _allowRemoteClockIn,
+            'assignedCompanyName': companyName,
           });
         }
         await batch.commit();
@@ -351,6 +368,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
             'assignedLocationLng': FieldValue.delete(),
             'assignedLocationRadius': FieldValue.delete(),
             'locationAssignedBy': FieldValue.delete(),
+            'assignedQrSecret': FieldValue.delete(),
+            'assignedQrRotateIntervalSeconds': FieldValue.delete(),
+            'assignedAllowRemoteClockIn': FieldValue.delete(),
+            'assignedCompanyName': FieldValue.delete(),
           });
         }
       }

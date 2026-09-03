@@ -33,6 +33,8 @@ import 'features/admin/presentation/send_notification_screen.dart';
 import 'features/auth/domain/auth_provider.dart';
 import 'features/auth/presentation/app_lock_wrapper.dart';
 import 'firebase_options.dart';
+import 'core/services/device_authorization_service.dart';
+import 'core/services/local_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,6 +89,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
         duration: const Duration(seconds: 8),
         label: 'Theme loading timed out',
       ).catchError((_) => ThemeMode.system);
+      unawaited(LocalNotificationService().initialize());
     } catch (e) {
       _initError = e.toString();
     }
@@ -194,6 +197,14 @@ class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, __) => notifyListeners());
     _ref.listen(currentUserModelProvider, (_, __) => notifyListeners());
+    _ref.listen<AsyncValue<DeviceAuthResult?>>(deviceAuthStatusProvider,
+        (previous, next) {
+      if (next.valueOrNull == DeviceAuthResult.unauthorized ||
+          next.valueOrNull == DeviceAuthResult.credentialMissing) {
+        FirebaseAuth.instance.signOut();
+      }
+      notifyListeners();
+    });
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
@@ -210,6 +221,19 @@ class RouterNotifier extends ChangeNotifier {
     }
 
     if (!isAuth) {
+      return isLoggingIn ? null : '/login';
+    }
+
+    final deviceAuth = _ref.read(deviceAuthStatusProvider);
+
+    // Wait for device authorization to finish checking
+    if (deviceAuth.isLoading) {
+      return isSplash ? null : '/';
+    }
+
+    // If device auth failed (it should trigger signout in listener, but we protect routes here too)
+    if (deviceAuth.valueOrNull == DeviceAuthResult.unauthorized ||
+        deviceAuth.valueOrNull == DeviceAuthResult.credentialMissing) {
       return isLoggingIn ? null : '/login';
     }
 

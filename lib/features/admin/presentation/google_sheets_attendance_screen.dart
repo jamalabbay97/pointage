@@ -637,9 +637,15 @@ class _GoogleSheetsAttendanceScreenState
         try {
           final userDoc = await _db.collection('users').doc(employee.uid).get();
           if (userDoc.exists && userDoc.data() != null) {
-            final boundId = userDoc.data()!['boundDeviceId'] as String?;
+            final boundId = userDoc.data()!['activeDeviceIdHash'] as String?;
             if (boundId != null && boundId.isNotEmpty) {
               effectiveDeviceId = boundId;
+            } else {
+              // Legacy fallback
+              final legacyId = userDoc.data()!['boundDeviceId'] as String?;
+              if (legacyId != null && legacyId.isNotEmpty) {
+                effectiveDeviceId = legacyId;
+              }
             }
           }
         } catch (_) {}

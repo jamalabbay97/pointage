@@ -161,6 +161,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         }
       } catch (_) {}
 
+      if (userData != null) {
+        final assignedQrSecret = userData['assignedQrSecret'] as String?;
+        if (assignedQrSecret != null && assignedQrSecret.isNotEmpty) {
+          settings = settings.copyWith(qrSecret: assignedQrSecret);
+        }
+      }
+
       if (code.trim().startsWith('{')) {
         final verifier = QrVerifier(settings.qrSecret);
         try {

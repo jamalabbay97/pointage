@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/services/device_authorization_service.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/user_deletion_api.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -217,7 +218,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     };
                     if (currentUser?.isManager == true) {
                       users = users
-                          .where((u) => u.createdBy == currentUid || u.managerId == currentUid)
+                          .where(
+                            (u) =>
+                                u.createdBy == currentUid ||
+                                u.managerId == currentUid,
+                          )
                           .toList();
                     }
 
@@ -459,8 +464,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                             ],
                                           ),
                                         ),
-                                        if (user.boundDeviceId != null &&
-                                            user.boundDeviceId!.isNotEmpty)
+                                        if (!(user.isAdmin || user.isManager) &&
+                                            ((user.activeDeviceIdHash != null &&
+                                                    user.activeDeviceIdHash!
+                                                        .isNotEmpty) ||
+                                                (user.boundDeviceId != null &&
+                                                    user.boundDeviceId!
+                                                        .isNotEmpty)))
                                           PopupMenuItem(
                                             value: 'unlink_device',
                                             child: Row(
@@ -580,30 +590,58 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 Row(
                                   children: [
                                     Icon(
-                                      user.boundDeviceId != null &&
-                                              user.boundDeviceId!.isNotEmpty
-                                          ? Icons.phone_android
-                                          : Icons.phonelink_erase,
+                                      (user.isAdmin || user.isManager)
+                                          ? Icons.public
+                                          : ((user.activeDeviceIdHash != null &&
+                                                      user.activeDeviceIdHash!
+                                                          .isNotEmpty) ||
+                                                  (user.boundDeviceId != null &&
+                                                      user.boundDeviceId!
+                                                          .isNotEmpty)
+                                              ? Icons.phone_android
+                                              : Icons.phonelink_erase),
                                       size: 14,
-                                      color: user.boundDeviceId != null &&
-                                              user.boundDeviceId!.isNotEmpty
-                                          ? Colors.green.shade400
-                                          : Colors.grey.shade500,
+                                      color: (user.isAdmin || user.isManager)
+                                          ? Colors.blue.shade400
+                                          : ((user.activeDeviceIdHash != null &&
+                                                      user.activeDeviceIdHash!
+                                                          .isNotEmpty) ||
+                                                  (user.boundDeviceId != null &&
+                                                      user.boundDeviceId!
+                                                          .isNotEmpty)
+                                              ? Colors.green.shade400
+                                              : Colors.grey.shade500),
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        user.boundDeviceId != null &&
-                                                user.boundDeviceId!.isNotEmpty
-                                            ? 'Device ID: ${user.boundDeviceId}'
-                                            : ref.tr('noDeviceLinked'),
+                                        (user.isAdmin || user.isManager)
+                                            ? 'Device Status: Unrestricted'
+                                            : ((user.activeDeviceIdHash !=
+                                                            null &&
+                                                        user.activeDeviceIdHash!
+                                                            .isNotEmpty) ||
+                                                    (user.boundDeviceId !=
+                                                            null &&
+                                                        user.boundDeviceId!
+                                                            .isNotEmpty)
+                                                ? 'Device Status: ● Registered'
+                                                : ref.tr('noDeviceLinked')),
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: user.boundDeviceId != null &&
-                                                  user.boundDeviceId!
-                                                      .isNotEmpty
-                                              ? Colors.green.shade300
-                                              : Colors.grey.shade400,
+                                          color: (user.isAdmin ||
+                                                  user.isManager)
+                                              ? Colors.blue.shade300
+                                              : ((user.activeDeviceIdHash !=
+                                                              null &&
+                                                          user.activeDeviceIdHash!
+                                                              .isNotEmpty) ||
+                                                      (user.boundDeviceId !=
+                                                              null &&
+                                                          user.boundDeviceId!
+                                                              .isNotEmpty)
+                                                  ? Colors.green.shade300
+                                                  : Colors.grey.shade400),
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -653,9 +691,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
     if (confirm == true) {
       try {
-        await _db.collection('users').doc(user.uid).update({
-          'boundDeviceId': FieldValue.delete(),
-        });
+        final adminUid =
+            FirebaseAuth.instance.currentUser?.uid ?? 'unknown_admin';
+        await DeviceAuthorizationService.resetUserDevice(user.uid, adminUid);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -704,8 +742,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   String _generatePassword() {
     const chars = '0123456789';
     final rnd = Random.secure();
-    return List.generate(8, (index) => chars[rnd.nextInt(chars.length)])
-        .join();
+    return List.generate(8, (index) => chars[rnd.nextInt(chars.length)]).join();
   }
 
   void _showUserDialog(BuildContext context, {UserModel? user}) {
@@ -718,9 +755,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       text: user?.department ?? 'Engineering',
     );
     final passwordController = TextEditingController();
-    final boundDeviceIdController = TextEditingController(
-      text: user?.boundDeviceId ?? '',
-    );
 
     // Location controllers (manager override)
     final locationLatController = TextEditingController(
@@ -861,41 +895,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         },
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: boundDeviceIdController,
-                  decoration: InputDecoration(
-                    labelText: ref.tr('linkedDeviceId'),
-                    hintText: ref.tr('noDeviceLinked'),
-                    prefixIcon: const Icon(Icons.phone_android),
-                    suffixIcon: boundDeviceIdController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.orange),
-                            tooltip: ref.tr('unlinkDevice'),
-                            onPressed: () {
-                              setDialogState(() {
-                                boundDeviceIdController.clear();
-                              });
-                            },
-                          )
-                        : null,
-                  ),
-                  onChanged: (_) => setDialogState(() {}),
-                ),
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    boundDeviceIdController.text.trim().isEmpty
-                        ? ref.tr('noDeviceLinked')
-                        : 'Worker is bound to this device for attendance.',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: boundDeviceIdController.text.trim().isEmpty
-                          ? Colors.orange.shade700
-                          : Colors.green.shade700,
-                    ),
-                  ),
-                ),
+
                 // ── Manager Location Override Section ──────────────────────
                 if (isEdit && currentUser?.isManager == true)
                   ..._buildLocationOverrideFields(
@@ -1014,13 +1014,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           }
                           // ───────────────────────────────────────────────
 
-                          if (boundDeviceIdController.text.trim().isEmpty) {
-                            updateData['boundDeviceId'] = FieldValue.delete();
-                          } else {
-                            updateData['boundDeviceId'] =
-                                boundDeviceIdController.text.trim();
-                          }
-
                           await _db
                               .collection('users')
                               .doc(user.uid)
@@ -1065,11 +1058,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 isNewManager ? 'standard' : managerSchedule,
                             'isFirstLogin': isNewManager,
                           };
-
-                          if (boundDeviceIdController.text.trim().isNotEmpty) {
-                            newUserData['boundDeviceId'] =
-                                boundDeviceIdController.text.trim();
-                          }
 
                           // Save user document in Firestore using the generated Auth UID
                           await _db

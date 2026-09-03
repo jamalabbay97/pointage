@@ -28,6 +28,7 @@ class NotificationService {
     required String senderId,
     String? senderName,
     String? targetManagerId,
+    String? targetUserId,
     String? link,
   }) async {
     await _col.add({
@@ -37,6 +38,7 @@ class NotificationService {
       'senderId': senderId,
       if (senderName != null) 'senderName': senderName,
       if (targetManagerId != null) 'targetManagerId': targetManagerId,
+      if (targetUserId != null) 'targetUserId': targetUserId,
       if (link != null) 'link': link,
       'createdAt': FieldValue.serverTimestamp(),
       'readBy': <String>[],
@@ -78,8 +80,7 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 /// - Admin notifications (`type == 'admin'`): visible to everyone.
 /// - Manager notifications (`type == 'manager'`): visible only to employees
 ///   whose `managerId` matches the notification's `targetManagerId`.
-final userNotificationsProvider =
-    StreamProvider<List<AppNotification>>((ref) {
+final userNotificationsProvider = StreamProvider<List<AppNotification>>((ref) {
   final authUser = ref.watch(authStateProvider).valueOrNull;
   final userModel = ref.watch(currentUserModelProvider).valueOrNull;
 
@@ -108,8 +109,14 @@ bool _isVisible(
   }
 
   // If the notification was sent before the user account was created, don't show it
-  if (userModel?.createdAt != null && n.createdAt.isBefore(userModel!.createdAt!)) {
+  if (userModel?.createdAt != null &&
+      n.createdAt.isBefore(userModel!.createdAt!)) {
     return false;
+  }
+
+  // Notifications targeted to specific user
+  if (n.targetUserId != null) {
+    return n.targetUserId == authUser.uid;
   }
 
   // Admins and managers see everything they sent, plus admin broadcasts
@@ -130,8 +137,7 @@ bool _isVisible(
 /// Number of notifications the current user has NOT yet read.
 final unreadNotificationCountProvider = Provider<int>((ref) {
   final authUser = ref.watch(authStateProvider).valueOrNull;
-  final notifications =
-      ref.watch(userNotificationsProvider).valueOrNull ?? [];
+  final notifications = ref.watch(userNotificationsProvider).valueOrNull ?? [];
   if (authUser == null) return 0;
   return notifications.where((n) => !n.readBy.contains(authUser.uid)).length;
 });

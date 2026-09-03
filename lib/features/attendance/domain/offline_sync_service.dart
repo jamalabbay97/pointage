@@ -197,13 +197,18 @@ class OfflineSyncService {
               final userRef = db.collection('users').doc(employeeId);
               final userSnap = await userRef.get();
               if (userSnap.exists && userSnap.data() != null) {
-                final boundDeviceId =
-                    userSnap.data()!['boundDeviceId'] as String?;
-                if (boundDeviceId == null || boundDeviceId.isEmpty) {
-                  await userRef.set(
-                    {'boundDeviceId': recordDeviceId},
-                    SetOptions(merge: true),
-                  );
+                final role = (userSnap.data()!['role'] as String? ?? 'employee')
+                    .trim()
+                    .toLowerCase();
+                if (role != 'admin' && role != 'manager') {
+                  final boundDeviceId =
+                      userSnap.data()!['boundDeviceId'] as String?;
+                  if (boundDeviceId == null || boundDeviceId.isEmpty) {
+                    await userRef.set(
+                      {'boundDeviceId': recordDeviceId},
+                      SetOptions(merge: true),
+                    );
+                  }
                 }
               }
             } catch (_) {}

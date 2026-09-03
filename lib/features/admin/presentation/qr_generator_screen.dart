@@ -49,6 +49,45 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
       if (doc.exists && doc.data() != null) {
         _settings = CompanySettings.fromJson(doc.data()!);
       }
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userDoc.exists && userDoc.data() != null) {
+          final userData = userDoc.data()!;
+          final role = (userData['role'] as String? ?? '').trim().toLowerCase();
+          if (role == 'manager') {
+            final assignedLat =
+                (userData['assignedLocationLat'] as num?)?.toDouble();
+            final assignedLng =
+                (userData['assignedLocationLng'] as num?)?.toDouble();
+            final assignedRadius =
+                (userData['assignedLocationRadius'] as num?)?.toDouble();
+            final assignedQrSecret = userData['assignedQrSecret'] as String?;
+            final assignedQrRotateIntervalSeconds =
+                userData['assignedQrRotateIntervalSeconds'] as int?;
+            final assignedAllowRemoteClockIn =
+                userData['assignedAllowRemoteClockIn'] as bool?;
+            final assignedCompanyName =
+                userData['assignedCompanyName'] as String?;
+
+            _settings = _settings.copyWith(
+              latitude: assignedLat ?? _settings.latitude,
+              longitude: assignedLng ?? _settings.longitude,
+              radiusMeters: assignedRadius ?? _settings.radiusMeters,
+              qrSecret: assignedQrSecret ?? _settings.qrSecret,
+              qrRotateIntervalSeconds: assignedQrRotateIntervalSeconds ??
+                  _settings.qrRotateIntervalSeconds,
+              allowRemoteClockIn:
+                  assignedAllowRemoteClockIn ?? _settings.allowRemoteClockIn,
+              companyName: assignedCompanyName ?? _settings.companyName,
+            );
+          }
+        }
+      }
     } catch (_) {}
     _rotateQR();
     _startTimer();
