@@ -37,4 +37,3 @@ class AppConfig {
     return trimmed;
   }
 }
-

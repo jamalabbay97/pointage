@@ -240,7 +240,7 @@ class ReportDataService {
               status: status,
               lateMinutes: lateMins,
               workHours: workedHrs,
-              device: record['deviceModel']?.toString() ?? '',
+              device: _resolveDeviceDisplay(record, user),
               notes: '',
             ),
           );
@@ -407,5 +407,55 @@ class ReportDataService {
       return checkIn.difference(expectedStart).inMinutes;
     }
     return 0;
+  }
+
+  String _resolveDeviceDisplay(Map<String, dynamic> record, UserModel user) {
+    final rawDevice = record['deviceModel']?.toString().trim() ?? '';
+    final deviceId = record['deviceId']?.toString().trim() ?? '';
+    final shortId = deviceId.isNotEmpty
+        ? (deviceId.length > 8 ? deviceId.substring(0, 8) : deviceId)
+        : '';
+
+    // If the record has generic "Web Browser" (or empty), resolve more specific details
+    final isGenericWeb = rawDevice.isEmpty ||
+        rawDevice.toLowerCase() == 'web browser' ||
+        rawDevice.toLowerCase() == 'web' ||
+        (rawDevice.toLowerCase() == 'mobile device' &&
+            record['operatingSystem'] == 'Web');
+
+    if (isGenericWeb) {
+      String browser = user.deviceBinding?['browser']?.toString().trim() ?? '';
+      String platform =
+          user.deviceBinding?['platform']?.toString().trim() ?? '';
+      if (browser.isNotEmpty) {
+        browser = browser[0].toUpperCase() + browser.substring(1);
+      }
+
+      String deviceName;
+      if (browser.isNotEmpty &&
+          platform.isNotEmpty &&
+          platform != 'Unknown Platform' &&
+          platform != 'Web') {
+        deviceName = '$platform ($browser)';
+      } else if (browser.isNotEmpty) {
+        deviceName = 'Web ($browser)';
+      } else {
+        deviceName = 'Web Browser';
+      }
+
+      if (shortId.isNotEmpty) {
+        return '$deviceName [ID: $shortId]';
+      }
+      return deviceName;
+    }
+
+    // If it's already a specific device description on web without ID, append short ID
+    if (rawDevice.toLowerCase().contains('web') &&
+        shortId.isNotEmpty &&
+        !rawDevice.contains('ID:')) {
+      return '$rawDevice [ID: $shortId]';
+    }
+
+    return rawDevice;
   }
 }

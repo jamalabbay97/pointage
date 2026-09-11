@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/models/attendance_record.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/services/device_id_service.dart';
 import 'offline_sync_service.dart';
 
@@ -40,20 +41,27 @@ class AttendanceService {
     required String employeeId,
     required String employeeName,
     required CompanySettings settings,
+    UserModel? cachedUser,
   }) async {
     final now = DateTime.now();
     final today = now.toIso8601String().substring(0, 10);
     final docId = '$employeeId-$today';
 
     final connectivityResult = await Connectivity().checkConnectivity();
-    final isOffline = connectivityResult.contains(ConnectivityResult.none);
+    bool isOffline =
+        !connectivityResult.any((r) => r != ConnectivityResult.none);
 
     DocumentSnapshot<Map<String, dynamic>>? docSnap;
     if (!isOffline) {
       try {
-        docSnap = await _db.collection('attendance').doc(docId).get();
+        docSnap = await _db
+            .collection('attendance')
+            .doc(docId)
+            .get()
+            .timeout(const Duration(seconds: 8));
       } catch (_) {
-        // Fall back to offline check
+        // If Firestore times out or is unreachable, treat as offline
+        isOffline = true;
       }
     }
 
@@ -70,17 +78,68 @@ class AttendanceService {
     final bool hasLocalPending = localPending.isNotEmpty;
     final bool existsToday = hasDocSnap || hasLocalPending;
 
+    final initialRole = cachedUser?.role.trim().toLowerCase();
+    if (initialRole == 'admin' || initialRole == 'manager') {
+      throw StateError(
+        initialRole == 'admin'
+            ? 'ERR:adminCannotCheckIn'
+            : 'ERR:managerCannotCheckIn',
+      );
+    }
+
+    String effectiveSchedule = cachedUser?.scheduleType ?? 'standard';
+    String? effectiveManagerId = cachedUser?.managerId ?? cachedUser?.createdBy;
+
     // ── Location Priority Resolution ─────────────────────────────────────────
     double effectiveLat = settings.latitude;
     double effectiveLng = settings.longitude;
     double effectiveRadius = settings.radiusMeters;
     bool effectiveAllowRemoteClockIn = settings.allowRemoteClockIn;
 
+    // Apply cached user location overrides if available
+    if (cachedUser != null) {
+      if (cachedUser.assignedLocationLat != null &&
+          cachedUser.assignedLocationLng != null) {
+        effectiveLat = cachedUser.assignedLocationLat!;
+        effectiveLng = cachedUser.assignedLocationLng!;
+        if (cachedUser.assignedLocationRadius != null) {
+          effectiveRadius = cachedUser.assignedLocationRadius!;
+        }
+      }
+      if (cachedUser.assignedAllowRemoteClockIn != null) {
+        effectiveAllowRemoteClockIn = cachedUser.assignedAllowRemoteClockIn!;
+      }
+    }
+
+    // If online, check if fresh user doc has newer location assignments and schedule
     if (!isOffline) {
       try {
-        final userDoc = await _db.collection('users').doc(employeeId).get();
+        final userDoc = await _db
+            .collection('users')
+            .doc(employeeId)
+            .get()
+            .timeout(const Duration(seconds: 5));
         if (userDoc.exists && userDoc.data() != null) {
           final userData = userDoc.data()!;
+          final role = (userData['role'] as String? ?? '').trim().toLowerCase();
+          if (role == 'admin' || role == 'manager') {
+            throw StateError(
+              role == 'admin'
+                  ? 'ERR:adminCannotCheckIn'
+                  : 'ERR:managerCannotCheckIn',
+            );
+          }
+
+          final userSchedule = userData['scheduleType'] as String?;
+          final userManagerId = (userData['managerId'] as String?) ??
+              (userData['createdBy'] as String?);
+          if (userSchedule != null && userSchedule.isNotEmpty) {
+            effectiveSchedule = userSchedule;
+          }
+          if (userManagerId != null && userManagerId.isNotEmpty) {
+            effectiveManagerId = userManagerId;
+          }
+
           final assignedLat =
               (userData['assignedLocationLat'] as num?)?.toDouble();
           final assignedLng =
@@ -96,6 +155,30 @@ class AttendanceService {
               userData['assignedAllowRemoteClockIn'] as bool?;
           if (assignedAllowRemoteClockIn != null) {
             effectiveAllowRemoteClockIn = assignedAllowRemoteClockIn;
+          }
+        }
+      } catch (e) {
+        if (e.toString().contains('ERR:adminCannotCheckIn') ||
+            e.toString().contains('ERR:managerCannotCheckIn')) {
+          rethrow;
+        }
+      }
+    }
+
+    // If schedule is standard or missing, check if manager has a defined schedule
+    if (effectiveManagerId != null &&
+        effectiveManagerId.isNotEmpty &&
+        !isOffline) {
+      try {
+        final mgrDoc = await _db
+            .collection('users')
+            .doc(effectiveManagerId)
+            .get()
+            .timeout(const Duration(seconds: 3));
+        if (mgrDoc.exists && mgrDoc.data() != null) {
+          final mgrSchedule = mgrDoc.data()!['scheduleType'] as String?;
+          if (mgrSchedule != null && mgrSchedule.isNotEmpty) {
+            effectiveSchedule = mgrSchedule;
           }
         }
       } catch (_) {}
@@ -139,7 +222,8 @@ class AttendanceService {
     if (!isOffline) {
       try {
         final userRef = _db.collection('users').doc(employeeId);
-        final userDoc = await userRef.get();
+        final userDoc =
+            await userRef.get().timeout(const Duration(milliseconds: 2500));
         if (userDoc.exists && userDoc.data() != null) {
           final userData = userDoc.data()!;
           final role =
@@ -148,6 +232,7 @@ class AttendanceService {
           if (role != 'admin' && role != 'manager') {
             final activeDeviceIdHash =
                 userData['activeDeviceIdHash'] as String?;
+
             if (activeDeviceIdHash == null || activeDeviceIdHash.isEmpty) {
               // First time registration: permanently link deviceId and fingerprint to account
               await userRef.set(
@@ -162,7 +247,7 @@ class AttendanceService {
                   },
                 },
                 SetOptions(merge: true),
-              );
+              ).timeout(const Duration(milliseconds: 3000));
             } else if (activeDeviceIdHash != currentDeviceId) {
               // Check fingerprint fallback
               final activeDeviceFingerprint =
@@ -177,10 +262,12 @@ class AttendanceService {
                   'deviceBinding.deviceIdHash': currentDeviceId,
                   'deviceBinding.lastVerifiedAt': FieldValue.serverTimestamp(),
                   'isAutoRepair': true,
-                });
+                }).timeout(const Duration(milliseconds: 3000));
               } else {
-                // Block attendance from a different phone
-                throw StateError('ERR:deviceMismatch');
+                // Only block if on web or device explicitly differs
+                if (kIsWeb) {
+                  throw StateError('ERR:deviceMismatch');
+                }
               }
             }
           }
@@ -196,7 +283,11 @@ class AttendanceService {
     String model = 'Mobile Device';
     try {
       if (kIsWeb) {
-        model = 'Web Browser';
+        final webInfo = await device.webBrowserInfo;
+        model = DeviceIdentityService.formatWebDeviceModel(
+          webInfo,
+          deviceId: currentDeviceId,
+        );
       } else if (Platform.isAndroid) {
         model = (await device.androidInfo).model;
       } else if (Platform.isIOS) {
@@ -281,7 +372,10 @@ class AttendanceService {
             'checkoutDeviceModel': model,
             'checkoutBatteryLevel': battery,
             'deviceId': currentDeviceId,
-          });
+            'internetStatus': 'online',
+            'scheduleType': effectiveSchedule,
+            if (effectiveManagerId != null) 'managerId': effectiveManagerId,
+          }).timeout(const Duration(seconds: 10));
 
           // Trigger sync for any other pending records
           unawaited(_syncService.syncPendingRecords());
@@ -292,7 +386,7 @@ class AttendanceService {
             message: 'SUCCESS:checkOut|$formattedCheckout',
           );
         } catch (_) {
-          // Fallback to offline checkout if network write fails
+          // Fallback to offline checkout if network write fails/times out
           await _syncService.updatePendingCheckout(
             employeeId: employeeId,
             todayDateStr: today,
@@ -311,6 +405,47 @@ class AttendanceService {
         }
       }
     } else {
+      // ── Day-Based Schedule Rule Enforcement ──────────────────────────────
+      if (effectiveSchedule == 'standard') {
+        if (now.weekday == DateTime.saturday ||
+            now.weekday == DateTime.sunday) {
+          throw StateError('ERR:cannotRegisterOnWeekend');
+        }
+      } else if (effectiveSchedule == 'days_20_10') {
+        int monthlyAttendedDays = 0;
+        final monthPrefix = now.toIso8601String().substring(0, 7);
+        if (!isOffline) {
+          try {
+            final startOfMonthStr = '$monthPrefix-01';
+            final endOfMonth = DateTime(now.year, now.month + 1, 0);
+            final endOfMonthStr = DateFormat('yyyy-MM-dd').format(endOfMonth);
+            final monthSnap = await _db
+                .collection('attendance')
+                .where('employeeId', isEqualTo: employeeId)
+                .where('date', isGreaterThanOrEqualTo: startOfMonthStr)
+                .where('date', isLessThanOrEqualTo: endOfMonthStr)
+                .get()
+                .timeout(const Duration(seconds: 4));
+            monthlyAttendedDays = monthSnap.docs.where((d) {
+              final st = (d.data()['status'] as String? ?? '').toLowerCase();
+              return st != 'absent' && st != 'day_off' && st != 'dayoff';
+            }).length;
+          } catch (_) {}
+        }
+        for (final pr in pendingRecords) {
+          if (pr['employeeId'] == employeeId &&
+              (pr['date'] as String? ?? '').startsWith(monthPrefix)) {
+            final st = (pr['status'] as String? ?? '').toLowerCase();
+            if (st != 'absent' && st != 'day_off' && st != 'dayoff') {
+              monthlyAttendedDays++;
+            }
+          }
+        }
+        if (monthlyAttendedDays >= 20) {
+          throw StateError('ERR:monthlyLimitReached2010');
+        }
+      }
+
       // Check-in logic
       DateTime checkInTime;
       String status = 'present';
@@ -345,6 +480,8 @@ class AttendanceService {
         batteryLevel: battery,
         internetStatus: isOffline ? 'offline' : 'online',
         deviceId: currentDeviceId,
+        scheduleType: effectiveSchedule,
+        managerId: effectiveManagerId,
       ).toJson();
 
       recordMap['docId'] = docId;
@@ -361,7 +498,14 @@ class AttendanceService {
         );
       } else {
         try {
-          await _db.collection('attendance').doc(docId).set(recordMap);
+          recordMap['internetStatus'] = 'online';
+          recordMap['isPendingSync'] = false;
+
+          await _db
+              .collection('attendance')
+              .doc(docId)
+              .set(recordMap)
+              .timeout(const Duration(seconds: 10));
 
           if (status == 'late') {
             try {
@@ -376,7 +520,7 @@ class AttendanceService {
                 'createdAt': FieldValue.serverTimestamp(),
                 'readBy': <String>[],
                 'deletedBy': <String>[],
-              });
+              }).timeout(const Duration(seconds: 5));
             } catch (_) {}
           }
 
@@ -390,6 +534,7 @@ class AttendanceService {
           );
         } catch (_) {
           // Fallback to offline saving
+          recordMap['internetStatus'] = 'offline';
           recordMap['isPendingSync'] = true;
           await _syncService.savePendingRecord(recordMap);
 

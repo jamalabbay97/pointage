@@ -13,6 +13,7 @@ import 'core/services/language_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/utils/async_timeout.dart';
+import 'core/widgets/app_shell.dart';
 import 'core/widgets/splash_screen.dart';
 import 'features/admin/presentation/admin_screen.dart';
 import 'features/admin/presentation/user_management_screen.dart';
@@ -199,8 +200,10 @@ class RouterNotifier extends ChangeNotifier {
     _ref.listen(currentUserModelProvider, (_, __) => notifyListeners());
     _ref.listen<AsyncValue<DeviceAuthResult?>>(deviceAuthStatusProvider,
         (previous, next) {
-      if (next.valueOrNull == DeviceAuthResult.unauthorized ||
-          next.valueOrNull == DeviceAuthResult.credentialMissing) {
+      // Only force signout on Web if unauthorized. On mobile, keep the user signed in.
+      if (kIsWeb &&
+          (next.valueOrNull == DeviceAuthResult.unauthorized ||
+              next.valueOrNull == DeviceAuthResult.credentialMissing)) {
         FirebaseAuth.instance.signOut();
       }
       notifyListeners();
@@ -214,9 +217,11 @@ class RouterNotifier extends ChangeNotifier {
     final isLoggingIn = location == '/login';
 
     final firebaseUser = FirebaseAuth.instance.currentUser;
-    final isAuth = (authState.valueOrNull ?? firebaseUser) != null;
+    final cachedUser = _ref.read(currentUserModelProvider).valueOrNull;
+    final isAuth =
+        (authState.valueOrNull ?? firebaseUser) != null || cachedUser != null;
 
-    if (authState.isLoading && firebaseUser == null) {
+    if (authState.isLoading && firebaseUser == null && cachedUser == null) {
       return isSplash ? null : '/';
     }
 
@@ -224,25 +229,30 @@ class RouterNotifier extends ChangeNotifier {
       return isLoggingIn ? null : '/login';
     }
 
-    final deviceAuth = _ref.read(deviceAuthStatusProvider);
-
-    // Wait for device authorization to finish checking
-    if (deviceAuth.isLoading) {
-      return isSplash ? null : '/';
-    }
-
-    // If device auth failed (it should trigger signout in listener, but we protect routes here too)
-    if (deviceAuth.valueOrNull == DeviceAuthResult.unauthorized ||
-        deviceAuth.valueOrNull == DeviceAuthResult.credentialMissing) {
-      return isLoggingIn ? null : '/login';
-    }
-
+    // If authenticated and currently on splash or login, route immediately to dashboard
     if (isLoggingIn || isSplash) return '/dashboard';
 
     if (location.startsWith('/admin')) {
-      final userModel = _ref.read(currentUserModelProvider).valueOrNull;
+      final userModel =
+          cachedUser ?? _ref.read(currentUserModelProvider).valueOrNull;
       if (userModel != null && !userModel.isAdminOrManager) {
         return '/dashboard';
+      }
+    }
+
+    if (location == '/scan') {
+      final userModel =
+          cachedUser ?? _ref.read(currentUserModelProvider).valueOrNull;
+      if (userModel != null && userModel.isAdminOrManager) {
+        return '/dashboard';
+      }
+    }
+
+    if (location == '/history') {
+      final userModel =
+          cachedUser ?? _ref.read(currentUserModelProvider).valueOrNull;
+      if (userModel != null && userModel.isAdminOrManager) {
+        return '/admin/reports';
       }
     }
 
@@ -291,9 +301,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
-      GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
+      ShellRoute(
+        builder: (context, state, child) => AppShell(
+          currentLocation: state.matchedLocation,
+          child: child,
+        ),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (_, __) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/history',
+            builder: (_, __) => const HistoryScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (_, __) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (_, __) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (_, __) => const NotificationsScreen(),
+          ),
+        ],
+      ),
       GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
       GoRoute(
         path: '/admin/users',
@@ -322,12 +358,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/mobile-app',
         builder: (_, __) => const MobileAppManagementScreen(),
-      ),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-      GoRoute(
-        path: '/notifications',
-        builder: (_, __) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/admin/notifications',

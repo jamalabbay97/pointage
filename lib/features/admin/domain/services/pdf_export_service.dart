@@ -277,14 +277,15 @@ class PdfExportService {
           AppTranslations.text(langCode, 'pdfColStatus'),
           AppTranslations.text(langCode, 'pdfColLateHrs'),
           AppTranslations.text(langCode, 'pdfColHrs'),
+          AppTranslations.text(langCode, 'pdfColDevice'),
         ],
         headerStyle: pw.TextStyle(
           fontWeight: pw.FontWeight.bold,
           color: PdfColors.white,
-          fontSize: 10,
+          fontSize: 9.5,
         ),
         headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey600),
-        cellStyle: const pw.TextStyle(fontSize: 9),
+        cellStyle: const pw.TextStyle(fontSize: 8.5),
         cellHeight: 20,
         data: report.detailedRecords
             .map(
@@ -304,6 +305,7 @@ class PdfExportService {
                     .toUpperCase(),
                 (r.lateMinutes / 60).toStringAsFixed(1),
                 r.workHours.toStringAsFixed(1),
+                r.device,
               ],
             )
             .toList(),

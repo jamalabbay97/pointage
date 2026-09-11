@@ -29,7 +29,11 @@ class AppTranslations {
       'pdfGeneratedSuccess': 'PDF generated successfully',
       'excelGenerated': 'Excel sheet generated successfully',
       'errorGenerating': 'Error generating document',
+      'retry': 'Retry',
       'hello': 'Hello',
+      'goodMorning': 'Good Morning',
+      'goodAfternoon': 'Good Afternoon',
+      'goodEvening': 'Good Evening',
       'employee': 'Employee',
       'checkedInToday': 'Checked In Today',
       'checkedOutToday': 'Checked Out Today',
@@ -37,6 +41,13 @@ class AppTranslations {
       'notCheckedIn': 'Not Checked In',
       'scanQrCode': 'Scan QR Code',
       'registerGps': 'Register attendance with GPS verification',
+      'todayActivity': "Today's Attendance Details",
+      'workDuration': 'Work Duration',
+      'shiftInProgress': 'Shift Active',
+      'shiftCompleted': 'Shift Completed',
+      'notPunchedYet': 'No attendance punch recorded today',
+      'scanToClockIn': 'Scan QR code to record your punch',
+      'verifiedByGpsQr': 'GPS & QR Verified',
       'quickServices': 'Quick Services',
       'userProfile': 'Employee Profile',
       'manageProfile': 'Manage user account info and credentials',
@@ -489,6 +500,7 @@ class AppTranslations {
       'pdfColOut': 'Out',
       'pdfColStatus': 'Status',
       'pdfColLateHrs': 'Late (Hrs)',
+      'pdfColDevice': 'Device',
       'pdfPageOf': 'Page',
       'pdfOf': 'of',
 
@@ -533,6 +545,7 @@ class AppTranslations {
       'noPendingRecords': 'All offline records are synced',
       'offlineLabel': 'Offline',
       'pendingSyncLabel': 'Pending Sync',
+      'syncingInProgress': 'Synchronization in progress...',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'View your punch-in/out history',
@@ -646,6 +659,18 @@ class AppTranslations {
           'Mobile application download is not configured yet.',
       'deleteMobileApp': 'Delete / Clear App Link',
       'confirmDeleteMobileApp': 'Mobile app download link cleared',
+      'cannotRegisterOnWeekend':
+          'Attendance registration is not allowed on weekends (Saturday/Sunday).',
+      'monthlyLimitReached2010':
+          'You have reached your 20 working days quota for this month. Remaining days are off.',
+      'weekendDayOff': 'Weekend / Scheduled Day Off',
+      'monthlyQuotaReached': 'Monthly Quota Reached (20/20 Days)',
+      'daysWorkedMonthlyProgress': 'Monthly Working Days',
+      'systemOnline': 'System Online',
+      'adminNoScanAllowed':
+          'Administrators and managers supervise the system and do not register attendance.',
+      'restDayMessage': 'Today is your scheduled day off. Enjoy your rest!',
+      'workScheduleSettings': 'Work Schedule Settings',
     },
     'fr': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -674,7 +699,11 @@ class AppTranslations {
       'pdfGeneratedSuccess': 'PDF généré avec succès',
       'excelGenerated': 'Fichier Excel généré avec succès',
       'errorGenerating': 'Erreur lors de la génération',
+      'retry': 'Réessayer',
       'hello': 'Bonjour',
+      'goodMorning': 'Bonjour',
+      'goodAfternoon': 'Bon après-midi',
+      'goodEvening': 'Bonsoir',
       'employee': 'Employé',
       'checkedInToday': "Pointé aujourd'hui",
       'checkedOutToday': 'Départ enregistré',
@@ -682,6 +711,13 @@ class AppTranslations {
       'notCheckedIn': 'Non pointé',
       'scanQrCode': 'Scanner le code QR',
       'registerGps': 'Enregistrer la présence avec vérification GPS',
+      'todayActivity': "Détails de présence d'aujourd'hui",
+      'workDuration': 'Durée de travail',
+      'shiftInProgress': 'Poste actif',
+      'shiftCompleted': 'Poste terminé',
+      'notPunchedYet': 'Aucun pointage enregistré aujourd\'hui',
+      'scanToClockIn': 'Scannez le QR code pour pointer',
+      'verifiedByGpsQr': 'Vérifié par GPS & QR',
       'quickServices': 'Services rapides',
       'userProfile': 'Profil employé',
       'manageProfile': 'Gérer les informations et identifiants du compte',
@@ -1131,6 +1167,7 @@ class AppTranslations {
       'pdfColOut': 'Sortie',
       'pdfColStatus': 'Statut',
       'pdfColLateHrs': 'Retard (h)',
+      'pdfColDevice': 'Appareil',
       'pdfPageOf': 'Page',
       'pdfOf': 'sur',
 
@@ -1177,6 +1214,7 @@ class AppTranslations {
       'noPendingRecords': 'Tous les pointages sont synchronisés',
       'offlineLabel': 'Hors ligne',
       'pendingSyncLabel': 'En attente',
+      'syncingInProgress': 'Synchronisation en cours...',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'Voir l\'historique de vos pointages',
@@ -1296,6 +1334,18 @@ class AppTranslations {
           'Le téléchargement de l\'application mobile n\'est pas encore configuré.',
       'deleteMobileApp': 'Supprimer le lien de l\'app',
       'confirmDeleteMobileApp': 'Lien de l\'app mobile supprimé',
+      'cannotRegisterOnWeekend':
+          'L\'enregistrement de présence n\'est pas autorisé le week-end (samedi/dimanche).',
+      'monthlyLimitReached2010':
+          'Vous avez atteint votre quota de 20 jours de travail ce mois-ci. Les jours restants sont des jours de repos.',
+      'weekendDayOff': 'Week-end / Jour de repos',
+      'monthlyQuotaReached': 'Quota mensuel atteint (20/20 jours)',
+      'daysWorkedMonthlyProgress': 'Jours travaillés ce mois',
+      'systemOnline': 'Système en ligne',
+      'adminNoScanAllowed':
+          'Les administrateurs et managers supervisent le système et n\'enregistrent pas leur présence.',
+      'restDayMessage': 'Aujourd\'hui est votre jour de repos programmé. Bon repos !',
+      'workScheduleSettings': 'Paramètres du planning de travail',
     },
     'ar': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1324,7 +1374,11 @@ class AppTranslations {
       'pdfGeneratedSuccess': 'تم إنشاء ملف PDF بنجاح',
       'excelGenerated': 'تم إنشاء ملف Excel بنجاح',
       'errorGenerating': 'خطأ أثناء الإنشاء',
+      'retry': 'إعادة المحاولة',
       'hello': 'مرحباً',
+      'goodMorning': 'صباح الخير',
+      'goodAfternoon': 'مساء الخير',
+      'goodEvening': 'مساء الخير',
       'employee': 'موظف',
       'checkedInToday': 'تم تسجيل الحضور اليوم',
       'checkedOutToday': 'تم تسجيل الانصراف اليوم',
@@ -1332,6 +1386,13 @@ class AppTranslations {
       'notCheckedIn': 'لم يتم التسجيل اليوم',
       'scanQrCode': 'مسح رمز QR',
       'registerGps': 'تسجيل الحضور عبر التحقق من الموقع GPS',
+      'todayActivity': 'تفاصيل حضور اليوم',
+      'workDuration': 'مدة العمل',
+      'shiftInProgress': 'الوردية جارية',
+      'shiftCompleted': 'اكتملت الوردية',
+      'notPunchedYet': 'لم يتم تسجيل أي نقطة حضور اليوم',
+      'scanToClockIn': 'امسح رمز QR لتسجيل حضورك',
+      'verifiedByGpsQr': 'تم التحقق عبر GPS و QR',
       'quickServices': 'خدمات سريعة',
       'userProfile': 'الملف الشخصي للموظف',
       'manageProfile': 'إدارة بيانات الحساب والاعتمادات',
@@ -1766,6 +1827,7 @@ class AppTranslations {
       'pdfColOut': 'خروج',
       'pdfColStatus': 'الحالة',
       'pdfColLateHrs': 'التأخر (ساعات)',
+      'pdfColDevice': 'الجهاز',
       'pdfPageOf': 'صفحة',
       'pdfOf': 'من',
 
@@ -1793,6 +1855,20 @@ class AppTranslations {
           'لا يُسمح بتسجيل الخروج قبل الساعة 10:30 صباحاً. يجب العمل نصف يوم على الأقل قبل الخروج.',
       'checkInSuccess': 'تم تسجيل الدخول بنجاح في {time}!',
       'checkOutSuccess': 'تم تسجيل الخروج بنجاح في {time}!',
+      'checkInOfflineSuccess':
+          'تم تسجيل الدخول دون اتصال في {time}! ستتم المزامنة تلقائياً عند توفر الإنترنت.',
+      'checkOutOfflineSuccess':
+          'تم تسجيل الخروج دون اتصال في {time}! ستتم المزامنة تلقائياً عند توفر الإنترنت.',
+      'offlinePendingSyncTitle': 'تسجيلات الحضور دون اتصال بانتظار المزامنة',
+      'offlinePendingRecords': 'سجل(ات) بانتظار الرفع',
+      'syncNow': 'مزامنة الآن',
+      'syncSuccessMsg': 'تمت مزامنة {count} سجل(ات) بنجاح!',
+      'noNetworkToSync':
+          'تعذرت المزامنة: الجهاز غير متصل بالإنترنت أو الخادم غير متاح.',
+      'noPendingRecords': 'تمت مزامنة جميع السجلات المخزنة',
+      'offlineLabel': 'دون اتصال',
+      'pendingSyncLabel': 'قيد المزامنة',
+      'syncingInProgress': 'جارٍ المزامنة...',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'عرض سجل تسجيلات الدخول والخروج',
@@ -1902,6 +1978,18 @@ class AppTranslations {
       'mobileAppNotConfigured': 'رابط تنزيل تطبيق الهاتف غير مهيأ بعد.',
       'deleteMobileApp': 'حذف رابط التطبيق',
       'confirmDeleteMobileApp': 'تم إزالة رابط تنزيل التطبيق',
+      'cannotRegisterOnWeekend':
+          'تسجيل الحضور غير مسموح به في عطلة نهاية الأسبوع (السبت/الأحد).',
+      'monthlyLimitReached2010':
+          'لقد استنفدت حصة 20 يوم عمل لهذا الشهر. باقي الأيام هي أيام راحة.',
+      'weekendDayOff': 'عطلة نهاية الأسبوع / يوم راحة',
+      'monthlyQuotaReached': 'تم استيفاء الحصة الشهرية (20/20 يوماً)',
+      'daysWorkedMonthlyProgress': 'أيام العمل الشهرية',
+      'systemOnline': 'النظام متصل',
+      'adminNoScanAllowed':
+          'المشرفون والمديرون يديرون النظام ولا يسجلون الحضور.',
+      'restDayMessage': 'اليوم هو يوم راحتك المجدول. استمتع بيومك!',
+      'workScheduleSettings': 'إعدادات جدول العمل',
     },
     'es': {
       // ── Titles & General ─────────────────────────────────────────────────────
@@ -1927,7 +2015,11 @@ class AppTranslations {
       'pdfGeneratedSuccess': 'PDF generado con éxito',
       'excelGenerated': 'Excel generado con éxito',
       'errorGenerating': 'Error al generar documento',
+      'retry': 'Reintentar',
       'hello': 'Hola',
+      'goodMorning': 'Buenos Días',
+      'goodAfternoon': 'Buenas Tardes',
+      'goodEvening': 'Buenas Noches',
       'employee': 'Empleado',
       'checkedInToday': 'Registrado Hoy',
       'checkedOutToday': 'Salida registrada hoy',
@@ -1935,6 +2027,13 @@ class AppTranslations {
       'notCheckedIn': 'Sin Registrar',
       'scanQrCode': 'Escanear Código QR',
       'registerGps': 'Registrar asistencia con verificación GPS',
+      'todayActivity': 'Detalles de asistencia de hoy',
+      'workDuration': 'Duración del trabajo',
+      'shiftInProgress': 'Turno activo',
+      'shiftCompleted': 'Turno completado',
+      'notPunchedYet': 'No se ha registrado asistencia hoy',
+      'scanToClockIn': 'Escanea el código QR para fichar',
+      'verifiedByGpsQr': 'Verificado por GPS y QR',
       'quickServices': 'Servicios Rápidos',
       'userProfile': 'Perfil de Empleado',
       'manageProfile': 'Gestionar información de cuenta y credenciales',
@@ -2363,6 +2462,7 @@ class AppTranslations {
       'pdfColOut': 'Salida',
       'pdfColStatus': 'Estado',
       'pdfColLateHrs': 'Retraso (hrs)',
+      'pdfColDevice': 'Dispositivo',
       'pdfPageOf': 'Página',
       'pdfOf': 'de',
 
@@ -2396,6 +2496,22 @@ class AppTranslations {
           'No se permite registrar salida antes de las 10:30 AM. Debe trabajar al menos medio día antes de salir.',
       'checkInSuccess': '¡Entrada registrada con éxito a las {time}!',
       'checkOutSuccess': '¡Salida registrada con éxito a las {time}!',
+      'checkInOfflineSuccess':
+          '¡Entrada registrada sin conexión a las {time}! Se sincronizará automáticamente en línea.',
+      'checkOutOfflineSuccess':
+          '¡Salida registrada sin conexión a las {time}! Se sincronizará automáticamente en línea.',
+      'offlinePendingSyncTitle':
+          'Asistencias sin conexión pendientes de sincronización',
+      'offlinePendingRecords': 'registro(s) esperando ser subidos',
+      'syncNow': 'Sincronizar ahora',
+      'syncSuccessMsg': '¡{count} registro(s) sincronizado(s) con éxito!',
+      'noNetworkToSync':
+          'No se puede sincronizar: El dispositivo está sin conexión o el servidor no está disponible.',
+      'noPendingRecords':
+          'Todos los registros sin conexión están sincronizados',
+      'offlineLabel': 'Sin conexión',
+      'pendingSyncLabel': 'Pendiente',
+      'syncingInProgress': 'Sincronización en progreso...',
 
       // ── Dashboard Quick Services ──────────────────────────────────────────────
       'viewPunchHistory': 'Ver historial de registros de entrada/salida',
@@ -2514,6 +2630,18 @@ class AppTranslations {
           'La descarga de la aplicación móvil aún no está configurada.',
       'deleteMobileApp': 'Eliminar enlace de la app',
       'confirmDeleteMobileApp': 'Enlace de la app móvil eliminado',
+      'cannotRegisterOnWeekend':
+          'No se permite registrar asistencia los fines de semana (sábado/domingo).',
+      'monthlyLimitReached2010':
+          'Has alcanzado tu cuota de 20 días laborales este mes. Los días restantes son de descanso.',
+      'weekendDayOff': 'Fin de semana / Día de descanso',
+      'monthlyQuotaReached': 'Cuota mensual alcanzada (20/20 días)',
+      'daysWorkedMonthlyProgress': 'Días trabajados este mes',
+      'systemOnline': 'Sistema en línea',
+      'adminNoScanAllowed':
+          'Los administradores y gerentes supervisan el sistema y no registran asistencia.',
+      'restDayMessage': 'Hoy es tu día de descanso programado. ¡Disfruta de tu descanso!',
+      'workScheduleSettings': 'Configuración de horario laboral',
     },
   };
 

@@ -108,9 +108,10 @@ class _WorkScheduleWizardDialogState
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canDismiss = !widget.managerUser.isFirstLogin;
 
     return PopScope(
-      canPop: false,
+      canPop: canDismiss,
       child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
@@ -160,6 +161,11 @@ class _WorkScheduleWizardDialogState
                       ],
                     ),
                   ),
+                  if (canDismiss)
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

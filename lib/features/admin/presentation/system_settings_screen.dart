@@ -6,8 +6,10 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/company_settings_service.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../auth/domain/auth_provider.dart';
+import 'widgets/work_schedule_wizard_dialog.dart';
 
 class SystemSettingsScreen extends ConsumerStatefulWidget {
   const SystemSettingsScreen({super.key});
@@ -66,11 +68,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
   Future<void> _loadSettings() async {
     setState(() => _loading = true);
     try {
-      final doc = await _db.collection('settings').doc('company').get();
-      CompanySettings settings = CompanySettings.defaultSettings;
-      if (doc.exists && doc.data() != null) {
-        settings = CompanySettings.fromJson(doc.data()!);
-      }
+      CompanySettings settings = await CompanySettingsService.getSettings();
 
       final currentUser = ref.read(currentUserModelProvider).valueOrNull;
 
@@ -323,7 +321,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         mobileAppNotes: _mobileAppNotesController.text.trim(),
         mobileAppEnabled: _mobileAppEnabled,
       );
-      await _db.collection('settings').doc('company').set(updated.toJson());
+      await CompanySettingsService.updateSettings(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -414,6 +412,83 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (currentUser?.isManager == true) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.date_range_rounded,
+                            color: Colors.indigo,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              ref.tr('workScheduleSettings'),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          FilledButton.tonalIcon(
+                            onPressed: () => WorkScheduleWizardDialog.show(
+                              context,
+                              currentUser!,
+                            ),
+                            icon: const Icon(
+                              Icons.edit_calendar_rounded,
+                              size: 18,
+                            ),
+                            label: Text(ref.tr('setupWorkSchedule')),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.indigo.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.indigo,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                currentUser!.scheduleType == 'days_20_10'
+                                    ? '${ref.tr('schedule2010Title')} (${ref.tr('schedule2010Sub')})'
+                                    : '${ref.tr('scheduleStandardTitle')} (${ref.tr('scheduleStandardSub')})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),

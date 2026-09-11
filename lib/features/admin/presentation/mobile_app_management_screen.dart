@@ -1,9 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/company_settings.dart';
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/company_settings_service.dart';
 import '../../../core/widgets/web_layout.dart';
 
 class MobileAppManagementScreen extends ConsumerStatefulWidget {
@@ -16,7 +16,6 @@ class MobileAppManagementScreen extends ConsumerStatefulWidget {
 
 class _MobileAppManagementScreenState
     extends ConsumerState<MobileAppManagementScreen> {
-  final _db = FirebaseFirestore.instance;
   bool _loading = true;
   bool _saving = false;
 
@@ -46,11 +45,7 @@ class _MobileAppManagementScreenState
   Future<void> _loadSettings() async {
     setState(() => _loading = true);
     try {
-      final doc = await _db.collection('settings').doc('company').get();
-      CompanySettings settings = CompanySettings.defaultSettings;
-      if (doc.exists && doc.data() != null) {
-        settings = CompanySettings.fromJson(doc.data()!);
-      }
+      CompanySettings settings = await CompanySettingsService.getSettings();
       _mobileAppUrlController.text = settings.mobileAppUrl;
       _mobileAppVersionController.text = settings.mobileAppVersion;
       _mobileAppNotesController.text = settings.mobileAppNotes;
@@ -70,11 +65,7 @@ class _MobileAppManagementScreenState
     setState(() => _saving = true);
     try {
       // Load current settings to avoid overwriting unrelated fields
-      final doc = await _db.collection('settings').doc('company').get();
-      CompanySettings current = CompanySettings.defaultSettings;
-      if (doc.exists && doc.data() != null) {
-        current = CompanySettings.fromJson(doc.data()!);
-      }
+      CompanySettings current = await CompanySettingsService.getSettings();
 
       final updated = CompanySettings(
         latitude: current.latitude,
@@ -90,7 +81,7 @@ class _MobileAppManagementScreenState
         mobileAppNotes: _mobileAppNotesController.text.trim(),
         mobileAppEnabled: _mobileAppEnabled,
       );
-      await _db.collection('settings').doc('company').set(updated.toJson());
+      await CompanySettingsService.updateSettings(updated);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

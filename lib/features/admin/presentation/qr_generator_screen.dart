@@ -323,44 +323,63 @@ class _QrGeneratorScreenState extends ConsumerState<QrGeneratorScreen> {
 
   Widget _buildCountdownTimer() {
     final progress = _secondsLeft / _settings.qrRotateIntervalSeconds;
-    return Column(
-      children: [
-        SizedBox(
-          width: 140,
-          child: LinearProgressIndicator(
-            value: progress,
-            backgroundColor:
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(8),
-            minHeight: 8,
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primary.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 3,
+              backgroundColor: primary.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(primary),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '${ref.tr('rotatesIn')} $_secondsLeft ${ref.tr('seconds')}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
+          const SizedBox(width: 10),
+          Text(
+            '${ref.tr('rotatesIn')} $_secondsLeft ${ref.tr('seconds')}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: primary,
+              letterSpacing: 0.2,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildQrCard({required double size}) {
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Container(
       width: size,
       height: size,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: primary.withValues(alpha: 0.3),
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            spreadRadius: 2,
+            color: primary.withValues(alpha: 0.25),
+            blurRadius: 28,
+            spreadRadius: 4,
+            offset: const Offset(0, 8),
           ),
         ],
       ),

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,7 +13,6 @@ import '../../../core/widgets/web_layout.dart';
 import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 
-import '../../profile/presentation/profile_screen.dart';
 import '../../../core/models/user_model.dart';
 import '../data/settings_provider.dart';
 
@@ -33,12 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final currentThemeMode = ref.watch(themeModeProvider);
     final currentLang = ref.watch(languageProvider);
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
-    final firebaseUser = FirebaseAuth.instance.currentUser;
     final userSettings = ref.watch(userSettingsProvider).valueOrNull;
-
-    final avatarImage = ProfileScreen.getProfileImageProvider(
-      userModel?.photoUrl ?? firebaseUser?.photoURL,
-    );
 
     return Scaffold(
       appBar: AppBar(
@@ -48,75 +41,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // User Card Header
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                      backgroundImage: avatarImage,
-                      child: avatarImage == null
-                          ? Text(
-                              (userModel?.displayName.isNotEmpty == true)
-                                  ? userModel!.displayName[0].toUpperCase()
-                                  : 'U',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            userModel?.displayName ??
-                                firebaseUser?.displayName ??
-                                ref.tr('employee'),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            firebaseUser?.email ?? 'N/A',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Chip(
-                            visualDensity: VisualDensity.compact,
-                            label: Text(
-                              (userModel?.role ?? 'employee').toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            backgroundColor: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.1),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
             // Theme & Appearance
             _buildSectionHeader(
               context,
@@ -303,19 +227,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
-                          final synced = await ref
+                          final result = await ref
                               .read(offlineSyncServiceProvider)
-                              .syncPendingRecords();
+                              .syncPendingRecords(isManual: true);
                           if (context.mounted) {
+                            String msg;
+                            Color snackColor = Colors.green;
+                            switch (result.status) {
+                              case SyncResultStatus.success:
+                                msg = ref.tr('syncSuccessMsg').replaceAll(
+                                      '{count}',
+                                      '${result.syncedCount}',
+                                    );
+                                break;
+                              case SyncResultStatus.noPendingRecords:
+                                msg = ref.tr('noPendingRecords');
+                                break;
+                              case SyncResultStatus.deviceOffline:
+                                msg = ref.tr('noNetworkToSync');
+                                snackColor = Colors.orange.shade800;
+                                break;
+                              case SyncResultStatus.alreadyInProgress:
+                                msg = ref.tr('syncingInProgress');
+                                snackColor = Colors.blue.shade700;
+                                break;
+                              case SyncResultStatus.authRequired:
+                                msg = ref.tr('notAuthenticated');
+                                snackColor = Colors.red.shade700;
+                                break;
+                              case SyncResultStatus.error:
+                                msg = result.errorMessage ??
+                                    ref.tr('noNetworkToSync');
+                                snackColor = Colors.red.shade700;
+                                break;
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  synced > 0
-                                      ? ref
-                                          .tr('syncSuccessMsg')
-                                          .replaceAll('{count}', '$synced')
-                                      : ref.tr('noNetworkToSync'),
-                                ),
+                                content: Text(msg),
+                                backgroundColor: snackColor,
+                                duration: const Duration(seconds: 3),
                               ),
                             );
                           }
@@ -424,15 +374,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     String title,
     IconData icon,
   ) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 4, bottom: 10, top: 4),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: isDark ? 0.2 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: primary),
+          ),
+          const SizedBox(width: 10),
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: -0.2,
+            ),
           ),
         ],
       ),
@@ -641,7 +605,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const storage = FlutterSecureStorage();
               await storage.delete(key: 'email');
               await storage.delete(key: 'password');
-              await FirebaseAuth.instance.signOut();
+              await performExplicitSignOut(ref);
             },
             child: Text(ref.tr('signOut')),
           ),

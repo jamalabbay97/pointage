@@ -49,7 +49,8 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   }
 }
 
-final themeModeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
+final themeModeProvider =
+    StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   // Default — overridden in main() with the pre-loaded value.
   return ThemeNotifier(ThemeMode.system);
 });

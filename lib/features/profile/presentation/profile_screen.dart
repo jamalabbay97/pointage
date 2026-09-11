@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/services/app_translations.dart';
@@ -62,37 +63,58 @@ class ProfileScreen extends ConsumerWidget {
             Center(
               child: Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 54,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    backgroundImage: imageProvider,
-                    child: imageProvider == null
-                        ? Text(
-                            (userModel?.displayName.isNotEmpty == true)
-                                ? userModel!.displayName[0].toUpperCase()
-                                : 'E',
-                            style: TextStyle(
-                              fontSize: 44,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : null,
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.25),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 54,
+                      backgroundColor:
+                          Theme.of(context).colorScheme.primaryContainer,
+                      backgroundImage: imageProvider,
+                      child: imageProvider == null
+                          ? Text(
+                              (userModel?.displayName.isNotEmpty == true)
+                                  ? userModel!.displayName[0].toUpperCase()
+                                  : 'E',
+                              style: TextStyle(
+                                fontSize: 44,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                   Positioned(
-                    bottom: 0,
-                    right: 0,
+                    bottom: 4,
+                    right: 4,
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                       child: const Icon(
-                        Icons.verified,
+                        Icons.verified_rounded,
                         color: Colors.white,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
                   ),
@@ -107,101 +129,244 @@ class ProfileScreen extends ConsumerWidget {
                     ref.tr('employee'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.4,
                     ),
               ),
             ),
+            const SizedBox(height: 4),
             Center(
               child: Text(
                 user?.email ?? 'N/A',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey.shade600,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
                     ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Chip(
-                  avatar: const Icon(Icons.badge_outlined, size: 16),
-                  label: Text(
-                    ref.trRole(userModel?.role ?? 'employee').toUpperCase(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
+                    ),
                   ),
-                  backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.badge_outlined,
+                        size: 15,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        ref.trRole(userModel?.role ?? 'employee').toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF3B82F6),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Chip(
-                  avatar: const Icon(Icons.business_outlined, size: 16),
-                  label: Text(userModel?.department ?? 'General'),
-                  backgroundColor: Colors.purple.withValues(alpha: 0.1),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.business_outlined,
+                        size: 15,
+                        color: Color(0xFF8B5CF6),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        userModel?.department ?? 'General',
+                        style: const TextStyle(
+                          color: Color(0xFF8B5CF6),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ref.tr('accountInfo'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const Divider(height: 24),
-                    _buildProfileRow(
-                      ref.tr('status'),
-                      ref.trStatus(userModel?.status ?? 'active').toUpperCase(),
-                    ),
-                    _buildProfileRow(
-                      ref.tr('department'),
-                      userModel?.department ?? 'General',
-                    ),
-                    _buildProfileRow(
-                      ref.tr('authProvider'),
-                      ref.trAuthProvider(
-                        user?.providerData.firstOrNull?.providerId ??
-                            'password',
-                      ),
-                    ),
-                    _buildProfileRow(
-                      ref.tr('phoneNumber'),
-                      userModel?.phoneNumber ?? 'N/A',
-                    ),
-                    if (userModel?.isAdminOrManager == true)
-                      _buildProfileRow(
-                        ref.tr('linkedDeviceId'),
-                        ref.tr('unrestrictedDevice'),
-                      )
-                    else
-                      _buildProfileRow(
-                        ref.tr('linkedDeviceId'),
-                        userModel?.boundDeviceId ?? ref.tr('noDeviceLinked'),
-                      ),
-                  ],
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF131B2E)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFE2E8F0),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color.fromRGBO(0, 0, 0, 0.3)
+                        : const Color.fromRGBO(15, 23, 42, 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ref.tr('accountInfo'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  _buildProfileRow(
+                    ref.tr('status'),
+                    ref.trStatus(userModel?.status ?? 'active').toUpperCase(),
+                  ),
+                  _buildProfileRow(
+                    ref.tr('department'),
+                    userModel?.department ?? 'General',
+                  ),
+                  _buildProfileRow(
+                    ref.tr('authProvider'),
+                    ref.trAuthProvider(
+                      user?.providerData.firstOrNull?.providerId ?? 'password',
+                    ),
+                  ),
+                  _buildProfileRow(
+                    ref.tr('phoneNumber'),
+                    userModel?.phoneNumber ?? 'N/A',
+                  ),
+                  if (userModel?.isAdminOrManager == true)
+                    _buildProfileRow(
+                      ref.tr('linkedDeviceId'),
+                      ref.tr('unrestrictedDevice'),
+                    )
+                  else
+                    _buildProfileRow(
+                      ref.tr('linkedDeviceId'),
+                      userModel?.boundDeviceId ?? ref.tr('noDeviceLinked'),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF131B2E)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFE2E8F0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color.fromRGBO(0, 0, 0, 0.3)
+                        : const Color.fromRGBO(15, 23, 42, 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                borderRadius: BorderRadius.circular(20),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.settings_outlined,
+                      color: Color(0xFF6366F1),
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    ref.tr('settingsPrefs'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    ref.tr('themeLangSec'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                  trailing:
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                  onTap: () => context.push('/settings'),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: FilledButton.icon(
                 onPressed: () async {
                   const storage = FlutterSecureStorage();
                   await storage.delete(key: 'email');
                   await storage.delete(key: 'password');
-                  await FirebaseAuth.instance.signOut();
+                  await performExplicitSignOut(ref);
                 },
-                icon: const Icon(Icons.logout),
-                label: Text(ref.tr('logout')),
+                icon: const Icon(Icons.logout_rounded, size: 20),
+                label: Text(
+                  ref.tr('logout'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 2,
                 ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -212,10 +377,20 @@ class ProfileScreen extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );

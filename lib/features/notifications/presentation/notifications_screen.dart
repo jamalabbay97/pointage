@@ -142,12 +142,10 @@ class _NotificationCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAdmin = notification.isAdminType;
-    final accent = isAdmin ? const Color(0xFF00BFA5) : const Color(0xFF246BFD);
+    final accent = isAdmin ? const Color(0xFF10B981) : const Color(0xFF4F46E5);
     final bgColor = isRead
-        ? Colors.transparent
-        : (isDark
-            ? accent.withValues(alpha: 0.08)
-            : accent.withValues(alpha: 0.05));
+        ? (isDark ? const Color(0xFF131B2E) : Colors.white)
+        : (isDark ? const Color(0xFF1E2238) : const Color(0xFFEEF2FF));
 
     final senderLabel = isAdmin
         ? ref.tr('systemNotification')
@@ -163,29 +161,41 @@ class _NotificationCard extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isRead
-                  ? (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E0E0))
+                  ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0))
                   : accent.withValues(alpha: 0.35),
               width: isRead ? 1 : 1.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? const Color.fromRGBO(0, 0, 0, 0.3)
+                    : const Color.fromRGBO(15, 23, 42, 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Icon
               Container(
                 margin: const EdgeInsets.only(top: 2),
-                padding: const EdgeInsets.all(9),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: accent.withValues(alpha: isDark ? 0.2 : 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: accent.withValues(alpha: isDark ? 0.35 : 0.2),
+                  ),
                 ),
                 child: Icon(
                   isAdmin ? Icons.campaign_rounded : Icons.person_pin_rounded,
@@ -193,7 +203,7 @@ class _NotificationCard extends ConsumerWidget {
                   size: 20,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               // Content
               Expanded(
                 child: Column(

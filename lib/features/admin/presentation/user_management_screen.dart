@@ -1007,8 +1007,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                     FieldValue.delete();
                                 updateData['assignedLocationRadius'] =
                                     FieldValue.delete();
-                                updateData['locationAssignedBy'] =
-                                    FieldValue.delete();
+                                updateData['scheduleType'] =
+                                    currentUser?.scheduleType ?? 'standard';
+                                if (user.managerId == null ||
+                                    user.managerId!.isEmpty) {
+                                  updateData['managerId'] = managerUid;
+                                }
                               }
                             }
                           }
@@ -1039,8 +1043,25 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           );
 
                           final isNewManager = role == 'manager';
-                          final managerSchedule =
+                          String managerSchedule =
                               currentUser?.scheduleType ?? 'standard';
+
+                          if (currentUser?.isManager == true &&
+                              currentUid != null) {
+                            try {
+                              final freshMgr = await _db
+                                  .collection('users')
+                                  .doc(currentUid)
+                                  .get();
+                              if (freshMgr.exists && freshMgr.data() != null) {
+                                final st = freshMgr.data()!['scheduleType']
+                                    as String?;
+                                if (st != null && st.isNotEmpty) {
+                                  managerSchedule = st;
+                                }
+                              }
+                            } catch (_) {}
+                          }
 
                           final newUserData = <String, dynamic>{
                             'uid': newUid,

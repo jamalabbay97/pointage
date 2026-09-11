@@ -9,7 +9,9 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/config/company_settings.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
+import '../../../core/services/company_settings_service.dart';
 import '../../../core/services/security_services.dart';
 import '../../attendance/domain/attendance_service.dart';
 import '../../auth/domain/auth_provider.dart';
@@ -21,16 +23,50 @@ class QrScannerScreen extends ConsumerStatefulWidget {
   ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
+class _QrScannerScreenState extends ConsumerState<QrScannerScreen>
+    with SingleTickerProviderStateMixin {
   bool handled = false;
   bool processing = false;
   bool locationReady = false;
   bool checkingLocation = true;
+  late AnimationController _laserController;
+  late Animation<double> _laserAnimation;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureLocationReady());
+    _laserController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _laserAnimation = Tween<double>(begin: 0.05, end: 0.95).animate(
+      CurvedAnimation(parent: _laserController, curve: Curves.easeInOut),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cachedModel = ref.read(currentUserModelProvider).valueOrNull;
+      if (cachedModel != null && cachedModel.isAdminOrManager) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ref.tr('adminNoScanAllowed')),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/dashboard');
+        }
+        return;
+      }
+      _ensureLocationReady();
+    });
+  }
+
+  @override
+  void dispose() {
+    _laserController.dispose();
+    super.dispose();
   }
 
   Future<void> _ensureLocationReady() async {
@@ -127,24 +163,30 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     setState(() => processing = true);
 
     try {
+      final cachedModel = ref.read(currentUserModelProvider).valueOrNull;
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw StateError('ERR:notAuthenticated');
+      final employeeUid = user?.uid ?? cachedModel?.uid;
+      if (employeeUid == null) throw StateError('ERR:notAuthenticated');
 
       final db = FirebaseFirestore.instance;
-      Map<String, dynamic>? userData;
-      try {
-        final userDoc = await db.collection('users').doc(user.uid).get();
-        userData = userDoc.data();
-      } catch (_) {
-        final cachedModel = ref.read(currentUserModelProvider).valueOrNull;
-        if (cachedModel != null) {
-          userData = cachedModel.toJson();
-        }
+      Map<String, dynamic>? userData = cachedModel?.toJson();
+      if (user != null) {
+        try {
+          final userDoc = await db
+              .collection('users')
+              .doc(employeeUid)
+              .get()
+              .timeout(const Duration(milliseconds: 2500));
+          if (userDoc.exists && userDoc.data() != null) {
+            userData = userDoc.data();
+          }
+        } catch (_) {}
       }
 
-      final userRole =
-          (userData?['role'] as String? ?? '').trim().toLowerCase();
-      final accountOwnerName = _accountOwnerName(userData, user);
+      final userRole = (userData?['role'] as String? ?? cachedModel?.role ?? '')
+          .trim()
+          .toLowerCase();
+      final accountOwnerName = _accountOwnerName(userData, user, cachedModel);
       if (userRole == 'admin' || userRole == 'manager') {
         throw StateError(
           userRole == 'admin'
@@ -153,13 +195,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         );
       }
 
-      CompanySettings settings = CompanySettings.defaultSettings;
-      try {
-        final doc = await db.collection('settings').doc('company').get();
-        if (doc.exists && doc.data() != null) {
-          settings = CompanySettings.fromJson(doc.data()!);
-        }
-      } catch (_) {}
+      CompanySettings settings = await CompanySettingsService.getSettings();
 
       if (userData != null) {
         final assignedQrSecret = userData['assignedQrSecret'] as String?;
@@ -184,9 +220,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
 
       final service = AttendanceService(db);
       final result = await service.register(
-        employeeId: user.uid,
+        employeeId: employeeUid,
         employeeName: accountOwnerName,
         settings: settings,
+        cachedUser: cachedModel,
       );
 
       if (mounted) {
@@ -263,6 +300,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           return '${ref.tr('notInOfficePerimeter')} (${dist}m, max ${radius}m)';
         case 'deviceMismatch':
           return ref.tr('deviceMismatch');
+        case 'cannotRegisterOnWeekend':
+          return ref.tr('cannotRegisterOnWeekend');
+        case 'monthlyLimitReached2010':
+          return ref.tr('monthlyLimitReached2010');
+        case 'adminCannotCheckIn':
+        case 'managerCannotCheckIn':
+          return ref.tr('adminNoScanAllowed');
         default:
           final localized = ref.tr(key);
           return localized != key ? localized : errString;
@@ -290,14 +334,22 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     return clean;
   }
 
-  String _accountOwnerName(Map<String, dynamic>? userData, User user) {
+  String _accountOwnerName(
+    Map<String, dynamic>? userData,
+    User? user, [
+    UserModel? cachedModel,
+  ]) {
     final profileName = (userData?['displayName'] as String? ?? '').trim();
     if (profileName.isNotEmpty) return profileName;
 
-    final authName = user.displayName?.trim() ?? '';
+    final cachedName = cachedModel?.displayName.trim() ?? '';
+    if (cachedName.isNotEmpty) return cachedName;
+
+    final authName = user?.displayName?.trim() ?? '';
     if (authName.isNotEmpty) return authName;
 
-    final emailName = user.email?.split('@').first.trim() ?? '';
+    final emailName =
+        (user?.email ?? cachedModel?.email ?? '').split('@').first.trim();
     if (emailName.isNotEmpty) return emailName;
 
     return 'Employee';
@@ -363,54 +415,173 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   ),
                 ),
               ),
+            // High-Tech Viewfinder Frame with Illuminated Brackets and Laser
             Center(
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
-                    width: 4,
-                  ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 2,
+              child: SizedBox(
+                width: 270,
+                height: 270,
+                child: Stack(
+                  children: [
+                    // Outer glass frame
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    // Top-Left Corner
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Color(0xFF6366F1), width: 4),
+                            left:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                          ),
+                          borderRadius:
+                              BorderRadius.only(topLeft: Radius.circular(24)),
+                        ),
+                      ),
+                    ),
+                    // Top-Right Corner
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Color(0xFF6366F1), width: 4),
+                            right:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                          ),
+                          borderRadius:
+                              BorderRadius.only(topRight: Radius.circular(24)),
+                        ),
+                      ),
+                    ),
+                    // Bottom-Left Corner
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                            left:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                          ),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Bottom-Right Corner
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                            right:
+                                BorderSide(color: Color(0xFF6366F1), width: 4),
+                          ),
+                          borderRadius: BorderRadius.only(
+                            bottomRight: Radius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Animated Scanning Laser Line
+                    AnimatedBuilder(
+                      animation: _laserAnimation,
+                      builder: (context, _) => Positioned(
+                        top: 270 * _laserAnimation.value,
+                        left: 8,
+                        right: 8,
+                        child: Container(
+                          height: 2.5,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Color(0xFF6366F1),
+                                Color(0xFF06B6D4),
+                                Colors.transparent,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF06B6D4)
+                                    .withValues(alpha: 0.8),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
             Positioned(
-              bottom: 40,
+              bottom: 44,
               left: 24,
               right: 24,
-              child: Card(
-                color: Colors.black.withValues(alpha: 0.75),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.78),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: Color(0xFF06B6D4),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
                         ref.tr('alignQrCodeFrame'),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

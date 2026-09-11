@@ -13,9 +13,11 @@ import 'package:local_auth/local_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/utils/async_timeout.dart';
 import '../../../core/widgets/mobile_app_download_dialog.dart';
+import '../domain/auth_provider.dart';
 import '../domain/user_sync_service.dart';
 
 enum _RecoveryStep { input, verifyOtpAndReset }
@@ -50,8 +52,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkBiometrics() async {
+    if (FirebaseAuth.instance.currentUser != null ||
+        await isUserPermanentlyLoggedIn()) {
+      if (mounted) context.go('/dashboard');
+      return;
+    }
     if (kIsWeb) return;
-    if (FirebaseAuth.instance.currentUser != null) return;
     try {
       final savedEmail = await _storage.read(key: 'email');
       if (savedEmail != null && email.text.isEmpty) {
@@ -184,6 +190,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           );
         }
+
+        // Save session locally for instant offline startup
+        final localModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? email.text.trim(),
+          displayName:
+              user.displayName ?? (user.email?.split('@').first ?? 'User'),
+          role: 'employee',
+          status: 'active',
+          department: 'General',
+        );
+        await saveUserSessionLocally(localModel);
       }
 
       await _persistCredentials();
@@ -596,63 +614,138 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: Theme.of(context).brightness == Brightness.dark
-                  ? [const Color(0xFF181818), const Color(0xFF202020)]
-                  : [const Color(0xFFEFF6FF), const Color(0xFFDBEAFE)],
-            ),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? const [
+                    Color(0xFF0A0E1A),
+                    Color(0xFF111726),
+                    Color(0xFF161F33),
+                  ]
+                : const [
+                    Color(0xFFF1F5F9),
+                    Color(0xFFE2E8F0),
+                    Color(0xFFF8FAFC),
+                  ],
           ),
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 440),
-                child: Card(
-                  elevation: 8,
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
+        ),
+        child: Stack(
+          children: [
+            // Ambient subtle glow orbs
+            Positioned(
+              top: -80,
+              left: -80,
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: primary.withValues(alpha: isDark ? 0.15 : 0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -100,
+              right: -100,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF06B6D4)
+                      .withValues(alpha: isDark ? 0.12 : 0.08),
+                ),
+              ),
+            ),
+            Center(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Container(
+                    padding: const EdgeInsets.all(36),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF131B2E) : Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? const Color.fromRGBO(0, 0, 0, 0.5)
+                              : const Color.fromRGBO(15, 23, 42, 0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Modern Brand Emblem
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).colorScheme.primaryContainer,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF4F46E5)
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 18,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1.5,
+                            ),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.qr_code_scanner_rounded,
-                            size: 44,
-                            color: Theme.of(context).colorScheme.primary,
+                            size: 38,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 20),
                         Text(
                           'Pointage',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           ref.tr('enterprisePortal'),
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFF64748B),
+                          ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
+                        // Email field
                         TextField(
                           controller: email,
                           keyboardType: TextInputType.emailAddress,
@@ -662,6 +755,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        // Password field
                         TextField(
                           controller: password,
                           obscureText: obscurePassword,
@@ -690,40 +784,99 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onChanged: (v) =>
                                   setState(() => remember = v ?? true),
                             ),
-                            Text(ref.tr('rememberMe')),
+                            Text(
+                              ref.tr('rememberMe'),
+                              style: theme.textTheme.bodySmall,
+                            ),
                             const Spacer(),
                             TextButton(
                               onPressed: _showForgotPasswordDialog,
-                              child: Text(ref.tr('forgotPassword')),
+                              child: Text(
+                                ref.tr('forgotPassword'),
+                                style: const TextStyle(fontSize: 13),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        SizedBox(
+                        // Primary Login Button
+                        Container(
                           width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: loading ? null : _login,
-                            icon: loading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.login_rounded),
-                            label: Text(
-                              loading
-                                  ? ref.tr('authenticating')
-                                  : ref.tr('secureLogin'),
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF4F46E5)
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: loading ? null : _login,
+                              child: Center(
+                                child: loading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.login_rounded,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            ref.tr('secureLogin'),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              letterSpacing: 0.2,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        if (!kIsWeb) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: _checkBiometrics,
+                            icon: const Icon(Icons.fingerprint, size: 22),
+                            label: Text(ref.tr('biometricAuth')),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
                         const Divider(height: 1),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
+                        const SizedBox(height: 16),
+                        TextButton.icon(
                           onPressed: () =>
                               MobileAppDownloadDialog.show(context),
                           icon:
@@ -736,7 +889,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }

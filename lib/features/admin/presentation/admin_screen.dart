@@ -36,16 +36,26 @@ class AdminScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [const Color(0xFF202020), const Color(0xFF181818)]
-                        : [
-                            const Color.fromARGB(255, 79, 155, 131),
-                            const Color.fromARGB(255, 79, 155, 131),
-                          ],
+                        ? [const Color(0xFF1E2238), const Color(0xFF111827)]
+                        : [const Color(0xFF4F46E5), const Color(0xFF6366F1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: isDark
-                      ? Border.all(color: const Color(0xFF313131))
-                      : null,
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF1F293D)
+                        : const Color(0xFF4338CA).withValues(alpha: 0.25),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? const Color.fromRGBO(0, 0, 0, 0.35)
+                          : const Color(0xFF4F46E5).withValues(alpha: 0.22),
+                      blurRadius: isDark ? 6 : 18,
+                      offset: isDark ? const Offset(0, 2) : const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -85,11 +95,12 @@ class AdminScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               Text(
                 ref.tr('managementTools'),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.4,
                     ),
               ),
               const SizedBox(height: 16),
@@ -97,69 +108,70 @@ class AdminScreen extends ConsumerWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.9,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.95,
                 children: [
                   _AdminCard(
                     title: ref.tr('userManagement'),
                     subtitle: ref.tr('userManagementSub'),
-                    icon: Icons.people_alt_outlined,
-                    color: Colors.blue,
+                    icon: Icons.people_alt_rounded,
+                    color: const Color(0xFF3B82F6),
                     onTap: () => context.push('/admin/users'),
                   ),
                   _AdminCard(
                     title: ref.tr('rolePermissions'),
                     subtitle: ref.tr('rolePermissionsSub'),
-                    icon: Icons.shield_outlined,
-                    color: Colors.purple,
+                    icon: Icons.shield_rounded,
+                    color: const Color(0xFF8B5CF6),
                     onTap: () => context.push('/admin/roles'),
                   ),
                   _AdminCard(
                     title: ref.tr('dynamicQrRotator'),
                     subtitle: ref.tr('dynamicQrRotatorSub'),
                     icon: Icons.qr_code_2_rounded,
-                    color: Colors.orange,
+                    color: const Color(0xFFF59E0B),
                     onTap: () => context.push('/admin/qr'),
                   ),
                   _AdminCard(
                     title: ref.tr('reportsAnalyticsTitle'),
                     subtitle: ref.tr('reportsAnalyticsSub'),
                     icon: Icons.bar_chart_rounded,
-                    color: Colors.green,
+                    color: const Color(0xFF10B981),
                     onTap: () => context.push('/admin/reports'),
                   ),
                   _AdminCard(
                     title: ref.tr('systemGeofence'),
                     subtitle: ref.tr('systemGeofenceSub'),
                     icon: Icons.settings_applications_rounded,
-                    color: Colors.teal,
+                    color: const Color(0xFF14B8A6),
                     onTap: () => context.push('/admin/settings'),
                   ),
                   _AdminCard(
                     title: ref.tr('sendNotification'),
                     subtitle: ref.tr('sendNotificationSub'),
                     icon: Icons.campaign_rounded,
-                    color: Colors.deepPurple,
+                    color: const Color(0xFF6366F1),
                     onTap: () => context.push('/admin/notifications'),
                   ),
                   _AdminCard(
                     title: ref.tr('googleSheetsAttendance'),
                     subtitle: ref.tr('googleSheetsAttendanceSub'),
                     icon: Icons.table_chart_rounded,
-                    color: Colors.lightGreen.shade700,
+                    color: const Color(0xFF059669),
                     onTap: () => context.push('/admin/google-sheets'),
                   ),
-                    if (isAdmin)
+                  if (isAdmin)
                     _AdminCard(
                       title: ref.tr('mobileAppManagement'),
                       subtitle: ref.tr('mobileAppManagementDesc'),
                       icon: Icons.phone_android_rounded,
-                      color: Colors.cyan.shade700,
+                      color: const Color(0xFF0EA5E9),
                       onTap: () => context.push('/admin/mobile-app'),
                     ),
                 ],
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -168,7 +180,7 @@ class AdminScreen extends ConsumerWidget {
   }
 }
 
-class _AdminCard extends StatelessWidget {
+class _AdminCard extends StatefulWidget {
   const _AdminCard({
     required this.title,
     required this.subtitle,
@@ -184,40 +196,109 @@ class _AdminCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_AdminCard> createState() => _AdminCardState();
+}
+
+class _AdminCardState extends State<_AdminCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, size: 28, color: color),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final borderColor = isDark
+        ? (_isHovered
+            ? widget.color.withValues(alpha: 0.6)
+            : const Color(0xFF1E293B))
+        : (_isHovered
+            ? widget.color.withValues(alpha: 0.5)
+            : const Color(0xFFE2E8F0));
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF131B2E) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: borderColor, width: _isHovered ? 1.5 : 1),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? (_isHovered
+                      ? widget.color.withValues(alpha: 0.2)
+                      : const Color.fromRGBO(0, 0, 0, 0.35))
+                  : (_isHovered
+                      ? widget.color.withValues(alpha: 0.12)
+                      : const Color.fromRGBO(15, 23, 42, 0.05)),
+              blurRadius: _isHovered ? 16 : 8,
+              offset: _isHovered ? const Offset(0, 6) : const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: widget.color
+                              .withValues(alpha: isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: widget.color
+                                .withValues(alpha: isDark ? 0.35 : 0.2),
+                          ),
+                        ),
+                        child: Icon(widget.icon, size: 24, color: widget.color),
+                      ),
+                      Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 18,
+                        color: isDark
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF94A3B8),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    widget.title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
         ),
       ),

@@ -105,6 +105,75 @@ class DeviceIdentityService {
     return digest.toString();
   }
 
+  /// Formats a human-readable device model for Web, extracting OS, phone model, and browser.
+  /// Appends a short device identifier so admins can verify if the same device is being used.
+  static String formatWebDeviceModel(
+    WebBrowserInfo webInfo, {
+    String? deviceId,
+  }) {
+    String os = 'Web';
+    String? phoneModel;
+    final ua = webInfo.userAgent ?? '';
+
+    // Detect OS and phone model from user agent & platform
+    if (ua.contains('Android')) {
+      os = 'Android';
+      final match = RegExp(
+        r'Android\s+[^;]+;\s*(?:[a-zA-Z]{2}[-_][a-zA-Z]{2};\s*)?([^;)]+?)(?:\s+Build|[;)])',
+        caseSensitive: false,
+      ).firstMatch(ua);
+      if (match != null) {
+        final rawModel = match.group(1)?.trim();
+        if (rawModel != null &&
+            rawModel.isNotEmpty &&
+            !rawModel.toLowerCase().contains('khtml')) {
+          phoneModel = rawModel;
+        }
+      }
+    } else if (ua.contains('iPhone') ||
+        webInfo.platform?.contains('iPhone') == true) {
+      os = 'iPhone';
+    } else if (ua.contains('iPad') ||
+        webInfo.platform?.contains('iPad') == true) {
+      os = 'iPad';
+    } else if (ua.contains('Windows') ||
+        webInfo.platform?.contains('Win') == true) {
+      os = 'Windows';
+    } else if (ua.contains('Macintosh') ||
+        ua.contains('Mac OS') ||
+        webInfo.platform?.contains('Mac') == true) {
+      os = 'macOS';
+    } else if (ua.contains('Linux') ||
+        webInfo.platform?.contains('Linux') == true) {
+      os = 'Linux';
+    } else if (webInfo.platform != null && webInfo.platform!.isNotEmpty) {
+      os = webInfo.platform!;
+    }
+
+    String browser = webInfo.browserName.toString().split('.').last;
+    if (browser.isNotEmpty) {
+      browser = browser[0].toUpperCase() + browser.substring(1);
+    }
+
+    String deviceDescription;
+    if (phoneModel != null && phoneModel.isNotEmpty) {
+      deviceDescription = '$phoneModel ($browser)';
+    } else if (os == 'Windows' || os == 'macOS' || os == 'Linux') {
+      deviceDescription = '$os ($browser)';
+    } else if (os == 'iPhone' || os == 'iPad' || os == 'Android') {
+      deviceDescription = '$os ($browser)';
+    } else {
+      deviceDescription = '$browser on $os';
+    }
+
+    if (deviceId != null && deviceId.isNotEmpty) {
+      final shortId = deviceId.length > 8 ? deviceId.substring(0, 8) : deviceId;
+      return '$deviceDescription [ID: $shortId]';
+    }
+
+    return deviceDescription;
+  }
+
   /// Extracts basic non-PII metadata about the device for audit logs and admin UI.
   static Future<Map<String, String>> getDeviceMetadata() async {
     final device = DeviceInfoPlugin();
@@ -116,8 +185,30 @@ class DeviceIdentityService {
     try {
       if (kIsWeb) {
         final webInfo = await device.webBrowserInfo;
-        platform = 'Web';
-        browser = webInfo.browserName.toString().split('.').last;
+        final ua = webInfo.userAgent ?? '';
+        if (ua.contains('Android')) {
+          platform = 'Android';
+        } else if (ua.contains('iPhone')) {
+          platform = 'iOS';
+        } else if (ua.contains('iPad')) {
+          platform = 'iPadOS';
+        } else if (ua.contains('Windows') ||
+            webInfo.platform?.contains('Win') == true) {
+          platform = 'Windows';
+        } else if (ua.contains('Macintosh') ||
+            webInfo.platform?.contains('Mac') == true) {
+          platform = 'macOS';
+        } else if (ua.contains('Linux') ||
+            webInfo.platform?.contains('Linux') == true) {
+          platform = 'Linux';
+        } else {
+          platform = webInfo.platform ?? 'Web';
+        }
+
+        final rawBrowser = webInfo.browserName.toString().split('.').last;
+        browser = rawBrowser.isNotEmpty
+            ? rawBrowser[0].toUpperCase() + rawBrowser.substring(1)
+            : 'Browser';
       } else if (Platform.isAndroid) {
         final androidInfo = await device.androidInfo;
         platform = 'Android';

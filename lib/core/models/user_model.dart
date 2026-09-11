@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   const UserModel({
     required this.uid,
@@ -91,12 +93,8 @@ class UserModel {
       status: _stringOrDefault(json['status'], 'active').trim().toLowerCase(),
       department: _stringOrDefault(json['department'], 'General'),
       photoUrl: json['photoUrl'] as String?,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'] as String)
-          : null,
-      lastLogin: json['lastLogin'] != null
-          ? DateTime.tryParse(json['lastLogin'] as String)
-          : null,
+      createdAt: _parseDateTime(json['createdAt']),
+      lastLogin: _parseDateTime(json['lastLogin']),
       createdBy: _nullableString(json['createdBy']),
       managerId: _nullableString(json['managerId']),
       scheduleType: _stringOrDefault(json['scheduleType'], 'standard'),
@@ -110,7 +108,8 @@ class UserModel {
       phoneNumber: _nullableString(json['phoneNumber']),
       boundDeviceId: _nullableString(json['boundDeviceId']),
       activeDeviceIdHash: _nullableString(json['activeDeviceIdHash']),
-      deviceBinding: json['deviceBinding'] as Map<String, dynamic>?,
+      deviceBinding:
+          _sanitizeMap(json['deviceBinding'] as Map<String, dynamic>?),
       assignedQrSecret: _nullableString(json['assignedQrSecret']),
       assignedQrRotateIntervalSeconds:
           json['assignedQrRotateIntervalSeconds'] as int?,
@@ -146,7 +145,7 @@ class UserModel {
         if (boundDeviceId != null) 'boundDeviceId': boundDeviceId,
         if (activeDeviceIdHash != null)
           'activeDeviceIdHash': activeDeviceIdHash,
-        if (deviceBinding != null) 'deviceBinding': deviceBinding,
+        if (deviceBinding != null) 'deviceBinding': _sanitizeMap(deviceBinding),
         if (assignedQrSecret != null) 'assignedQrSecret': assignedQrSecret,
         if (assignedQrRotateIntervalSeconds != null)
           'assignedQrRotateIntervalSeconds': assignedQrRotateIntervalSeconds,
@@ -247,5 +246,45 @@ class UserModel {
   static String? _nullableString(Object? value) {
     if (value is String && value.trim().isNotEmpty) return value.trim();
     return null;
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return null;
+  }
+
+  static Map<String, dynamic>? _sanitizeMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    return map.map((key, value) {
+      if (value is Timestamp) {
+        return MapEntry(key, value.toDate().toIso8601String());
+      } else if (value is DateTime) {
+        return MapEntry(key, value.toIso8601String());
+      } else if (value is Map<String, dynamic>) {
+        return MapEntry(key, _sanitizeMap(value));
+      } else if (value is List) {
+        return MapEntry(key, _sanitizeList(value));
+      }
+      return MapEntry(key, value);
+    });
+  }
+
+  static List<dynamic> _sanitizeList(List<dynamic> list) {
+    return list.map((item) {
+      if (item is Timestamp) {
+        return item.toDate().toIso8601String();
+      } else if (item is DateTime) {
+        return item.toIso8601String();
+      } else if (item is Map<String, dynamic>) {
+        return _sanitizeMap(item);
+      } else if (item is List) {
+        return _sanitizeList(item);
+      }
+      return item;
+    }).toList();
   }
 }

@@ -15,6 +15,8 @@ class AttendanceRecord {
     required this.batteryLevel,
     required this.internetStatus,
     required this.deviceId,
+    this.scheduleType,
+    this.managerId,
   });
   final String id,
       employeeId,
@@ -24,6 +26,8 @@ class AttendanceRecord {
       operatingSystem,
       internetStatus,
       deviceId;
+  final String? scheduleType;
+  final String? managerId;
   final DateTime date, time;
   final DateTime? checkoutTime;
   final double latitude, longitude, locationAccuracy;
@@ -45,5 +49,7 @@ class AttendanceRecord {
         'batteryLevel': batteryLevel,
         'internetStatus': internetStatus,
         'deviceId': deviceId,
+        if (scheduleType != null) 'scheduleType': scheduleType,
+        if (managerId != null) 'managerId': managerId,
       };
 }

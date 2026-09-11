@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Wraps [child] in a horizontally-centred, max-width box on wide viewports
@@ -21,15 +20,10 @@ class WebLayout extends StatelessWidget {
   /// comfortably in a typical browser window and looks balanced on desktop.
   final double maxWidth;
 
-  static bool get _isWide =>
-      kIsWeb ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.linux;
-
   @override
   Widget build(BuildContext context) {
-    if (!_isWide) return child;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    if (screenWidth <= maxWidth) return child;
 
     return Align(
       alignment: Alignment.topCenter,

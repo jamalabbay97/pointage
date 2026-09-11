@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primarySeed = Color(0xFF246BFD);
-  static const Color secondarySeed = Color(0xFF00C9A7);
+  static const Color primarySeed = Color(0xFF4F46E5);
+  static const Color secondarySeed = Color(0xFF6366F1);
 
   // Light Theme Color System Tokens
   static const Color lightMainBackground = Color(0xFFFFFFFF);
   static const Color lightSecondaryBackground = Color(0xFFF8FAFC);
-  static const Color lightSidebar = Color(0xFFF4F5F7); // Slightly gray sidebar like in image
+  static const Color lightSidebar = Color(0xFFF1F5F9);
   static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightHoverSurface = Color(0xFFF1F5F9);
+  static const Color lightHoverSurface = Color(0xFFEEF2F6);
   static const Color lightSelectedSurface = Color(0xFFE2E8F0);
   static const Color lightBorder = Color(0xFFE2E8F0);
   static const Color lightDivider = Color(0xFFF1F5F9);
@@ -18,15 +18,15 @@ class AppTheme {
   static const Color lightDisabledText = Color(0xFF94A3B8);
   static const Color lightIcon = Color(0xFF64748B);
 
-  static const Color lightAccent = Color(0xFF74A99A); // Same green as dark mode
-  static const Color lightAccentHover = Color(0xFF80B3A5);
-  static const Color lightAccentPressed = Color(0xFF679989);
+  static const Color lightAccent = Color(0xFF4F46E5); // Modern Indigo 600
+  static const Color lightAccentHover = Color(0xFF4338CA);
+  static const Color lightAccentPressed = Color(0xFF3730A3);
 
-  static const Color lightSwitchOnBg = Color(0xFF74A99A);
+  static const Color lightSwitchOnBg = Color(0xFF4F46E5);
   static const Color lightSwitchThumb = Color(0xFFFFFFFF);
 
-  static const Color lightActiveSidebarIcon = Color(0xFF74A99A);
-  static const Color lightActiveSidebarBg = Color(0xFFFFFFFF);
+  static const Color lightActiveSidebarIcon = Color(0xFF4F46E5);
+  static const Color lightActiveSidebarBg = Color(0xFFEEF2FF); // Indigo 50
 
   static const Color lightSegmentBg = Color(0xFFF1F5F9);
   static const Color lightSegmentSelected = Color(0xFFFFFFFF);
@@ -34,7 +34,61 @@ class AppTheme {
   static const Color lightSegmentSelectedText = Color(0xFF0F172A);
   static const Color lightSegmentUnselectedText = Color(0xFF64748B);
 
-  static const Color lightSubtleShadow = Color.fromRGBO(0, 0, 0, 0.05);
+  static const Color lightSubtleShadow = Color.fromRGBO(15, 23, 42, 0.06);
+
+  // Modern Status Color Tokens
+  static const Color statusPresent = Color(0xFF10B981);
+  static const Color statusPresentBgLight = Color(0xFFECFDF5);
+  static const Color statusPresentBgDark = Color(0xFF064E3B);
+
+  static const Color statusLate = Color(0xFFF59E0B);
+  static const Color statusLateBgLight = Color(0xFFFFFBEB);
+  static const Color statusLateBgDark = Color(0xFF78350F);
+
+  static const Color statusAbsent = Color(0xFFEF4444);
+  static const Color statusAbsentBgLight = Color(0xFFFEF2F2);
+  static const Color statusAbsentBgDark = Color(0xFF7F1D1D);
+
+  static const Color statusCheckout = Color(0xFF3B82F6);
+  static const Color statusCheckoutBgLight = Color(0xFFEFF6FF);
+  static const Color statusCheckoutBgDark = Color(0xFF1E3A8A);
+
+  // Linear Gradient Presets
+  static const LinearGradient primaryGradientLight = LinearGradient(
+    colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient primaryGradientDark = LinearGradient(
+    colors: [Color(0xFF3730A3), Color(0xFF1E1B4B)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient cyanGradient = LinearGradient(
+    colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient emeraldGradient = LinearGradient(
+    colors: [Color(0xFF10B981), Color(0xFF059669)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient amberGradient = LinearGradient(
+    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient purpleGradient = LinearGradient(
+    colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,
@@ -140,7 +194,8 @@ class AppTheme {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: lightSecondaryBackground,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           hintStyle: const TextStyle(color: lightDisabledText),
           labelStyle: const TextStyle(color: lightSecondaryText),
           prefixIconColor: lightIcon,
@@ -228,7 +283,8 @@ class AppTheme {
           unselectedItemColor: lightIcon,
         ),
         dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           backgroundColor: lightMainBackground,
           surfaceTintColor: Colors.transparent,
           shadowColor: lightSubtleShadow,
@@ -250,36 +306,37 @@ class AppTheme {
       );
 
   // Dark Theme Color System Tokens
-  static const Color darkMainBackground = Color(0xFF181818);
-  static const Color darkSecondaryBackground = Color(0xFF202020);
-  static const Color darkSidebar = Color(0xFF202020);
-  static const Color darkCard = Color(0xFF202020);
-  static const Color darkHoverSurface = Color(0xFF292929);
-  static const Color darkSelectedSurface = Color(0xFF2E2E2E);
-  static const Color darkBorder = Color(0xFF313131);
-  static const Color darkDivider = Color(0xFF333333);
-  static const Color darkPrimaryText = Color(0xFFFFFFFF);
-  static const Color darkSecondaryText = Color(0xFFA5A5A5);
-  static const Color darkDisabledText = Color(0xFF707070);
-  static const Color darkIcon = Color(0xFFA0A0A0);
+  static const Color darkMainBackground = Color(0xFF0B0F17); // Deep Obsidian
+  static const Color darkSecondaryBackground =
+      Color(0xFF111827); // Rich dark slate
+  static const Color darkSidebar = Color(0xFF111827);
+  static const Color darkCard = Color(0xFF111827);
+  static const Color darkHoverSurface = Color(0xFF1F2937);
+  static const Color darkSelectedSurface = Color(0xFF283548);
+  static const Color darkBorder = Color(0xFF1F293D);
+  static const Color darkDivider = Color(0xFF1E293B);
+  static const Color darkPrimaryText = Color(0xFFF8FAFC);
+  static const Color darkSecondaryText = Color(0xFF94A3B8);
+  static const Color darkDisabledText = Color(0xFF64748B);
+  static const Color darkIcon = Color(0xFF94A3B8);
 
-  static const Color darkAccent = Color(0xFF74A99A);
-  static const Color darkAccentHover = Color(0xFF80B3A5);
-  static const Color darkAccentPressed = Color(0xFF679989);
+  static const Color darkAccent = Color(0xFF6366F1); // Modern Indigo 500
+  static const Color darkAccentHover = Color(0xFF818CF8); // Indigo 400
+  static const Color darkAccentPressed = Color(0xFF4F46E5); // Indigo 600
 
-  static const Color darkSwitchOnBg = Color(0xFF74A99A);
-  static const Color darkSwitchThumb = Color(0xFF202020);
+  static const Color darkSwitchOnBg = Color(0xFF6366F1);
+  static const Color darkSwitchThumb = Color(0xFFFFFFFF);
 
-  static const Color darkActiveSidebarIcon = Color(0xFF74A99A);
-  static const Color darkActiveSidebarBg = Color(0xFF262626);
+  static const Color darkActiveSidebarIcon = Color(0xFF6366F1);
+  static const Color darkActiveSidebarBg = Color(0xFF1E2238);
 
-  static const Color darkSegmentBg = Color(0xFF242424);
-  static const Color darkSegmentSelected = Color(0xFF1D1D1D);
-  static const Color darkSegmentSelectedBorder = Color(0xFF363636);
-  static const Color darkSegmentSelectedText = Color(0xFFFFFFFF);
-  static const Color darkSegmentUnselectedText = Color(0xFF9C9C9C);
+  static const Color darkSegmentBg = Color(0xFF151D2C);
+  static const Color darkSegmentSelected = Color(0xFF1E293B);
+  static const Color darkSegmentSelectedBorder = Color(0xFF334155);
+  static const Color darkSegmentSelectedText = Color(0xFFF8FAFC);
+  static const Color darkSegmentUnselectedText = Color(0xFF94A3B8);
 
-  static const Color darkSubtleShadow = Color.fromRGBO(0, 0, 0, 0.35);
+  static const Color darkSubtleShadow = Color.fromRGBO(0, 0, 0, 0.45);
 
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
@@ -287,16 +344,16 @@ class AppTheme {
         scaffoldBackgroundColor: darkMainBackground,
         colorScheme: const ColorScheme.dark(
           primary: darkAccent,
-          onPrimary: darkSecondaryBackground,
+          onPrimary: Colors.white,
           primaryContainer: darkActiveSidebarBg,
           onPrimaryContainer: darkAccent,
           secondary: darkAccent,
-          onSecondary: darkSecondaryBackground,
+          onSecondary: Colors.white,
           surface: darkSecondaryBackground,
           onSurface: darkPrimaryText,
           onSurfaceVariant: darkSecondaryText,
           surfaceContainer: darkSecondaryBackground,
-          surfaceContainerLow: darkSecondaryBackground,
+          surfaceContainerLow: darkMainBackground,
           surfaceContainerHigh: darkHoverSurface,
           surfaceContainerHighest: darkSelectedSurface,
           outline: darkBorder,
@@ -380,7 +437,8 @@ class AppTheme {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: darkSecondaryBackground,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           hintStyle: const TextStyle(color: darkDisabledText),
           labelStyle: const TextStyle(color: darkSecondaryText),
           prefixIconColor: darkIcon,
@@ -416,7 +474,7 @@ class AppTheme {
               if (states.contains(WidgetState.disabled)) {
                 return darkDisabledText;
               }
-              return darkSecondaryBackground;
+              return Colors.white;
             }),
             padding: WidgetStateProperty.all(
               const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -468,7 +526,8 @@ class AppTheme {
           unselectedItemColor: darkIcon,
         ),
         dialogTheme: DialogThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           backgroundColor: darkSecondaryBackground,
           surfaceTintColor: Colors.transparent,
           shadowColor: darkSubtleShadow,

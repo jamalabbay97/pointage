@@ -6,8 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/app_translations.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../auth/domain/auth_provider.dart';
 import '../../notifications/data/notification_provider.dart';
 import '../../settings/data/settings_provider.dart';
+import 'offline_sync_service.dart';
 
 class ClockInReminderService {
   const ClockInReminderService(this._ref);
@@ -23,11 +25,23 @@ class ClockInReminderService {
   }) async {
     if (!isNotCheckedIn) return;
 
+    final currentUser = _ref.read(currentUserModelProvider).valueOrNull;
+    if (currentUser != null && (currentUser.isAdmin || currentUser.isManager)) {
+      return;
+    }
+
     final userSettings = _ref.read(userSettingsProvider).valueOrNull;
     final remindersEnabled = userSettings?.dailyReminders ?? true;
     if (!remindersEnabled) return;
 
     final now = DateTime.now();
+    // Do not remind on scheduled days off
+    final schedule = currentUser?.scheduleType ?? 'standard';
+    if (schedule == 'standard' &&
+        (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday)) {
+      return;
+    }
+
     final today = now.toIso8601String().substring(0, 10);
 
     final prefs = await SharedPreferences.getInstance();
@@ -36,13 +50,23 @@ class ClockInReminderService {
 
     if (alreadySent) return;
 
+    // Check local pending records first (offline clock-in)
+    try {
+      final pending =
+          await _ref.read(offlineSyncServiceProvider).getPendingRecords();
+      final hasLocalToday =
+          pending.any((r) => r['employeeId'] == user.uid && r['date'] == today);
+      if (hasLocalToday) return;
+    } catch (_) {}
+
     // Check Firestore double-check to confirm attendance status for today
     try {
       final docId = '${user.uid}-$today';
       final docSnap = await FirebaseFirestore.instance
           .collection('attendance')
           .doc(docId)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 2));
 
       if (docSnap.exists) {
         final data = docSnap.data();
@@ -66,7 +90,7 @@ class ClockInReminderService {
         title: title,
         body: body,
         type: 'reminder',
-        senderId: 'system',
+        senderId: user.uid,
         senderName: 'System',
         targetUserId: user.uid,
       );
