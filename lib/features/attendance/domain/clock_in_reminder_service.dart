@@ -20,13 +20,17 @@ class ClockInReminderService {
   /// and external device notifications reminding them to clock in.
   Future<void> checkAndNotifyIfNeeded({
     required User user,
-    required BuildContext context,
+    BuildContext? context,
     required bool isNotCheckedIn,
   }) async {
     if (!isNotCheckedIn) return;
 
     final currentUser = _ref.read(currentUserModelProvider).valueOrNull;
-    if (currentUser != null && (currentUser.isAdmin || currentUser.isManager)) {
+    // Strict restriction: ONLY workers/employees who are required to record attendance
+    if (currentUser == null ||
+        !currentUser.isEmployee ||
+        currentUser.isAdmin ||
+        currentUser.isManager) {
       return;
     }
 
@@ -35,8 +39,8 @@ class ClockInReminderService {
     if (!remindersEnabled) return;
 
     final now = DateTime.now();
-    // Do not remind on scheduled days off
-    final schedule = currentUser?.scheduleType ?? 'standard';
+    // Do not remind on scheduled days off (e.g. weekends for standard schedule)
+    final schedule = currentUser.scheduleType;
     if (schedule == 'standard' &&
         (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday)) {
       return;
@@ -44,10 +48,27 @@ class ClockInReminderService {
 
     final today = now.toIso8601String().substring(0, 10);
 
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'forgot_clock_in_reminder_sent_${user.uid}_$today';
-    final alreadySent = prefs.getBool(key) ?? false;
+    // Determine reminder type based on current time:
+    // Before or at shift start time (08:15 AM) -> "Attendance Required"
+    // Past shift start time (after 08:15 AM) -> "You Forgot to Check In"
+    final isPastShiftStart = now.hour > 8 || (now.hour == 8 && now.minute > 15);
 
+    final String titleKey;
+    final String bodyKey;
+    final String dedupKey;
+
+    if (isPastShiftStart) {
+      titleKey = 'forgotClockInTitle';
+      bodyKey = 'forgotClockInBody';
+      dedupKey = 'forgot_clock_in_reminder_sent_${user.uid}_$today';
+    } else {
+      titleKey = 'attendanceRequired';
+      bodyKey = 'attendanceRequiredBody';
+      dedupKey = 'attendance_required_sent_${user.uid}_$today';
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final alreadySent = prefs.getBool(dedupKey) ?? false;
     if (alreadySent) return;
 
     // Check local pending records first (offline clock-in)
@@ -80,8 +101,8 @@ class ClockInReminderService {
       // Proceed if network check fails
     }
 
-    final title = _ref.tr('forgotClockInTitle');
-    final body = _ref.tr('forgotClockInBody');
+    final title = _ref.tr(titleKey);
+    final body = _ref.tr(bodyKey);
 
     // 1. Send In-App Notification (Firestore)
     try {
@@ -90,6 +111,8 @@ class ClockInReminderService {
         title: title,
         body: body,
         type: 'reminder',
+        titleKey: titleKey,
+        bodyKey: bodyKey,
         senderId: user.uid,
         senderName: 'System',
         targetUserId: user.uid,
@@ -101,7 +124,7 @@ class ClockInReminderService {
     // 2. Trigger External System/Device Notification
     try {
       final localNotif = LocalNotificationService();
-      final notifId = (user.uid + today).hashCode;
+      final notifId = (user.uid + today + titleKey).hashCode;
       await localNotif.showNotification(
         id: notifId.abs(),
         title: title,
@@ -112,7 +135,7 @@ class ClockInReminderService {
     }
 
     // Mark reminder as sent for today
-    await prefs.setBool(key, true);
+    await prefs.setBool(dedupKey, true);
   }
 }
 

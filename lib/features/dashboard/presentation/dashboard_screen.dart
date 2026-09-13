@@ -11,6 +11,7 @@ import '../../../core/services/app_translations.dart';
 import '../../../core/widgets/bento_card.dart';
 import '../../../core/widgets/web_layout.dart';
 import '../../admin/presentation/widgets/work_schedule_wizard_dialog.dart';
+import '../../attendance/domain/clock_in_reminder_service.dart';
 import '../../attendance/domain/offline_sync_service.dart';
 import '../../auth/domain/auth_provider.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -26,6 +27,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DateTime now = DateTime.now();
   Timer? timer;
   bool _wizardShown = false;
+  int _ticks = 0;
 
   @override
   void initState() {
@@ -33,9 +35,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     timer = Timer.periodic(
       const Duration(seconds: 1),
       (_) {
-        if (mounted) setState(() => now = DateTime.now());
+        if (mounted) {
+          setState(() => now = DateTime.now());
+          _ticks++;
+          // Check clock-in reminder every 60 seconds for workers
+          if (_ticks % 60 == 0) {
+            _checkReminder();
+          }
+        }
       },
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkReminder();
+    });
+  }
+
+  void _checkReminder() {
+    final user = FirebaseAuth.instance.currentUser;
+    final userModel = ref.read(currentUserModelProvider).valueOrNull;
+    if (user != null &&
+        userModel != null &&
+        userModel.isEmployee &&
+        !userModel.isAdmin &&
+        !userModel.isManager) {
+      ref.read(clockInReminderServiceProvider).checkAndNotifyIfNeeded(
+            user: user,
+            isNotCheckedIn: true,
+          );
+    }
   }
 
   void _checkFirstLoginWizard(userModel) {
@@ -60,8 +87,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final authState = ref.watch(authStateProvider);
+    final user = authState.valueOrNull ?? FirebaseAuth.instance.currentUser;
     final userModelAsync = ref.watch(currentUserModelProvider);
+    ref.listen(currentUserModelProvider, (_, next) {
+      final model = next.valueOrNull;
+      if (model != null &&
+          model.isEmployee &&
+          !model.isAdmin &&
+          !model.isManager) {
+        _checkReminder();
+      }
+    });
     final userModel = userModelAsync.valueOrNull ??
         (user != null
             ? UserModel(
@@ -119,155 +156,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
               // Main Scan Hero Card
               if (userModel?.isEmployee == true)
-                Builder(
-                  builder: (context) {
-                    final empSchedule =
-                        (userModel?.scheduleType ?? 'standard').toLowerCase();
-                    final isWeekend = now.weekday == DateTime.saturday ||
-                        now.weekday == DateTime.sunday;
-                    final isStandardWeekend =
-                        empSchedule == 'standard' && isWeekend;
-
-                    return Container(
-                      decoration: BoxDecoration(
-                        gradient: isDark
-                            ? const LinearGradient(
-                                colors: [Color(0xFF1E1B4B), Color(0xFF131B2E)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : const LinearGradient(
-                                colors: [Color(0xFFEEF2FF), Color(0xFFE0E7FF)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: isDark ? 0.35 : 0.25),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: isDark ? 0.25 : 0.12),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                          onTap: () => context.push('/scan'),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: isStandardWeekend
-                                          ? const [
-                                              Color(0xFF8B5CF6),
-                                              Color(0xFFA78BFA),
-                                            ]
-                                          : const [
-                                              Color(0xFF4F46E5),
-                                              Color(0xFF6366F1),
-                                            ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: (isStandardWeekend
-                                                ? const Color(0xFF8B5CF6)
-                                                : const Color(0xFF4F46E5))
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    isStandardWeekend
-                                        ? Icons.weekend_rounded
-                                        : Icons.qr_code_scanner_rounded,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                ),
-                                const SizedBox(width: 18),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        ref.tr('scanQrCode'),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: -0.3,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        isStandardWeekend
-                                            ? ref.tr('weekendDayOff')
-                                            : ref.tr('registerGps'),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: isStandardWeekend
-                                                  ? const Color(0xFF8B5CF6)
-                                                  : (isDark
-                                                      ? const Color(0xFF94A3B8)
-                                                      : const Color(
-                                                          0xFF64748B,
-                                                        )),
-                                              fontWeight: isStandardWeekend
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withValues(alpha: 0.12),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                _ScanHeroCard(
+                  userModel: userModel,
+                  now: now,
+                  isDark: isDark,
                 ),
 
               // Today's Activity Details Card (Employee Only)
@@ -307,6 +199,195 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
               const SizedBox(height: 24),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanHeroCard extends StatefulWidget {
+  const _ScanHeroCard({
+    required this.userModel,
+    required this.now,
+    required this.isDark,
+  });
+
+  final UserModel? userModel;
+  final DateTime now;
+  final bool isDark;
+
+  @override
+  State<_ScanHeroCard> createState() => _ScanHeroCardState();
+}
+
+class _ScanHeroCardState extends State<_ScanHeroCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final empSchedule =
+        (widget.userModel?.scheduleType ?? 'standard').toLowerCase();
+    final isWeekend = widget.now.weekday == DateTime.saturday ||
+        widget.now.weekday == DateTime.sunday;
+    final isStandardWeekend = empSchedule == 'standard' && isWeekend;
+
+    final primaryAccent = isStandardWeekend
+        ? const Color(0xFF8B5CF6)
+        : Theme.of(context).colorScheme.primary;
+
+    final borderColor = widget.isDark
+        ? primaryAccent.withValues(alpha: _isHovered ? 0.6 : 0.35)
+        : primaryAccent.withValues(alpha: _isHovered ? 0.5 : 0.25);
+
+    final shadowColor = primaryAccent.withValues(
+      alpha: widget.isDark
+          ? (_isHovered ? 0.35 : 0.22)
+          : (_isHovered ? 0.22 : 0.12),
+    );
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _isHovered ? -2 : 0, 0),
+        decoration: BoxDecoration(
+          gradient: widget.isDark
+              ? const LinearGradient(
+                  colors: [Color(0xFF1E1B4B), Color(0xFF131B2E)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : const LinearGradient(
+                  colors: [Color(0xFFEEF2FF), Color(0xFFE0E7FF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: borderColor,
+            width: _isHovered ? 2.0 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: _isHovered ? 24 : 16,
+              offset: _isHovered ? const Offset(0, 8) : const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Consumer(
+            builder: (context, ref, _) {
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => context.push('/scan'),
+                hoverColor: Colors.transparent,
+                highlightColor: primaryAccent.withValues(alpha: 0.08),
+                splashColor: primaryAccent.withValues(alpha: 0.14),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isStandardWeekend
+                                ? const [
+                                    Color(0xFF8B5CF6),
+                                    Color(0xFFA78BFA),
+                                  ]
+                                : const [
+                                    Color(0xFF4F46E5),
+                                    Color(0xFF6366F1),
+                                  ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isStandardWeekend
+                                      ? const Color(0xFF8B5CF6)
+                                      : const Color(0xFF4F46E5))
+                                  .withValues(alpha: _isHovered ? 0.55 : 0.4),
+                              blurRadius: _isHovered ? 16 : 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          isStandardWeekend
+                              ? Icons.weekend_rounded
+                              : Icons.qr_code_scanner_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ref.tr('scanQrCode'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
+                                    color: widget.isDark
+                                        ? const Color(0xFFF8FAFC)
+                                        : const Color(0xFF0F172A),
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isStandardWeekend
+                                  ? ref.tr('weekendDayOff')
+                                  : ref.tr('registerGps'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: isStandardWeekend
+                                        ? const Color(0xFF8B5CF6)
+                                        : (widget.isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B)),
+                                    fontWeight: isStandardWeekend
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryAccent.withValues(
+                            alpha: _isHovered ? 0.2 : 0.12,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: primaryAccent,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

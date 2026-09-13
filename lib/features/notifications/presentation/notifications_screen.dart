@@ -138,18 +138,90 @@ class _NotificationCard extends ConsumerWidget {
   final bool isRead;
   final VoidCallback onTap;
 
+  static String _resolveTitle(WidgetRef ref, AppNotification n) {
+    if (n.titleKey != null && AppTranslations.hasKey(n.titleKey!)) {
+      return ref.tr(n.titleKey!);
+    }
+    final lower = n.title.toLowerCase();
+    if (lower.contains('attendance required') ||
+        lower.contains('présence requise') ||
+        lower.contains('تسجيل الحضور مطلوب') ||
+        lower.contains('asistencia requerida')) {
+      return ref.tr('attendanceRequired');
+    }
+    if (lower.contains('forgot') ||
+        lower.contains('oublié') ||
+        lower.contains('نسيت') ||
+        lower.contains('olvidaste') ||
+        lower.contains('clock-in reminder') ||
+        lower.contains('rappel de pointage') ||
+        lower.contains('تذكير تسجيل الحضور') ||
+        lower.contains('recordatorio de fichaje')) {
+      return ref.tr('forgotClockInTitle');
+    }
+    return n.title;
+  }
+
+  static String _resolveBody(WidgetRef ref, AppNotification n) {
+    if (n.bodyKey != null && AppTranslations.hasKey(n.bodyKey!)) {
+      return ref.tr(n.bodyKey!);
+    }
+    final lower = n.body.toLowerCase();
+    if (lower.contains('please record your attendance') ||
+        lower.contains('veuillez enregistrer votre présence') ||
+        lower.contains('يرجى تسجيل حضورك') ||
+        lower.contains('recuerda registrar tu asistencia') ||
+        lower.contains('registra tu asistencia')) {
+      return ref.tr('attendanceRequiredBody');
+    }
+    if (lower.contains("haven't clocked in") ||
+        lower.contains('pas encore pointé') ||
+        lower.contains('لم تقم بتسجيل الحضور') ||
+        lower.contains('no has fichado')) {
+      return ref.tr('forgotClockInBody');
+    }
+    return n.body;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAdmin = notification.isAdminType;
-    final accent = isAdmin ? const Color(0xFF10B981) : const Color(0xFF4F46E5);
+    final isReminder = notification.isReminderType;
+    final Color accent;
+    if (isAdmin) {
+      accent = const Color(0xFF10B981);
+    } else if (isReminder) {
+      accent = const Color(0xFFF59E0B);
+    } else {
+      accent = const Color(0xFF4F46E5);
+    }
+
     final bgColor = isRead
         ? (isDark ? const Color(0xFF131B2E) : Colors.white)
         : (isDark ? const Color(0xFF1E2238) : const Color(0xFFEEF2FF));
 
-    final senderLabel = isAdmin
-        ? ref.tr('systemNotification')
-        : '${ref.tr('notifFrom')}: ${notification.senderName ?? ref.tr('manager')}';
+    final String senderLabel;
+    if (isAdmin) {
+      senderLabel = ref.tr('systemNotification');
+    } else if (isReminder) {
+      senderLabel = ref.tr('attendanceReminder');
+    } else {
+      senderLabel =
+          '${ref.tr('notifFrom')}: ${notification.senderName ?? ref.tr('manager')}';
+    }
+
+    final IconData iconData;
+    if (isAdmin) {
+      iconData = Icons.campaign_rounded;
+    } else if (isReminder) {
+      iconData = Icons.alarm_rounded;
+    } else {
+      iconData = Icons.person_pin_rounded;
+    }
+
+    final displayTitle = _resolveTitle(ref, notification);
+    final displayBody = _resolveBody(ref, notification);
 
     final userModel = ref.watch(currentUserModelProvider).valueOrNull;
     final isCurrentUserAdmin = userModel?.isAdmin ?? false;
@@ -198,7 +270,7 @@ class _NotificationCard extends ConsumerWidget {
                   ),
                 ),
                 child: Icon(
-                  isAdmin ? Icons.campaign_rounded : Icons.person_pin_rounded,
+                  iconData,
                   color: accent,
                   size: 20,
                 ),
@@ -213,7 +285,7 @@ class _NotificationCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            notification.title,
+                            displayTitle,
                             style: TextStyle(
                               fontWeight:
                                   isRead ? FontWeight.w500 : FontWeight.bold,
@@ -235,7 +307,7 @@ class _NotificationCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification.body,
+                      displayBody,
                       style: TextStyle(
                         fontSize: 13,
                         color: isDark
@@ -284,7 +356,9 @@ class _NotificationCard extends ConsumerWidget {
                         Icon(
                           isAdmin
                               ? Icons.shield_outlined
-                              : Icons.person_outline,
+                              : isReminder
+                                  ? Icons.alarm_outlined
+                                  : Icons.person_outline,
                           size: 13,
                           color: accent,
                         ),

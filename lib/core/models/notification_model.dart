@@ -10,6 +10,8 @@ class AppNotification {
     required this.createdAt,
     required this.readBy,
     required this.deletedBy,
+    this.titleKey,
+    this.bodyKey,
     this.senderName, // null for admin (system) notifications
     this.targetManagerId, // null for admin broadcasts
     this.targetUserId, // null for broadcast notifications
@@ -21,6 +23,8 @@ class AppNotification {
   final String body;
   final String type;
   final String senderId;
+  final String? titleKey;
+  final String? bodyKey;
   final String? senderName;
   final String? targetManagerId;
   final String? targetUserId;
@@ -40,6 +44,8 @@ class AppNotification {
       body: json['body'] as String? ?? '',
       type: json['type'] as String? ?? 'admin',
       senderId: json['senderId'] as String? ?? '',
+      titleKey: json['titleKey'] as String?,
+      bodyKey: json['bodyKey'] as String?,
       senderName: json['senderName'] as String?,
       targetManagerId: json['targetManagerId'] as String?,
       targetUserId: json['targetUserId'] as String?,
@@ -58,6 +64,8 @@ class AppNotification {
         'body': body,
         'type': type,
         'senderId': senderId,
+        if (titleKey != null) 'titleKey': titleKey,
+        if (bodyKey != null) 'bodyKey': bodyKey,
         if (senderName != null) 'senderName': senderName,
         if (targetManagerId != null) 'targetManagerId': targetManagerId,
         if (targetUserId != null) 'targetUserId': targetUserId,

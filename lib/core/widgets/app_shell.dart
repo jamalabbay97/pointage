@@ -244,71 +244,91 @@ class AppShell extends ConsumerWidget {
         child: SafeArea(
           child: SizedBox(
             height: 64,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _MobileNavItem(
-                  icon: Icons.dashboard_rounded,
-                  label: ref.tr('dashboard'),
-                  isSelected: selectedIndex == 0,
-                  onTap: () => _onItemTapped(0, context, isAdminOrManager),
-                ),
-                _MobileNavItem(
-                  icon: isAdminOrManager
-                      ? Icons.admin_panel_settings_rounded
-                      : Icons.history_rounded,
-                  label: isAdminOrManager
-                      ? ref.tr('adminPortal')
-                      : ref.tr('attendanceHistory'),
-                  isSelected: selectedIndex == 1,
-                  onTap: () => _onItemTapped(1, context, isAdminOrManager),
-                ),
-                // Center Scanner Action Button (Employees ONLY)
-                if (isEmployee)
-                  GestureDetector(
-                    onTap: () => context.push('/scan'),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF4F46E5).withValues(alpha: 0.45),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white24, width: 1.5),
-                      ),
-                      child: const Icon(
-                        Icons.qr_code_scanner_rounded,
-                        color: Colors.white,
-                        size: 26,
+            child: Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _MobileNavItem(
+                        icon: Icons.dashboard_rounded,
+                        label: ref.tr('dashboard'),
+                        isSelected: selectedIndex == 0,
+                        onTap: () =>
+                            _onItemTapped(0, context, isAdminOrManager),
                       ),
                     ),
-                  ),
-                _MobileNavItem(
-                  icon: Icons.notifications_rounded,
-                  label: ref.tr('notifications'),
-                  isSelected: selectedIndex == 2,
-                  badgeCount: unreadCount,
-                  onTap: () => _onItemTapped(2, context, isAdminOrManager),
+                    Expanded(
+                      child: _MobileNavItem(
+                        icon: isAdminOrManager
+                            ? Icons.admin_panel_settings_rounded
+                            : Icons.history_rounded,
+                        label: isAdminOrManager
+                            ? ref.tr('adminPortal')
+                            : ref.tr('attendanceHistory'),
+                        isSelected: selectedIndex == 1,
+                        onTap: () =>
+                            _onItemTapped(1, context, isAdminOrManager),
+                      ),
+                    ),
+                    // Center Scanner Action Button (Employees ONLY)
+                    if (isEmployee)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () => context.push('/scan'),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF4F46E5)
+                                      .withValues(alpha: 0.45),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border:
+                                  Border.all(color: Colors.white24, width: 1.5),
+                            ),
+                            child: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: _MobileNavItem(
+                        icon: Icons.notifications_rounded,
+                        label: ref.tr('notifications'),
+                        isSelected: selectedIndex == 2,
+                        badgeCount: unreadCount,
+                        onTap: () =>
+                            _onItemTapped(2, context, isAdminOrManager),
+                      ),
+                    ),
+                    Expanded(
+                      child: _MobileNavItem(
+                        icon: Icons.person_rounded,
+                        label: ref.tr('userProfile'),
+                        isSelected: selectedIndex == 3,
+                        onTap: () =>
+                            _onItemTapped(3, context, isAdminOrManager),
+                      ),
+                    ),
+                  ],
                 ),
-                _MobileNavItem(
-                  icon: Icons.person_rounded,
-                  label: ref.tr('userProfile'),
-                  isSelected: selectedIndex == 3,
-                  onTap: () => _onItemTapped(3, context, isAdminOrManager),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -344,8 +364,9 @@ class _MobileNavItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
@@ -354,7 +375,7 @@ class _MobileNavItem extends StatelessWidget {
                 Icon(
                   icon,
                   color: isSelected ? primary : unselectedColor,
-                  size: 24,
+                  size: 23,
                 ),
                 if (badgeCount > 0)
                   Positioned(
@@ -390,9 +411,11 @@ class _MobileNavItem extends StatelessWidget {
                 color: isSelected ? primary : unselectedColor,
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                letterSpacing: -0.2,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -446,7 +469,8 @@ class _SidebarItem extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         borderRadius: BorderRadius.circular(14),
         child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           dense: true,
           leading: Icon(
             isSelected ? (activeIcon ?? icon) : icon,
@@ -459,14 +483,17 @@ class _SidebarItem extends StatelessWidget {
             style: TextStyle(
               color: isSelected
                   ? (isDark ? Colors.white : primary)
-                  : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155)),
+                  : (isDark
+                      ? const Color(0xFFE2E8F0)
+                      : const Color(0xFF334155)),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               fontSize: 14,
             ),
           ),
           trailing: badgeCount > 0
               ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEF4444),
                     borderRadius: BorderRadius.circular(12),

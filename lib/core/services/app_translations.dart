@@ -49,7 +49,7 @@ class AppTranslations {
       'scanToClockIn': 'Scan QR code to record your punch',
       'verifiedByGpsQr': 'GPS & QR Verified',
       'quickServices': 'Quick Services',
-      'userProfile': 'Employee Profile',
+      'userProfile': 'Profile',
       'manageProfile': 'Manage user account info and credentials',
       'settingsPrefs': 'Settings & Preferences',
       'themeLangSec': 'Theme, Language, Notifications & Security',
@@ -72,9 +72,12 @@ class AppTranslations {
       'pushNotifSub': 'Receive announcements and status updates',
       'dailyReminder': 'Daily Check-in Reminder',
       'dailyReminderSub': 'Notify 15 minutes before shift start time',
-      'forgotClockInTitle': 'Clock-In Reminder',
+      'attendanceRequired': 'Attendance Required',
+      'attendanceRequiredBody': 'Please record your attendance for today.',
+      'forgotClockInTitle': 'You Forgot to Check In',
       'forgotClockInBody':
           "You haven't clocked in today! Please open the app and record your attendance.",
+      'attendanceReminder': 'Attendance Reminder',
       'appPrefsSync': 'App Preferences & Sync',
       'autoSync': 'Auto-Sync Offline Scans',
       'autoSyncSub':
@@ -719,7 +722,7 @@ class AppTranslations {
       'scanToClockIn': 'Scannez le QR code pour pointer',
       'verifiedByGpsQr': 'Vérifié par GPS & QR',
       'quickServices': 'Services rapides',
-      'userProfile': 'Profil employé',
+      'userProfile': 'Profil',
       'manageProfile': 'Gérer les informations et identifiants du compte',
       'settingsPrefs': 'Paramètres & Préférences',
       'themeLangSec': 'Thème, Langue, Notifications & Sécurité',
@@ -742,9 +745,13 @@ class AppTranslations {
       'pushNotifSub': 'Recevoir des annonces et mises à jour',
       'dailyReminder': 'Rappel quotidien de pointage',
       'dailyReminderSub': 'Notifier 15 minutes avant le début de garde',
-      'forgotClockInTitle': 'Rappel de pointage',
+      'attendanceRequired': 'Présence requise',
+      'attendanceRequiredBody':
+          'Veuillez enregistrer votre présence pour aujourd\'hui.',
+      'forgotClockInTitle': 'Vous avez oublié de pointer',
       'forgotClockInBody':
           "Vous n'avez pas encore pointé aujourd'hui ! Veuillez enregistrer votre présence.",
+      'attendanceReminder': 'Rappel de présence',
       'appPrefsSync': "Préférences d'application & Synchro",
       'autoSync': 'Synchronisation automatique hors ligne',
       'autoSyncSub': 'Téléverser automatiquement les pointages en ligne',
@@ -1344,7 +1351,8 @@ class AppTranslations {
       'systemOnline': 'Système en ligne',
       'adminNoScanAllowed':
           'Les administrateurs et managers supervisent le système et n\'enregistrent pas leur présence.',
-      'restDayMessage': 'Aujourd\'hui est votre jour de repos programmé. Bon repos !',
+      'restDayMessage':
+          'Aujourd\'hui est votre jour de repos programmé. Bon repos !',
       'workScheduleSettings': 'Paramètres du planning de travail',
     },
     'ar': {
@@ -1394,7 +1402,7 @@ class AppTranslations {
       'scanToClockIn': 'امسح رمز QR لتسجيل حضورك',
       'verifiedByGpsQr': 'تم التحقق عبر GPS و QR',
       'quickServices': 'خدمات سريعة',
-      'userProfile': 'الملف الشخصي للموظف',
+      'userProfile': 'الملف الشخصي',
       'manageProfile': 'إدارة بيانات الحساب والاعتمادات',
       'settingsPrefs': 'الإعدادات والتفضيلات',
       'themeLangSec': 'المظهر، اللغة، الإشعارات والأمان',
@@ -1417,9 +1425,12 @@ class AppTranslations {
       'pushNotifSub': 'تلقي التنبيهات والإعلانات الرسمية',
       'dailyReminder': 'تذكير الحضور اليومي',
       'dailyReminderSub': 'التنبيه قبل 15 دقيقة من بداية الدوام',
-      'forgotClockInTitle': 'تذكير تسجيل الحضور',
+      'attendanceRequired': 'تسجيل الحضور مطلوب',
+      'attendanceRequiredBody': 'يرجى تسجيل حضورك لهذا اليوم.',
+      'forgotClockInTitle': 'لقد نسيت تسجيل الحضور',
       'forgotClockInBody':
           'لم تقم بتسجيل الحضور اليوم! يرجى فتح التطبيق وتسجيل الحضور.',
+      'attendanceReminder': 'تذكير الحضور',
       'appPrefsSync': 'التزامن والتفضيلات',
       'autoSync': 'مزامنة السجلات دون اتصال تلقائياً',
       'autoSyncSub': 'رفع السجلات المعلقة عند توفر الإنترنت',
@@ -2035,7 +2046,7 @@ class AppTranslations {
       'scanToClockIn': 'Escanea el código QR para fichar',
       'verifiedByGpsQr': 'Verificado por GPS y QR',
       'quickServices': 'Servicios Rápidos',
-      'userProfile': 'Perfil de Empleado',
+      'userProfile': 'Perfil',
       'manageProfile': 'Gestionar información de cuenta y credenciales',
       'settingsPrefs': 'Ajustes y Preferencias',
       'themeLangSec': 'Tema, Idioma, Notificaciones y Seguridad',
@@ -2058,9 +2069,13 @@ class AppTranslations {
       'pushNotifSub': 'Recibir anuncios y actualizaciones',
       'dailyReminder': 'Recordatorio Diario de Asistencia',
       'dailyReminderSub': 'Notificar 15 minutos antes del turno',
-      'forgotClockInTitle': 'Recordatorio de Fichaje',
+      'attendanceRequired': 'Asistencia requerida',
+      'attendanceRequiredBody':
+          'Por favor, recuerda registrar tu asistencia para hoy.',
+      'forgotClockInTitle': 'Olvidaste fichar',
       'forgotClockInBody':
           '¡No has fichado hoy! Por favor abre la aplicación y registra tu asistencia.',
+      'attendanceReminder': 'Recordatorio de asistencia',
       'appPrefsSync': 'Preferencias de App y Sincronización',
       'autoSync': 'Sincronización Automática Offline',
       'autoSyncSub': 'Subir registros pendientes al conectarse',
@@ -2640,10 +2655,15 @@ class AppTranslations {
       'systemOnline': 'Sistema en línea',
       'adminNoScanAllowed':
           'Los administradores y gerentes supervisan el sistema y no registran asistencia.',
-      'restDayMessage': 'Hoy es tu día de descanso programado. ¡Disfruta de tu descanso!',
+      'restDayMessage':
+          'Hoy es tu día de descanso programado. ¡Disfruta de tu descanso!',
       'workScheduleSettings': 'Configuración de horario laboral',
     },
   };
+
+  static bool hasKey(String key) {
+    return _localizedValues['en']?.containsKey(key) ?? false;
+  }
 
   static String text(String langCode, String key) {
     return _localizedValues[langCode]?[key] ??

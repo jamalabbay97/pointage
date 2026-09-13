@@ -26,6 +26,8 @@ class NotificationService {
     required String body,
     required String type,
     required String senderId,
+    String? titleKey,
+    String? bodyKey,
     String? senderName,
     String? targetManagerId,
     String? targetUserId,
@@ -36,6 +38,8 @@ class NotificationService {
       'body': body,
       'type': type,
       'senderId': senderId,
+      if (titleKey != null) 'titleKey': titleKey,
+      if (bodyKey != null) 'bodyKey': bodyKey,
       if (senderName != null) 'senderName': senderName,
       if (targetManagerId != null) 'targetManagerId': targetManagerId,
       if (targetUserId != null) 'targetUserId': targetUserId,
@@ -114,15 +118,40 @@ bool _isVisible(
     return false;
   }
 
+  // Check if notification is an attendance requirement / check-in reminder
+  final isAttendanceReminder = n.isReminderType ||
+      n.titleKey == 'attendanceRequired' ||
+      n.titleKey == 'forgotClockInTitle' ||
+      n.title.toLowerCase().contains('attendance required') ||
+      n.title.toLowerCase().contains('forgot') ||
+      n.title.toLowerCase().contains('clock-in') ||
+      n.title.toLowerCase().contains('présence requise') ||
+      n.title.toLowerCase().contains('oublié') ||
+      n.title.toLowerCase().contains('تسجيل الحضور مطلوب') ||
+      n.title.toLowerCase().contains('نسيت') ||
+      n.title.toLowerCase().contains('asistencia requerida') ||
+      n.title.toLowerCase().contains('olvidaste');
+
+  // Rule: Admin and Manager accounts MUST NEVER receive or display attendance reminders
+  if (userModel?.isAdmin == true || userModel?.isManager == true) {
+    if (isAttendanceReminder) return false;
+    return n.isAdminType || n.senderId == authUser.uid;
+  }
+
+  // Attendance reminders are strictly displayed for employees/workers required to record attendance
+  if (isAttendanceReminder) {
+    if (userModel?.isEmployee != true) return false;
+    if (n.targetUserId != null) {
+      return n.targetUserId == authUser.uid;
+    }
+    return true;
+  }
+
   // Notifications targeted to specific user
   if (n.targetUserId != null) {
     return n.targetUserId == authUser.uid;
   }
 
-  // Admins and managers see everything they sent, plus admin broadcasts
-  if (userModel?.isAdmin == true || userModel?.isManager == true) {
-    return n.isAdminType || n.senderId == authUser.uid;
-  }
   // Admin broadcasts → all users
   if (n.isAdminType) return true;
   // Manager notifications → only employees registered by that manager

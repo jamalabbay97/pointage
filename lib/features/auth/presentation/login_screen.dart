@@ -16,7 +16,6 @@ import '../../../core/config/app_config.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/app_translations.dart';
 import '../../../core/utils/async_timeout.dart';
-import '../../../core/widgets/mobile_app_download_dialog.dart';
 import '../domain/auth_provider.dart';
 import '../domain/user_sync_service.dart';
 
@@ -873,16 +872,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             label: Text(ref.tr('biometricAuth')),
                           ),
                         ],
-                        const SizedBox(height: 20),
-                        const Divider(height: 1),
-                        const SizedBox(height: 16),
-                        TextButton.icon(
-                          onPressed: () =>
-                              MobileAppDownloadDialog.show(context),
-                          icon:
-                              const Icon(Icons.phone_android_rounded, size: 18),
-                          label: Text(ref.tr('downloadMobileApp')),
-                        ),
                       ],
                     ),
                   ),

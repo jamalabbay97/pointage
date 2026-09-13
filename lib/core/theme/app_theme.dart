@@ -301,8 +301,8 @@ class AppTheme {
           iconColor: lightIcon,
           textColor: lightPrimaryText,
         ),
-        hoverColor: lightHoverSurface,
-        highlightColor: lightSelectedSurface,
+        hoverColor: lightAccent.withValues(alpha: 0.04),
+        highlightColor: lightAccent.withValues(alpha: 0.08),
       );
 
   // Dark Theme Color System Tokens
@@ -544,7 +544,7 @@ class AppTheme {
           iconColor: darkIcon,
           textColor: darkPrimaryText,
         ),
-        hoverColor: darkHoverSurface,
-        highlightColor: darkSelectedSurface,
+        hoverColor: darkAccent.withValues(alpha: 0.08),
+        highlightColor: darkAccent.withValues(alpha: 0.12),
       );
 }

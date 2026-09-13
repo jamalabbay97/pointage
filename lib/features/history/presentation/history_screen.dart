@@ -17,15 +17,17 @@ class HistoryScreen extends ConsumerStatefulWidget {
 }
 
 enum AttendanceFilterType {
-  allAttended,
+  all,
   presentOnly,
   lateOnly,
+  absentOnly,
 }
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   final ValueNotifier<String> _searchQueryNotifier = ValueNotifier('');
-  AttendanceFilterType _attendanceFilter = AttendanceFilterType.allAttended;
+  AttendanceFilterType _attendanceFilter = AttendanceFilterType.all;
+  int _retryKey = 0;
 
   @override
   void dispose() {
@@ -35,7 +37,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authUser = FirebaseAuth.instance.currentUser;
+    final authState = ref.watch(authStateProvider);
+    final authUser = authState.valueOrNull ?? FirebaseAuth.instance.currentUser;
     final currentUserAsync = ref.watch(currentUserModelProvider);
     final currentUser = currentUserAsync.valueOrNull;
     final effectiveUid = authUser?.uid ?? currentUser?.uid;
@@ -57,7 +60,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       );
     }
 
-    if (effectiveUid == null) {
+    if ((authState.isLoading && authUser == null) ||
+        (currentUserAsync.isLoading && currentUser == null)) {
+      return Scaffold(
+        appBar: AppBar(title: Text(ref.tr('attendanceHistory'))),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (effectiveUid == null || authUser == null) {
       if (currentUserAsync.isLoading) {
         return Scaffold(
           appBar: AppBar(title: Text(ref.tr('attendanceHistory'))),
@@ -76,6 +87,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         final pendingRecords = pendingSnap.data ?? [];
 
         return StreamBuilder<QuerySnapshot>(
+          key: ValueKey('attendance_stream_${effectiveUid}_$_retryKey'),
           stream: FirebaseFirestore.instance
               .collection('attendance')
               .where('employeeId', isEqualTo: effectiveUid)
@@ -108,7 +120,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: () => setState(() {}),
+                        onPressed: () async {
+                          try {
+                            await FirebaseAuth.instance.currentUser
+                                ?.getIdToken(true);
+                          } catch (_) {}
+                          if (mounted) {
+                            setState(() => _retryKey++);
+                          }
+                        },
                         icon: const Icon(Icons.refresh_rounded, size: 18),
                         label: Text(ref.tr('retry')),
                       ),
@@ -159,7 +179,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               }
             }
 
-            // Generate entries for all days that have passed in _selectedMonth
+            // Generate entries only for dates that have already occurred or the current date
             final now = DateTime.now();
             final today = DateTime(now.year, now.month, now.day);
             final startOfMonth =
@@ -167,19 +187,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             final endOfMonth =
                 DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
-            final int lastPassedDay;
+            final int maxAllowedDay;
             if (startOfMonth.isAfter(today)) {
-              lastPassedDay = 0;
-            } else if (endOfMonth.isBefore(today)) {
-              lastPassedDay = endOfMonth.day;
+              maxAllowedDay = 0;
+            } else if (endOfMonth.isBefore(today) ||
+                (endOfMonth.year == today.year &&
+                    endOfMonth.month == today.month &&
+                    endOfMonth.day == today.day)) {
+              maxAllowedDay = endOfMonth.day;
             } else {
-              lastPassedDay = today.day;
+              maxAllowedDay = today.day;
             }
 
-            final scheduleType = currentUser?.scheduleType ?? 'standard';
+            String scheduleType = currentUser?.scheduleType ?? 'standard';
+            if (scheduleType == 'standard') {
+              for (final r in firestoreRecords) {
+                final st = r['scheduleType'] as String?;
+                if (st != null && st.isNotEmpty) {
+                  scheduleType = st;
+                  break;
+                }
+              }
+            }
             final bool is2010 = scheduleType == 'days_20_10';
 
-            for (int day = 1; day <= lastPassedDay; day++) {
+            for (int day = 1; day <= maxAllowedDay; day++) {
               final date =
                   DateTime(_selectedMonth.year, _selectedMonth.month, day);
               final dateStr = DateFormat('yyyy-MM-dd').format(date);
@@ -217,11 +249,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               scheduleType: scheduleType,
             );
 
-            // Filter out absent and day-off records: display only attendance days and late days
-            final attendedRecords = monthRecords.where((r) {
+            // Filter records based on selected tab filter
+            final filteredByTab = monthRecords.where((r) {
               final status =
                   (r['status'] as String? ?? '').trim().toLowerCase();
               final isLate = status == 'late';
+              final isAbsent = status == 'absent';
               final isPresent = status != 'absent' &&
                   status != 'day_off' &&
                   status != 'dayoff' &&
@@ -231,12 +264,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   !isLate;
 
               switch (_attendanceFilter) {
-                case AttendanceFilterType.allAttended:
-                  return isPresent || isLate;
+                case AttendanceFilterType.all:
+                  return true;
                 case AttendanceFilterType.presentOnly:
                   return isPresent;
                 case AttendanceFilterType.lateOnly:
                   return isLate;
+                case AttendanceFilterType.absentOnly:
+                  return isAbsent;
               }
             }).toList();
 
@@ -268,7 +303,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       ValueListenableBuilder<String>(
                         valueListenable: _searchQueryNotifier,
                         builder: (context, searchQuery, _) {
-                          final filteredRecords = attendedRecords
+                          final filteredRecords = filteredByTab
                               .where(
                                 (record) => _matchesSearch(record, searchQuery),
                               )
@@ -302,6 +337,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 _AttendanceBottomBar(
                   summary: summary,
                   activeFilter: _attendanceFilter,
+                  totalRecordsCount: monthRecords.length,
                   onFilterChanged: (filter) =>
                       setState(() => _attendanceFilter = filter),
                 ),
@@ -330,9 +366,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   bool _isInSelectedMonth(Map<String, dynamic> record) {
     final date = _recordDate(record);
-    return date != null &&
-        date.year == _selectedMonth.year &&
-        date.month == _selectedMonth.month;
+    if (date == null) return false;
+    if (date.year != _selectedMonth.year ||
+        date.month != _selectedMonth.month) {
+      return false;
+    }
+    // Strict requirement: Future dates should not be displayed.
+    // Only dates that have already occurred or the current date should be shown.
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final recordDay = DateTime(date.year, date.month, date.day);
+    return !recordDay.isAfter(today);
   }
 
   bool _matchesSearch(Map<String, dynamic> record, String searchQuery) {
@@ -474,11 +518,13 @@ class _AttendanceBottomBar extends ConsumerWidget {
     required this.summary,
     required this.activeFilter,
     required this.onFilterChanged,
+    required this.totalRecordsCount,
   });
 
   final _AttendanceSummary summary;
   final AttendanceFilterType activeFilter;
   final ValueChanged<AttendanceFilterType> onFilterChanged;
+  final int totalRecordsCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -557,6 +603,17 @@ class _AttendanceBottomBar extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _FilterButton(
+                      label: ref.tr('all'),
+                      count: totalRecordsCount,
+                      icon: Icons.done_all_rounded,
+                      color: const Color(0xFF6366F1),
+                      isSelected: activeFilter == AttendanceFilterType.all,
+                      onTap: () => onFilterChanged(AttendanceFilterType.all),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _FilterButton(
                       label: ref.tr('present'),
                       count: onTimeCount,
                       icon: Icons.check_circle_rounded,
@@ -565,12 +622,12 @@ class _AttendanceBottomBar extends ConsumerWidget {
                           activeFilter == AttendanceFilterType.presentOnly,
                       onTap: () => onFilterChanged(
                         activeFilter == AttendanceFilterType.presentOnly
-                            ? AttendanceFilterType.allAttended
+                            ? AttendanceFilterType.all
                             : AttendanceFilterType.presentOnly,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: _FilterButton(
                       label: ref.tr('late'),
@@ -580,18 +637,26 @@ class _AttendanceBottomBar extends ConsumerWidget {
                       isSelected: activeFilter == AttendanceFilterType.lateOnly,
                       onTap: () => onFilterChanged(
                         activeFilter == AttendanceFilterType.lateOnly
-                            ? AttendanceFilterType.allAttended
+                            ? AttendanceFilterType.all
                             : AttendanceFilterType.lateOnly,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _AllAttendedButton(
-                    count: summary.checkIns,
-                    isSelected:
-                        activeFilter == AttendanceFilterType.allAttended,
-                    onTap: () =>
-                        onFilterChanged(AttendanceFilterType.allAttended),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _FilterButton(
+                      label: ref.tr('absent'),
+                      count: summary.absences,
+                      icon: Icons.person_off_rounded,
+                      color: const Color(0xFFEF4444),
+                      isSelected:
+                          activeFilter == AttendanceFilterType.absentOnly,
+                      onTap: () => onFilterChanged(
+                        activeFilter == AttendanceFilterType.absentOnly
+                            ? AttendanceFilterType.all
+                            : AttendanceFilterType.absentOnly,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -628,12 +693,16 @@ class _SummaryChip extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -672,7 +741,7 @@ class _FilterButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
@@ -683,13 +752,13 @@ class _FilterButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 3),
               Flexible(
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                     color: isSelected
                         ? color
@@ -700,10 +769,10 @@ class _FilterButton extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 3),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                 decoration: BoxDecoration(
                   color: isSelected ? color : color.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(8),
@@ -711,69 +780,7 @@ class _FilterButton extends StatelessWidget {
                 child: Text(
                   '$count',
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : color,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AllAttendedButton extends StatelessWidget {
-  const _AllAttendedButton({
-    required this.count,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final int count;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const color = Color(0xFF6366F1);
-
-    return Material(
-      color: isSelected
-          ? color.withValues(alpha: isDark ? 0.22 : 0.15)
-          : (isDark ? const Color(0xFF131B2E) : const Color(0xFFF1F5F9)),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isSelected ? color : Colors.transparent,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.done_all_rounded, size: 16, color: color),
-              const SizedBox(width: 4),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: isSelected ? color : color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                     color: isSelected ? Colors.white : color,
                   ),
@@ -1068,7 +1075,12 @@ class _AttendanceSummary {
     final workingDays = _countWorkingDays(selectedMonth, scheduleType);
     final presentRecords = records.where((r) {
       final s = (r['status'] as String? ?? 'present').trim().toLowerCase();
-      return s != 'absent' && s != 'day_off' && s != 'leave' && s != 'holiday';
+      return s != 'absent' &&
+          s != 'day_off' &&
+          s != 'dayoff' &&
+          s != 'off' &&
+          s != 'leave' &&
+          s != 'holiday';
     }).toList();
 
     final checkIns = presentRecords.length;
@@ -1080,20 +1092,32 @@ class _AttendanceSummary {
         )
         .length;
 
+    final absences = records
+        .where(
+          (record) =>
+              (record['status'] as String? ?? '').trim().toLowerCase() ==
+              'absent',
+        )
+        .length;
+
     return _AttendanceSummary(
       workingDays: workingDays,
       checkIns: checkIns,
-      absences: (workingDays - checkIns).clamp(0, workingDays).toInt(),
+      absences: absences,
       lateArrivals: lateArrivals,
     );
   }
 
-  /// Calculates the number of working days in [month] based on [scheduleType].
+  /// Returns the fixed number of working days in [month] based on the manager's [scheduleType].
   ///
-  /// - `'days_20_10'`: Fixed 20 working days per month (rotating 20-on/10-off).
-  /// - `'standard'` (or any other value): Count weekdays (Monday–Friday).
+  /// - `'days_20_10'`: Exactly 20 working days per month (20 working days + 10 days off rule).
+  /// - `'standard'`: Total Monday–Friday weekdays in the full month.
+  ///
+  /// These working days remain fixed and never change based on the elapsed days.
   static int _countWorkingDays(DateTime month, String scheduleType) {
-    if (scheduleType == 'days_20_10') return 20;
+    if (scheduleType == 'days_20_10') {
+      return 20;
+    }
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     var weekdays = 0;
     for (var day = 1; day <= daysInMonth; day++) {

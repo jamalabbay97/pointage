@@ -1054,8 +1054,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                   .doc(currentUid)
                                   .get();
                               if (freshMgr.exists && freshMgr.data() != null) {
-                                final st = freshMgr.data()!['scheduleType']
-                                    as String?;
+                                final st =
+                                    freshMgr.data()!['scheduleType'] as String?;
                                 if (st != null && st.isNotEmpty) {
                                   managerSchedule = st;
                                 }
